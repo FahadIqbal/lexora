@@ -1,0 +1,79 @@
+[
+  {
+    "id": "w-ephemeral",
+    "word": "Ephemeral",
+    "phonetic": "/ɪˈfem.ər.əl/",
+    "part_of_speech": "adjective",
+    "definition": "Lasting for a very short time; fleeting.",
+    "short_definition": "Short-lived; fleeting.",
+    "etymology": "From Greek ephēmeros (“lasting only a day”).",
+    "difficulty_level": 3,
+    "frequency_rank": 1840,
+    "categories": ["daily-life", "ielts"],
+    "example_sentences": [
+      { "sentence": "The beauty of the sunset was ephemeral, gone in minutes.", "source": "Conversation" },
+      { "sentence": "Fame can be ephemeral when it depends on trends.", "source": "News" }
+    ],
+    "synonyms": ["fleeting", "transient", "short-lived", "momentary", "brief"],
+    "antonyms": ["enduring", "lasting", "permanent"],
+    "mnemonic": "“Ephi-meral” → “a MERELY a day” kind of lasting."
+  },
+  {
+    "id": "w-mellifluous",
+    "word": "Mellifluous",
+    "phonetic": "/məˈlɪf.lu.əs/",
+    "part_of_speech": "adjective",
+    "definition": "Sweet or musical; pleasant to hear.",
+    "short_definition": "Sweet-sounding.",
+    "etymology": "From Latin mellifluus (“honey-flowing”).",
+    "difficulty_level": 4,
+    "frequency_rank": 8920,
+    "categories": ["gre-sat", "literature"],
+    "example_sentences": [
+      { "sentence": "Her mellifluous voice made the narration hypnotic.", "source": "Audiobook" },
+      { "sentence": "The violin produced a mellifluous, warm tone.", "source": "Review" }
+    ],
+    "synonyms": ["dulcet", "melodious", "honeyed", "silvery", "smooth"],
+    "antonyms": ["harsh", "grating", "raspy"],
+    "mnemonic": "Melli = honey (like “mellitus”). Fluous = flowing."
+  },
+  {
+    "id": "w-nuance",
+    "word": "Nuance",
+    "phonetic": "/ˈnjuː.ɑːns/",
+    "part_of_speech": "noun",
+    "definition": "A subtle difference in meaning, expression, or tone.",
+    "short_definition": "A subtle difference.",
+    "etymology": "From French nuance (“shade, subtle difference”).",
+    "difficulty_level": 3,
+    "frequency_rank": 2600,
+    "categories": ["business", "ielts"],
+    "example_sentences": [
+      { "sentence": "Good writers understand the nuance between similar words.", "source": "Writing guide" },
+      { "sentence": "Her tone carried a nuance of disappointment.", "source": "Conversation" }
+    ],
+    "synonyms": ["subtlety", "shade", "distinction", "variation", "undertone"],
+    "antonyms": ["obviousness", "bluntness", "simplicity"],
+    "mnemonic": "Nuance = “new-ants” — tiny details you might miss."
+  },
+  {
+    "id": "w-meticulous",
+    "word": "Meticulous",
+    "phonetic": "/məˈtɪk.jə.ləs/",
+    "part_of_speech": "adjective",
+    "definition": "Showing great attention to detail; very careful and precise.",
+    "short_definition": "Very careful.",
+    "etymology": "From Latin meticulosus (“timid, fearful”), later “overly careful.”",
+    "difficulty_level": 3,
+    "frequency_rank": 3400,
+    "categories": ["business", "academic"],
+    "example_sentences": [
+      { "sentence": "She kept meticulous notes during the meeting.", "source": "Business" },
+      { "sentence": "The lab requires meticulous handling of samples.", "source": "Science" }
+    ],
+    "synonyms": ["careful", "thorough", "exact", "precise", "scrupulous"],
+    "antonyms": ["careless", "sloppy", "haphazard"],
+    "mnemonic": "Meticulous = “metric” + “ticks” — you measure every tiny tick."
+  }
+]
+

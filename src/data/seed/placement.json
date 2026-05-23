@@ -1,0 +1,21 @@
+[
+  {
+    "word": "Abundant",
+    "levelHint": "A2",
+    "choices": ["plentiful", "dangerous", "silent", "careless"],
+    "correctIndex": 0
+  },
+  {
+    "word": "Meticulous",
+    "levelHint": "B2",
+    "choices": ["very careful and precise", "extremely hungry", "easy to forget", "difficult to carry"],
+    "correctIndex": 0
+  },
+  {
+    "word": "Obfuscate",
+    "levelHint": "C1",
+    "choices": ["to make unclear", "to praise loudly", "to gather quickly", "to repeat often"],
+    "correctIndex": 0
+  }
+]
+
