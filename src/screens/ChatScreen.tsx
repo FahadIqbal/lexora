@@ -8,6 +8,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import Markdown from 'react-native-markdown-display';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { seed } from '../data/seed';
+import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
+import { hasAnthropic } from '../services/env';
 
 export function ChatScreen() {
   const t = useTheme();
@@ -53,23 +55,20 @@ export function ChatScreen() {
     const prompt = input.trim();
     if (!prompt) return;
     setText('');
-    setMessages((m) => [...m, { role: 'user', content: prompt }]);
-
-    // Mock streaming reply (later: wire to Claude streaming)
     setTyping(true);
-    const full =
-      `**Coach mode:**\n\n` +
-      `Here’s a strong way to think about it:\n\n` +
-      `- Meaning: keep it *simple and sharp*.\n` +
-      `- Example: “The benefit is **ephemeral**, so we should act quickly.”\n` +
-      `- Common mistake: using it like “rare” (it means *short-lived*).\n\n` +
-      `Want a 3-question quiz on this word?`;
+    const nextMessages: TutorMessage[] = [...messages, { role: 'user', content: prompt }];
+    setMessages(nextMessages);
+
+    const full = await sendTutorMessage(nextMessages).catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      return `AI Tutor error: ${msg}`;
+    });
 
     let i = 0;
-    const chunk = () => {
-      i += 6;
+    const tick = () => {
+      i += Math.max(4, Math.ceil(full.length / 90));
       const partial = full.slice(0, i);
-      setMessages((m) => {
+      setMessages((m: TutorMessage[]) => {
         const last = m[m.length - 1];
         if (last?.role === 'assistant' && last.content.startsWith('STREAM:')) {
           return [...m.slice(0, -1), { role: 'assistant', content: `STREAM:${partial}` }];
@@ -77,10 +76,10 @@ export function ChatScreen() {
         return [...m, { role: 'assistant', content: `STREAM:${partial}` }];
       });
       if (i < full.length) {
-        setTimeout(chunk, 40);
+        setTimeout(tick, 25);
       } else {
         setTyping(false);
-        setMessages((m) => {
+        setMessages((m: TutorMessage[]) => {
           const last = m[m.length - 1];
           if (last?.role === 'assistant' && last.content.startsWith('STREAM:')) {
             return [...m.slice(0, -1), { role: 'assistant', content: full }];
@@ -89,7 +88,7 @@ export function ChatScreen() {
         });
       }
     };
-    setTimeout(chunk, 220);
+    setTimeout(tick, 80);
   };
 
   return (
@@ -98,18 +97,18 @@ export function ChatScreen() {
         <View style={{ padding: 18, flex: 1 }}>
           <LexText variant="h2">AI Tutor</LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>
-            Beautiful chat UI now; Claude streaming will be wired once your key is ready.
+            {hasAnthropic() ? 'Live tutor enabled (development only).' : 'Offline demo mode. Add EXPO_PUBLIC_ANTHROPIC_API_KEY to enable live responses.'}
           </LexText>
 
           <Card style={{ marginTop: 16, flex: 1, padding: 0, overflow: 'hidden' }}>
             <ScrollView
-              ref={(r) => {
+              ref={(r: ScrollView | null) => {
                 scrollRef.current = r;
               }}
               contentContainerStyle={{ padding: 14, paddingBottom: 18, gap: 12 }}
               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
             >
-              {messages.map((m, idx) => {
+              {messages.map((m: TutorMessage, idx: number) => {
                 const isUser = m.role === 'user';
                 const streaming = m.role === 'assistant' && m.content.startsWith('STREAM:');
                 const content = streaming ? m.content.replace(/^STREAM:/, '') : m.content;

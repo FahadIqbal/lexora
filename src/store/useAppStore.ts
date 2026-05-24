@@ -35,6 +35,7 @@ type AppState = {
   setDailyGoalWords: (n: number) => void;
   setProficiencyLevel: (lvl: string) => void;
   setDisplayName: (name: string) => void;
+  setUserId: (id?: string) => void;
   addXp: (n: number) => void;
   ensureToday: () => void;
 
@@ -88,6 +89,10 @@ export const useAppStore = create<AppState>()(
       setDisplayName: (name) =>
         set((s) => ({
           user: { ...s.user, displayName: name },
+        })),
+      setUserId: (id) =>
+        set((s) => ({
+          user: { ...s.user, id },
         })),
       ensureToday: () =>
         set((s) => {

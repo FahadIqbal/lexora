@@ -12,13 +12,20 @@ import { Button } from '../../../components/Button';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { FloatingLabelInput } from '../ui/FloatingLabelInput';
 import { useAppStore } from '../../../store/useAppStore';
+import { hasSupabase } from '../../../services/env';
+import { supabase } from '../../../services/supabase';
+import { upsertUserProfile } from '../../../services/supabaseHelpers';
 
 export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const t = useTheme();
   const setDisplayName = useAppStore((s) => s.setDisplayName);
+  const setUserId = useAppStore((s) => s.setUserId);
+  const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const shake = useSharedValue(0);
 
   const shakeStyle = useAnimatedStyle(() => ({
@@ -27,7 +34,7 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
 
   const valid = useMemo(() => /\S+@\S+\.\S+/.test(email) && password.length >= 6, [email, password]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!valid) {
       shake.value = withSequence(
         withTiming(-10, { duration: 40 }),
@@ -38,10 +45,42 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
       );
       return;
     }
-    // Until Supabase Auth is wired, derive a friendly display name from email.
+
     const name = email.split('@')[0] || '';
     setDisplayName(name);
-    onNext();
+
+    if (!hasSupabase()) {
+      onNext();
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const authResult =
+        mode === 'signup'
+          ? await supabase.auth.signUp({ email, password })
+          : await supabase.auth.signInWithPassword({ email, password });
+
+      if (authResult.error) throw authResult.error;
+
+      const userId = authResult.data.user?.id ?? authResult.data.session?.user?.id;
+      if (userId) {
+        setUserId(userId);
+        await upsertUserProfile({
+          id: userId,
+          display_name: name,
+          daily_goal_words: dailyGoalWords,
+        }).catch(() => null);
+      }
+
+      onNext();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Sign-in failed';
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -50,7 +89,7 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
         <Animated.View entering={FadeInDown.duration(520).springify().damping(16)}>
           <LexText variant="h2">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>
-            Mock auth for now. Later: Supabase Auth (email + Google/Apple).
+            {hasSupabase() ? 'Sign in with Supabase (email + password).' : 'Local mode. Add Supabase env vars to enable real sign-in.'}
           </LexText>
         </Animated.View>
 
@@ -74,9 +113,17 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(200).duration(520)} style={{ marginTop: 18, gap: 10 }}>
-          <Button title={mode === 'signup' ? 'Continue' : 'Sign in'} onPress={submit} />
+          <Button title={mode === 'signup' ? 'Continue' : 'Sign in'} onPress={submit} disabled={!valid || submitting} />
           <Button title="Back" variant="ghost" onPress={onBack} />
         </Animated.View>
+
+        {error ? (
+          <Animated.View entering={FadeInDown.delay(240).duration(520)} style={{ marginTop: 12 }}>
+            <LexText variant="muted" style={{ color: t.colors.accentPink }}>
+              {error}
+            </LexText>
+          </Animated.View>
+        ) : null}
 
         <Animated.View entering={FadeInDown.delay(280).duration(520)} style={{ marginTop: 14 }}>
           <LexText variant="muted" style={{ textAlign: 'center' }}>
