@@ -57,6 +57,7 @@ create table if not exists public.user_profiles (
   proficiency_level text,
   selected_categories text[] default '{}'::text[],
   is_premium boolean default false,
+  is_admin boolean default false,
   created_at timestamp with time zone default now()
 );
 
@@ -124,6 +125,23 @@ for select
 to authenticated
 using (true);
 
+-- Admin policies (requires user_profiles.is_admin = true)
+drop policy if exists "Words are writable by admin" on public.words;
+create policy "Words are writable by admin"
+on public.words
+for all
+to authenticated
+using (exists (select 1 from public.user_profiles p where p.id = auth.uid() and p.is_admin = true))
+with check (exists (select 1 from public.user_profiles p where p.id = auth.uid() and p.is_admin = true));
+
+drop policy if exists "Categories are writable by admin" on public.categories;
+create policy "Categories are writable by admin"
+on public.categories
+for all
+to authenticated
+using (exists (select 1 from public.user_profiles p where p.id = auth.uid() and p.is_admin = true))
+with check (exists (select 1 from public.user_profiles p where p.id = auth.uid() and p.is_admin = true));
+
 -- User-owned policies
 drop policy if exists "Profiles are readable by owner" on public.user_profiles;
 create policy "Profiles are readable by owner"
@@ -184,4 +202,3 @@ for all
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
-

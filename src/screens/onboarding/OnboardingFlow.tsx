@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Alert, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeProvider';
 import { ProgressDots } from '../../components/ProgressDots';
 import { WelcomeStep } from './steps/WelcomeStep';
@@ -17,6 +18,7 @@ export function OnboardingFlow() {
   const t = useTheme();
   const { width } = useWindowDimensions();
   const [step, setStep] = useState(0);
+  const [authInitialMode, setAuthInitialMode] = useState<'signup' | 'signin'>('signup');
   const translateX = useSharedValue(0);
 
   const setOnboardingCompleted = useAppStore((s) => s.setOnboardingCompleted);
@@ -25,7 +27,14 @@ export function OnboardingFlow() {
     const clamped = Math.max(0, Math.min(TOTAL - 1, next));
     setStep(clamped);
     translateX.value = withTiming(-clamped * width, { duration: 420 });
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    }
   };
+
+  useEffect(() => {
+    translateX.value = -step * width;
+  }, [step, width]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -37,8 +46,33 @@ export function OnboardingFlow() {
   }, [step]);
 
   const steps = [
-    <WelcomeStep key="welcome" onNext={() => go(1)} onSignIn={() => go(1)} />,
-    <AuthStep key="auth" onBack={() => go(0)} onNext={() => go(2)} />,
+    <WelcomeStep
+      key="welcome"
+      onNext={() => {
+        setAuthInitialMode('signup');
+        go(1);
+      }}
+      onSignIn={() => {
+        setAuthInitialMode('signin');
+        go(1);
+      }}
+    />,
+    <AuthStep
+      key="auth"
+      initialMode={authInitialMode}
+      onBack={() => go(0)}
+      onNext={({ mode }) => {
+        if (mode === 'signin') {
+          setOnboardingCompleted(true);
+          if (Platform.OS !== 'web') {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+          }
+          setTimeout(() => router.replace('/(tabs)/home'), 180);
+          return;
+        }
+        go(2);
+      }}
+    />,
     <PlacementStep key="placement" onBack={() => go(1)} onNext={() => go(3)} />,
     <GoalsStep key="goals" onBack={() => go(2)} onNext={() => go(4)} />,
     <CategoriesStep
@@ -46,12 +80,10 @@ export function OnboardingFlow() {
       onBack={() => go(3)}
       onFinish={() => {
         setOnboardingCompleted(true);
-        Alert.alert('Welcome to Lexora', 'Onboarding completed (mock).', [
-          {
-            text: 'Start',
-            onPress: () => router.replace('/(tabs)/home'),
-          },
-        ]);
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+        }
+        setTimeout(() => router.replace('/(tabs)/home'), 240);
       }}
     />,
   ];

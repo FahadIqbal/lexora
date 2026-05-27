@@ -5,8 +5,9 @@ import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
 import { LexText } from '../../components/LexText';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getGameWordSet } from './gamesData';
 import { useAppStore } from '../../store/useAppStore';
+import { repos } from '../../data/repositories';
+import { useAsyncResource } from '../../hooks/useAsyncResource';
 
 function scramble(s: string) {
   return s
@@ -18,7 +19,24 @@ function scramble(s: string) {
 export function ScrambleGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
-  const set = useMemo(() => getGameWordSet(8), []);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+
+  const difficultyMax = useMemo(() => {
+    if (!proficiency) return null;
+    const p = proficiency.toUpperCase();
+    if (p === 'A1' || p === 'A2') return 2;
+    if (p === 'B1') return 3;
+    if (p === 'B2') return 4;
+    return 5;
+  }, [proficiency]);
+
+  const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
+  const day = Math.floor(Date.now() / 86_400_000);
+  const { data: set, loading, error } = useAsyncResource(
+    () => repos.words.getDailySessionWords(8, { categories: selectedCategories, difficultyMax, seed: day + 202 }),
+    [categoriesKey, difficultyMax]
+  );
 
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<string[]>([]);
@@ -26,7 +44,7 @@ export function ScrambleGame() {
   const [missed, setMissed] = useState<string[]>([]);
   const [done, setDone] = useState(false);
 
-  const word = set[i];
+  const word = (set ?? [])[i];
   const letters = useMemo(() => (word ? scramble(word.word.toUpperCase()).split('') : []), [word?.id]);
 
   const current = picked.join('');
@@ -47,7 +65,7 @@ export function ScrambleGame() {
     addXp(ok ? 15 : 8);
 
     const ni = i + 1;
-    if (ni >= set.length) setDone(true);
+    if (ni >= (set ?? []).length) setDone(true);
     else {
       setI(ni);
       setPicked([]);
@@ -56,7 +74,21 @@ export function ScrambleGame() {
 
   return (
     <GameShell title="Word Scramble" subtitle="Tap letters to spell the word.">
-      {done ? (
+      {loading ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Loading words…</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Building a fresh round from your dictionary.
+          </LexText>
+        </Card>
+      ) : error ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Can’t load words</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Check that Supabase is configured and reachable, then reload.
+          </LexText>
+        </Card>
+      ) : done ? (
         <GameResultCard
           score={score}
           xp={score}
@@ -74,7 +106,7 @@ export function ScrambleGame() {
         <>
           <Card style={{ marginTop: 14 }}>
             <LexText variant="title">
-              {i + 1}/{set.length}
+              {i + 1}/{(set ?? []).length}
             </LexText>
             <LexText variant="muted" style={{ marginTop: 8 }}>
               Hint (definition): {word.short_definition}
@@ -138,4 +170,3 @@ const styles = StyleSheet.create({
   letter: { width: '22%', borderWidth: 1, borderRadius: 14, paddingVertical: 12 },
   action: { borderWidth: 1, borderRadius: 16, padding: 14 },
 });
-

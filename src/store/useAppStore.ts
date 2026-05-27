@@ -13,9 +13,11 @@ type UserProfile = {
   dailyGoalWords: number;
   proficiencyLevel?: string; // A1–C2
   isPremium: boolean;
+  isAdmin: boolean;
 };
 
 type AppState = {
+  hydrated: boolean;
   user: UserProfile;
   onboardingCompleted: boolean;
   selectedCategories: string[];
@@ -36,6 +38,8 @@ type AppState = {
   setProficiencyLevel: (lvl: string) => void;
   setDisplayName: (name: string) => void;
   setUserId: (id?: string) => void;
+  setIsAdmin: (v: boolean) => void;
+  setHydrated: (v: boolean) => void;
   addXp: (n: number) => void;
   ensureToday: () => void;
 
@@ -52,12 +56,39 @@ type AppState = {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      let dueCache:
+        | {
+            today: string;
+            wordProgress: AppState['wordProgress'];
+            result: string[];
+          }
+        | null = null;
+
+      let weeklyCache:
+        | {
+            today: string;
+            dailyStats: AppState['dailyStats'];
+            result: number[];
+          }
+        | null = null;
+
+      let heatmapCache:
+        | {
+            today: string;
+            dailyStats: AppState['dailyStats'];
+            result: number[];
+          }
+        | null = null;
+
+      return {
+      hydrated: false,
       user: {
         displayName: '',
         dailyGoalWords: 10,
         proficiencyLevel: undefined,
         isPremium: false,
+        isAdmin: false,
       },
       onboardingCompleted: false,
       selectedCategories: [],
@@ -94,6 +125,11 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           user: { ...s.user, id },
         })),
+      setIsAdmin: (v) =>
+        set((s) => ({
+          user: { ...s.user, isAdmin: v },
+        })),
+      setHydrated: (v) => set({ hydrated: v }),
       ensureToday: () =>
         set((s) => {
           const today = isoDate();
@@ -267,31 +303,46 @@ export const useAppStore = create<AppState>()(
 
       getDueWordIds: (todayArg) => {
         const today = todayArg ?? isoDate();
-        const entries = Object.values(get().wordProgress ?? {});
-        return entries
+        const wordProgress = get().wordProgress ?? {};
+        if (dueCache && dueCache.today === today && dueCache.wordProgress === wordProgress) {
+          return dueCache.result;
+        }
+
+        const entries = Object.values(wordProgress);
+        const result = entries
           .filter((p: WordProgress) => {
             if (p.status === 'new') return false;
             if (!p.nextReviewDate) return true;
             return p.nextReviewDate <= today;
           })
           .map((p: WordProgress) => p.wordId);
+
+        dueCache = { today, wordProgress, result };
+        return result;
       },
 
       getWeeklyWordsLearned: (todayArg) => {
         const s = get();
         const today = todayArg ?? isoDate();
+        if (weeklyCache && weeklyCache.today === today && weeklyCache.dailyStats === s.dailyStats) {
+          return weeklyCache.result;
+        }
         const out: number[] = [];
         for (let i = 6; i >= 0; i--) {
           const d = addDays(new Date(`${today}T00:00:00.000Z`), -i).toISOString().slice(0, 10);
           const stat = s.dailyStats[d] ? DailyStatSchema.parse(s.dailyStats[d]) : DailyStatSchema.parse({ date: d });
           out.push(stat.wordsLearned);
         }
+        weeklyCache = { today, dailyStats: s.dailyStats, result: out };
         return out;
       },
 
       getHeatmap30: (todayArg) => {
         const s = get();
         const today = todayArg ?? isoDate();
+        if (heatmapCache && heatmapCache.today === today && heatmapCache.dailyStats === s.dailyStats) {
+          return heatmapCache.result;
+        }
         const out: number[] = [];
         for (let i = 29; i >= 0; i--) {
           const d = addDays(new Date(`${today}T00:00:00.000Z`), -i).toISOString().slice(0, 10);
@@ -300,12 +351,17 @@ export const useAppStore = create<AppState>()(
           const intensity = total === 0 ? 0 : total < 3 ? 1 : total < 6 ? 2 : total < 10 ? 3 : 4;
           out.push(intensity);
         }
+        heatmapCache = { today, dailyStats: s.dailyStats, result: out };
         return out;
       },
-    }),
+      };
+    },
     {
       name: 'lexora-app-store',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state, _error) => {
+        state?.setHydrated(true);
+      },
       partialize: (s) => ({
         user: s.user,
         onboardingCompleted: s.onboardingCompleted,

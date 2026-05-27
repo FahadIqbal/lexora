@@ -5,13 +5,31 @@ import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
 import { LexText } from '../../components/LexText';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getGameWordSet } from './gamesData';
 import { useAppStore } from '../../store/useAppStore';
+import { repos } from '../../data/repositories';
+import { useAsyncResource } from '../../hooks/useAsyncResource';
 
 export function DefinitionTypeGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
-  const set = useMemo(() => getGameWordSet(8), []);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+
+  const difficultyMax = useMemo(() => {
+    if (!proficiency) return null;
+    const p = proficiency.toUpperCase();
+    if (p === 'A1' || p === 'A2') return 2;
+    if (p === 'B1') return 3;
+    if (p === 'B2') return 4;
+    return 5;
+  }, [proficiency]);
+
+  const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
+  const day = Math.floor(Date.now() / 86_400_000);
+  const { data: set, loading, error } = useAsyncResource(
+    () => repos.words.getDailySessionWords(8, { categories: selectedCategories, difficultyMax, seed: day + 303 }),
+    [categoriesKey, difficultyMax]
+  );
 
   const [i, setI] = useState(0);
   const [attempts, setAttempts] = useState(0);
@@ -20,7 +38,7 @@ export function DefinitionTypeGame() {
   const [missed, setMissed] = useState<string[]>([]);
   const [done, setDone] = useState(false);
 
-  const word = set[i];
+  const word = (set ?? [])[i];
 
   const submit = () => {
     if (!word) return;
@@ -41,7 +59,7 @@ export function DefinitionTypeGame() {
 
   const next = () => {
     const ni = i + 1;
-    if (ni >= set.length) {
+    if (ni >= (set ?? []).length) {
       setDone(true);
     } else {
       setI(ni);
@@ -52,7 +70,21 @@ export function DefinitionTypeGame() {
 
   return (
     <GameShell title="Definition Match" subtitle="Type the word. Max 3 attempts.">
-      {done ? (
+      {loading ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Loading words…</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Building a fresh round from your dictionary.
+          </LexText>
+        </Card>
+      ) : error ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Can’t load words</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Check that Supabase is configured and reachable, then reload.
+          </LexText>
+        </Card>
+      ) : done ? (
         <GameResultCard
           score={score}
           xp={score}
@@ -71,10 +103,10 @@ export function DefinitionTypeGame() {
         <>
           <Card style={{ marginTop: 14 }}>
             <LexText variant="title">
-              {i + 1}/{set.length} · Attempt {attempts + 1}/3
+              {i + 1}/{(set ?? []).length} · Attempt {attempts + 1}/3
             </LexText>
             <LexText variant="h3" style={{ marginTop: 10 }}>
-              {word.definition}
+              {word?.definition}
             </LexText>
           </Card>
 
@@ -119,4 +151,3 @@ const styles = StyleSheet.create({
   },
   submit: { padding: 14, borderRadius: 16 },
 });
-

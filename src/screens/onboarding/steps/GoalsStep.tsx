@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -23,6 +24,12 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
   const setDailyGoalWords = useAppStore((s) => s.setDailyGoalWords);
   const toggleLearningWhy = useAppStore((s) => s.toggleLearningWhy);
 
+  const tap = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync().catch(() => null);
+    }
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
       <View style={styles.content}>
@@ -40,16 +47,20 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
               {GOALS.map((n) => {
                 const active = n === dailyGoalWords;
                 return (
-                  <View
+                  <Pressable
                     key={n}
-                    style={[
+                    onPress={() => {
+                      tap();
+                      setDailyGoalWords(n);
+                    }}
+                    style={({ pressed }) => [
                       styles.goalChip,
                       {
                         borderColor: active ? t.colors.accentTeal : t.colors.border,
                         backgroundColor: active ? 'rgba(0,212,170,0.12)' : 'rgba(255,255,255,0.04)',
+                        opacity: pressed ? 0.82 : 1,
                       },
                     ]}
-                    onTouchEnd={() => setDailyGoalWords(n)}
                   >
                     <LexText variant="title" style={{ textAlign: 'center' }}>
                       {n}
@@ -57,7 +68,7 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
                     <LexText variant="muted" style={{ fontSize: 11, textAlign: 'center' }}>
                       words
                     </LexText>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -71,16 +82,20 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
               {WHY.map((x) => {
                 const active = learningWhy.includes(x.slug);
                 return (
-                  <View
+                  <Pressable
                     key={x.slug}
-                    style={[
+                    onPress={() => {
+                      tap();
+                      toggleLearningWhy(x.slug);
+                    }}
+                    style={({ pressed }) => [
                       styles.whyCard,
                       {
                         borderColor: active ? t.colors.accentPurple : t.colors.border,
                         backgroundColor: active ? 'rgba(108,99,255,0.12)' : 'rgba(255,255,255,0.04)',
+                        opacity: pressed ? 0.86 : 1,
                       },
                     ]}
-                    onTouchEnd={() => toggleLearningWhy(x.slug)}
                   >
                     <LexText variant="h3" style={{ fontSize: 20 }}>
                       {x.emoji}
@@ -88,7 +103,7 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
                     <LexText variant="title" style={{ marginTop: 6 }}>
                       {x.label}
                     </LexText>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -112,4 +127,3 @@ const styles = StyleSheet.create({
   whyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   whyCard: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 14 },
 });
-

@@ -7,7 +7,6 @@ import { Card } from '../components/Card';
 import { useTheme } from '../theme/ThemeProvider';
 import Markdown from 'react-native-markdown-display';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import { seed } from '../data/seed';
 import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
 import { hasAnthropic } from '../services/env';
 
@@ -44,11 +43,18 @@ export function ChatScreen() {
     opacity: 0.45 + 0.55 * typingDot.value,
   }));
 
-  const knownWords = useMemo(() => seed.words.map((w) => w.word.toLowerCase()), []);
-
   const extractMentionedWords = (content: string) => {
     const lc = content.toLowerCase();
-    return knownWords.filter((w: string) => lc.includes(w)).slice(0, 5);
+    const tokens = (lc.match(/[a-z]{4,}/g) ?? []).filter(Boolean);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const tok of tokens) {
+      if (seen.has(tok)) continue;
+      seen.add(tok);
+      out.push(tok);
+      if (out.length >= 5) break;
+    }
+    return out;
   };
 
   const send = async (input: string) => {

@@ -6,6 +6,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from '../src/theme/ThemeProvider';
 import { useAppFonts } from '../src/theme/useAppFonts';
+import { useAppStore } from '../src/store/useAppStore';
+import { hasSupabase } from '../src/services/env';
+import { getSupabase } from '../src/services/supabase';
+import { getUserProfile } from '../src/services/supabaseHelpers';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // no-op (can throw if called twice)
@@ -13,6 +17,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const { loaded, error } = useAppFonts();
+  const hydrated = useAppStore((s) => s.hydrated);
+  const setUserId = useAppStore((s) => s.setUserId);
+  const setDisplayName = useAppStore((s) => s.setDisplayName);
+  const setDailyGoalWords = useAppStore((s) => s.setDailyGoalWords);
+  const setProficiencyLevel = useAppStore((s) => s.setProficiencyLevel);
+  const setSelectedCategories = useAppStore((s) => s.setSelectedCategories);
+  const setOnboardingCompleted = useAppStore((s) => s.setOnboardingCompleted);
+  const setIsAdmin = useAppStore((s) => s.setIsAdmin);
 
   useEffect(() => {
     if (error) console.warn('Font loading error', error);
@@ -23,6 +35,57 @@ export default function RootLayout() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded]);
+
+  useEffect(() => {
+    if (!loaded || !hydrated) return;
+    if (!hasSupabase()) return;
+
+    const supabase = getSupabase();
+    let cancelled = false;
+
+    const applyProfile = async (userId: string) => {
+      const profile = await getUserProfile(userId).catch(() => null);
+      if (cancelled || !profile) return;
+
+      if (profile.display_name) setDisplayName(profile.display_name);
+      if (typeof profile.daily_goal_words === 'number') setDailyGoalWords(profile.daily_goal_words);
+      if (profile.proficiency_level) setProficiencyLevel(profile.proficiency_level);
+      if (Array.isArray(profile.selected_categories)) setSelectedCategories(profile.selected_categories);
+      if (typeof profile.is_admin === 'boolean') setIsAdmin(profile.is_admin);
+      if (typeof profile.is_premium === 'boolean') {
+        // premium flag is persisted in store.user via partialize; keep store as source of truth for now
+      }
+      if (Array.isArray(profile.selected_categories) && profile.selected_categories.length) {
+        setOnboardingCompleted(true);
+      }
+    };
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user?.id;
+      if (!userId) {
+        setUserId(undefined);
+        return;
+      }
+      setUserId(userId);
+      await applyProfile(userId);
+    })();
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user?.id;
+      if (!userId) {
+        setUserId(undefined);
+        return;
+      }
+      setUserId(userId);
+      applyProfile(userId);
+    });
+
+    return () => {
+      cancelled = true;
+      data.subscription.unsubscribe();
+    };
+  }, [loaded, hydrated]);
 
   if (!loaded) return null;
 
@@ -41,9 +104,9 @@ export default function RootLayout() {
           <Stack.Screen name="dictionary" />
           <Stack.Screen name="chat" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="admin" />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
-

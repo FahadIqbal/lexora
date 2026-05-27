@@ -1,30 +1,102 @@
 import React from 'react';
+import { Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeProvider';
+import { useAppStore } from '../../src/store/useAppStore';
+import { useShallow } from 'zustand/react/shallow';
+
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? 'rgba(0,229,184,0.14)' : 'transparent',
+        borderRadius: 10,
+        marginTop: 6,
+      }}
+    >
+      <Text style={{ fontSize: 19 }}>{emoji}</Text>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const t = useTheme();
+  const dueCount = useAppStore(useShallow((s) => s.getDueWordIds())).length;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: t.colors.surface,
-          borderTopColor: t.colors.border,
-          height: 64,
-          paddingBottom: 10,
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 26 : 14,
+          left: 14,
+          right: 14,
+          height: 72,
+          borderRadius: 28,
+          backgroundColor: t.colors.surface2,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.09)',
+          elevation: 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.55,
+          shadowRadius: 22,
         },
         tabBarActiveTintColor: t.colors.accentTeal,
-        tabBarInactiveTintColor: t.colors.muted,
+        tabBarInactiveTintColor: 'rgba(242,240,255,0.36)',
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          marginBottom: 8,
+          fontFamily: t.font.body.medium,
+        },
+        tabBarItemStyle: {
+          paddingTop: 0,
+          paddingBottom: 0,
+        },
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="learn" options={{ title: 'Learn' }} />
-      <Tabs.Screen name="review" options={{ title: 'Review' }} />
-      <Tabs.Screen name="games" options={{ title: 'Games' }} />
-      <Tabs.Screen name="social" options={{ title: 'Social' }} />
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="learn"
+        options={{
+          title: 'Learn',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="review"
+        options={{
+          title: 'Review',
+          tabBarBadge: dueCount > 0 ? dueCount : undefined,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🔁" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="games"
+        options={{
+          title: 'Games',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🎮" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: 'Social',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏆" focused={focused} />,
+        }}
+      />
     </Tabs>
   );
 }
-
