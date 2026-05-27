@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -23,10 +24,9 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
   const t = useTheme();
   const setProficiencyLevel = useAppStore((s) => s.setProficiencyLevel);
 
-  const { data: base, loading } = useAsyncResource(() => repos.placement.list(), []);
+  const { data: base, loading, error } = useAsyncResource(() => repos.placement.list(), []);
   const questions = useMemo(() => {
-    const q = base ?? [];
-    return [...q, ...q, ...q, ...q].slice(0, 10);
+    return (base ?? []).slice(0, 5);
   }, [base]);
 
   const [idx, setIdx] = useState(0);
@@ -52,10 +52,12 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
       if (e.translationX > 60) {
         // right → next option
         setFocused((f) => Math.min(3, f + 1));
+        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
         swipeX.value = withTiming(0, { duration: 180 });
       } else if (e.translationX < -60) {
         // left → prev option
         setFocused((f) => Math.max(0, f - 1));
+        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
         swipeX.value = withTiming(0, { duration: 180 });
       } else {
         swipeX.value = withTiming(0, { duration: 180 });
@@ -64,6 +66,11 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
 
   const confirm = () => {
     const isCorrect = focused === q.correctIndex;
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(isCorrect ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error).catch(
+        () => null
+      );
+    }
     setCorrectCount((c) => c + (isCorrect ? 1 : 0));
 
     const nextIdx = idx + 1;
@@ -92,6 +99,29 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
       <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
         <View style={styles.content}>
           <LexText variant="h2">Loading placement test…</LexText>
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !questions.length) {
+    return (
+      <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
+        <View style={styles.content}>
+          <LexText variant="h2">Placement not available</LexText>
+          <LexText variant="muted" style={{ marginTop: 10 }}>
+            We couldn’t load your placement test. You can skip for now and still use the app.
+          </LexText>
+          <View style={{ marginTop: 16, gap: 10 }}>
+            <Button
+              title="Skip for now"
+              onPress={() => {
+                setProficiencyLevel('B1');
+                onNext();
+              }}
+            />
+            <Button title="Back" variant="ghost" onPress={onBack} />
+          </View>
         </View>
       </View>
     );
@@ -148,20 +178,25 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
                 {q.choices.map((choice, i) => {
                   const active = i === focused;
                   return (
-                    <View
+                    <Pressable
                       key={i}
-                      style={[
+                      onPress={() => {
+                        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+                        setFocused(i);
+                      }}
+                      style={({ pressed }) => [
                         styles.choice,
                         {
                           borderColor: active ? t.colors.accentPurple : t.colors.border,
                           backgroundColor: active ? 'rgba(108,99,255,0.14)' : 'rgba(255,255,255,0.04)',
+                          opacity: pressed ? 0.86 : 1,
                         },
                       ]}
                     >
                       <LexText variant="body" style={{ color: active ? t.colors.text : 'rgba(240,238,255,0.75)' }}>
                         {choice}
                       </LexText>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </Animated.View>
@@ -169,6 +204,14 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
 
             <View style={{ marginTop: 14, gap: 10 }}>
               <Button title="Confirm" onPress={confirm} />
+              <Button
+                title="Skip for now"
+                variant="ghost"
+                onPress={() => {
+                  setProficiencyLevel('B1');
+                  onNext();
+                }}
+              />
               <Button title="Back" variant="ghost" onPress={onBack} />
             </View>
           </Card>

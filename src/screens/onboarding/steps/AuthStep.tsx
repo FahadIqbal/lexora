@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -13,20 +13,35 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { FloatingLabelInput } from '../ui/FloatingLabelInput';
 import { useAppStore } from '../../../store/useAppStore';
 import { hasSupabase } from '../../../services/env';
-import { supabase } from '../../../services/supabase';
+import { getSupabase } from '../../../services/supabase';
 import { upsertUserProfile } from '../../../services/supabaseHelpers';
 
-export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+export function AuthStep({
+  onBack,
+  onNext,
+  initialMode,
+}: {
+  onBack: () => void;
+  onNext: (result: { mode: 'signup' | 'signin' }) => void;
+  initialMode?: 'signup' | 'signin';
+}) {
   const t = useTheme();
   const setDisplayName = useAppStore((s) => s.setDisplayName);
   const setUserId = useAppStore((s) => s.setUserId);
+  const setOnboardingCompleted = useAppStore((s) => s.setOnboardingCompleted);
   const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'signup' | 'signin'>('signup');
+  const [mode, setMode] = useState<'signup' | 'signin'>(initialMode ?? 'signup');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const shake = useSharedValue(0);
+
+  useEffect(() => {
+    if (!initialMode) return;
+    setMode(initialMode);
+    setError(null);
+  }, [initialMode]);
 
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shake.value }],
@@ -50,13 +65,15 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
     setDisplayName(name);
 
     if (!hasSupabase()) {
-      onNext();
+      if (mode === 'signin') setOnboardingCompleted(true);
+      onNext({ mode });
       return;
     }
 
     setSubmitting(true);
     setError(null);
     try {
+      const supabase = getSupabase();
       const authResult =
         mode === 'signup'
           ? await supabase.auth.signUp({ email, password })
@@ -74,7 +91,8 @@ export function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () =>
         }).catch(() => null);
       }
 
-      onNext();
+      if (mode === 'signin') setOnboardingCompleted(true);
+      onNext({ mode });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sign-in failed';
       setError(msg);

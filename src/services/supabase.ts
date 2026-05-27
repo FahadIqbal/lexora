@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { env, hasSupabase } from './env';
 
@@ -117,6 +117,7 @@ export type Database = {
           proficiency_level: string | null;
           selected_categories: string[] | null;
           is_premium: boolean | null;
+          is_admin: boolean | null;
           created_at: string | null;
         };
         Insert: {
@@ -133,6 +134,7 @@ export type Database = {
           proficiency_level?: string | null;
           selected_categories?: string[] | null;
           is_premium?: boolean | null;
+          is_admin?: boolean | null;
           created_at?: string | null;
         };
         Update: {
@@ -149,6 +151,7 @@ export type Database = {
           proficiency_level?: string | null;
           selected_categories?: string[] | null;
           is_premium?: boolean | null;
+          is_admin?: boolean | null;
           created_at?: string | null;
         };
         Relationships: [];
@@ -266,14 +269,7 @@ export type Database = {
   };
 };
 
-export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    storage: AsyncStorage,
-  },
-});
+let supabaseClient: SupabaseClient<Database> | null = null;
 
 export function assertSupabaseConfigured() {
   if (!hasSupabase()) {
@@ -281,4 +277,18 @@ export function assertSupabaseConfigured() {
       'Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in an .env file.'
     );
   }
+}
+
+export function getSupabase(): SupabaseClient<Database> {
+  assertSupabaseConfigured();
+  if (supabaseClient) return supabaseClient;
+  supabaseClient = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storage: AsyncStorage,
+    },
+  });
+  return supabaseClient;
 }

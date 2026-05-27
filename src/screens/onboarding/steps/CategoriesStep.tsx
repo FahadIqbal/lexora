@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -8,9 +9,14 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { useAppStore } from '../../../store/useAppStore';
 import { repos } from '../../../data/repositories';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
+import { hasSupabase } from '../../../services/env';
+import { upsertUserProfile } from '../../../services/supabaseHelpers';
 
 export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
   const t = useTheme();
+  const userId = useAppStore((s) => s.user.id);
+  const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
+  const proficiencyLevel = useAppStore((s) => s.user.proficiencyLevel);
   const selected = useAppStore((s) => s.selectedCategories);
   const setSelected = useAppStore((s) => s.setSelectedCategories);
   const [touched, setTouched] = useState(false);
@@ -19,6 +25,9 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
 
   const toggle = (slug: string) => {
     setTouched(true);
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync().catch(() => null);
+    }
     setSelected(selected.includes(slug) ? selected.filter((x) => x !== slug) : [...selected, slug]);
   };
 
@@ -26,6 +35,14 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
     if (!selected.length) {
       Alert.alert('Choose at least 1 topic', 'Pick a category to personalize your daily words.');
       return;
+    }
+    if (hasSupabase() && userId) {
+      upsertUserProfile({
+        id: userId,
+        daily_goal_words: dailyGoalWords,
+        proficiency_level: proficiencyLevel ?? null,
+        selected_categories: selected,
+      }).catch(() => null);
     }
     onFinish();
   };
@@ -46,16 +63,17 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
               {(list ?? []).map((c) => {
                 const active = selected.includes(c.slug);
                 return (
-                  <View
+                  <Pressable
                     key={c.slug}
-                    style={[
+                    onPress={() => toggle(c.slug)}
+                    style={({ pressed }) => [
                       styles.item,
                       {
                         borderColor: active ? c.color : t.colors.border,
                         backgroundColor: active ? `${c.color}22` : 'rgba(255,255,255,0.04)',
+                        opacity: pressed ? 0.86 : 1,
                       },
                     ]}
-                    onTouchEnd={() => toggle(c.slug)}
                   >
                     <LexText variant="h3" style={{ fontSize: 22 }}>
                       {c.emoji}
@@ -66,7 +84,7 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
                     <LexText variant="muted" style={{ marginTop: 4, fontSize: 11 }}>
                       {c.is_premium ? 'Premium' : 'Free'} · {c.word_count.toLocaleString()} words
                     </LexText>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>

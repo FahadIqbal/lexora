@@ -5,20 +5,38 @@ import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
 import { LexText } from '../../components/LexText';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getGameWordSet } from './gamesData';
 import { useAppStore } from '../../store/useAppStore';
+import { repos } from '../../data/repositories';
+import { useAsyncResource } from '../../hooks/useAsyncResource';
 
 export function FillBlankGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
-  const set = useMemo(() => getGameWordSet(10), []);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+
+  const difficultyMax = useMemo(() => {
+    if (!proficiency) return null;
+    const p = proficiency.toUpperCase();
+    if (p === 'A1' || p === 'A2') return 2;
+    if (p === 'B1') return 3;
+    if (p === 'B2') return 4;
+    return 5;
+  }, [proficiency]);
+
+  const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
+  const day = Math.floor(Date.now() / 86_400_000);
+  const { data: set, loading, error } = useAsyncResource(
+    () => repos.words.getDailySessionWords(10, { categories: selectedCategories, difficultyMax, seed: day + 101 }),
+    [categoriesKey, difficultyMax]
+  );
 
   const [i, setI] = useState(0);
   const [score, setScore] = useState(0);
   const [missed, setMissed] = useState<string[]>([]);
   const [done, setDone] = useState(false);
 
-  const word = set[i];
+  const word = (set ?? [])[i];
 
   const sentence = useMemo(() => {
     if (!word) return '';
@@ -27,7 +45,7 @@ export function FillBlankGame() {
 
   const options = useMemo(() => {
     if (!word) return [];
-    const wrong = set
+    const wrong = (set ?? [])
       .filter((w) => w.id !== word.id)
       .slice(0, 3)
       .map((w) => w.word);
@@ -40,7 +58,7 @@ export function FillBlankGame() {
     else setMissed((m) => [...m, word.word]);
 
     const ni = i + 1;
-    if (ni >= set.length) {
+    if (ni >= (set ?? []).length) {
       setDone(true);
       addXp(ok ? 15 : 10);
     } else {
@@ -51,7 +69,21 @@ export function FillBlankGame() {
 
   return (
     <GameShell title="Fill in the Blank" subtitle="Choose the missing word.">
-      {done ? (
+      {loading ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Loading words…</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Building a fresh round from your dictionary.
+          </LexText>
+        </Card>
+      ) : error ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Can’t load words</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Check that Supabase is configured and reachable, then reload.
+          </LexText>
+        </Card>
+      ) : done ? (
         <GameResultCard
           score={score}
           xp={score}
@@ -68,7 +100,7 @@ export function FillBlankGame() {
         <>
           <Card style={{ marginTop: 14 }}>
             <LexText variant="title">
-              {i + 1}/{set.length}
+              {i + 1}/{(set ?? []).length}
             </LexText>
             <LexText variant="h3" style={{ marginTop: 10 }}>
               {sentence}
@@ -98,4 +130,3 @@ export function FillBlankGame() {
 const styles = StyleSheet.create({
   opt: { borderWidth: 1, borderRadius: 16, padding: 14 },
 });
-

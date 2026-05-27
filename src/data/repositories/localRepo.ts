@@ -49,4 +49,3 @@ export const localWordsRepo: WordsRepository = {
     return seed.words.find((w) => w.id === id) ?? null;
   },
 };
-

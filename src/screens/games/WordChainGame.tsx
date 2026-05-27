@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { GameShell } from './GameShell';
 import { GameResultCard } from './GameResultCard';
@@ -6,21 +6,46 @@ import { Card } from '../../components/Card';
 import { LexText } from '../../components/LexText';
 import { Button } from '../../components/Button';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getGameWordSet } from './gamesData';
 import { useAppStore } from '../../store/useAppStore';
+import { repos } from '../../data/repositories';
+import { useAsyncResource } from '../../hooks/useAsyncResource';
 
 export function WordChainGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
 
-  const start = useMemo(() => getGameWordSet(1)[0].word, []);
-  const [chain, setChain] = useState<string[]>([start]);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+
+  const difficultyMax = useMemo(() => {
+    if (!proficiency) return null;
+    const p = proficiency.toUpperCase();
+    if (p === 'A1' || p === 'A2') return 2;
+    if (p === 'B1') return 3;
+    if (p === 'B2') return 4;
+    return 5;
+  }, [proficiency]);
+
+  const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
+  const day = Math.floor(Date.now() / 86_400_000);
+  const { data: set, loading, error } = useAsyncResource(
+    () => repos.words.getDailySessionWords(1, { categories: selectedCategories, difficultyMax, seed: day + 505 }),
+    [categoriesKey, difficultyMax]
+  );
+
+  const start = (set ?? [])[0]?.word ?? '';
+  const [chain, setChain] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [score, setScore] = useState(0);
   const [missed, setMissed] = useState<string[]>([]);
   const [done, setDone] = useState(false);
 
   const targetLen = 10;
+
+  useEffect(() => {
+    if (!start) return;
+    setChain((c) => (c.length ? c : [start]));
+  }, [start]);
 
   const validate = async (candidate: string) => {
     // Mock “AI validation”: accept if non-empty and not already in chain.
@@ -50,13 +75,27 @@ export function WordChainGame() {
 
   return (
     <GameShell title="Word Chain" subtitle="Build a chain of 10 connected words.">
-      {done ? (
+      {loading ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Loading starter word…</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Pulling a fresh prompt from your dictionary.
+          </LexText>
+        </Card>
+      ) : error ? (
+        <Card style={{ marginTop: 14 }}>
+          <LexText variant="title">Can’t load words</LexText>
+          <LexText variant="muted" style={{ marginTop: 8 }}>
+            Check that Supabase is configured and reachable, then reload.
+          </LexText>
+        </Card>
+      ) : done ? (
         <GameResultCard
           score={score}
           xp={score}
           missed={missed.filter(Boolean).slice(0, 8)}
           onPlayAgain={() => {
-            setChain([start]);
+            setChain(start ? [start] : []);
             setText('');
             setScore(0);
             setMissed([]);
@@ -115,4 +154,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

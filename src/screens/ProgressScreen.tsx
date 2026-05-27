@@ -9,6 +9,8 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { addDays } from 'date-fns';
 import { isoDate } from '../utils/date';
+import { useShallow } from 'zustand/react/shallow';
+import { TAB_BAR_BOTTOM } from '../theme';
 
 export function ProgressScreen() {
   const t = useTheme();
@@ -18,8 +20,8 @@ export function ProgressScreen() {
   const xpTotal = useAppStore((s) => s.xpTotal);
   const wordProgress = useAppStore((s) => s.wordProgress);
   const dailyStats = useAppStore((s) => s.dailyStats);
-  const heatmap = useAppStore((s) => s.getHeatmap30());
-  const weeklyWords = useAppStore((s) => s.getWeeklyWordsLearned());
+  const heatmap = useAppStore(useShallow((s) => s.getHeatmap30()));
+  const weeklyWords = useAppStore(useShallow((s) => s.getWeeklyWordsLearned()));
 
   const level = Math.max(1, Math.floor(xpTotal / 600) + 1);
   const xpToNext = level * 600 - xpTotal;
@@ -249,7 +251,7 @@ function WeeklyComboChart({ words, accuracy }: { words: number[]; accuracy: numb
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 18, paddingBottom: 32 },
+  wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   metric: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 14 },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   ach: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 12 },

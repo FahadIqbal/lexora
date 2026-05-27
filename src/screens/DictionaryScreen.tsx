@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
@@ -9,17 +9,27 @@ import { useTheme } from '../theme/ThemeProvider';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import type { Category, Word } from '../domain/schema';
+import { hasSupabase } from '../services/env';
 
 export function DictionaryScreen() {
   const t = useTheme();
   const [q, setQ] = useState('');
+  const [dq, setDq] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<number | null>(null);
 
-  const { data: categories, loading: categoriesLoading } = useAsyncResource(() => repos.categories.list(), []);
-  const { data: filtered, loading: wordsLoading } = useAsyncResource(
-    () => repos.words.search(q, { category: cat, difficulty }),
-    [q, cat, difficulty]
+  useEffect(() => {
+    const id = setTimeout(() => setDq(q), 240);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  const { data: categories, loading: categoriesLoading, error: categoriesError } = useAsyncResource(
+    () => repos.categories.list(),
+    []
+  );
+  const { data: filtered, loading: wordsLoading, error: wordsError } = useAsyncResource(
+    () => repos.words.search(dq, { category: cat, difficulty }),
+    [dq, cat, difficulty]
   );
 
   return (
@@ -29,6 +39,15 @@ export function DictionaryScreen() {
         <LexText variant="muted" style={{ marginTop: 6 }}>
           Browse and search the full word database.
         </LexText>
+
+        {!hasSupabase() ? (
+          <Card style={{ marginTop: 14 }}>
+            <LexText variant="title">Connect your backend</LexText>
+            <LexText variant="muted" style={{ marginTop: 8 }}>
+              Dictionary is powered by Supabase. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to enable it.
+            </LexText>
+          </Card>
+        ) : null}
 
         <TextInput
           placeholder="Search…"
@@ -101,6 +120,11 @@ export function DictionaryScreen() {
               Loading categories…
             </LexText>
           ) : null}
+          {categoriesError ? (
+            <LexText variant="muted" style={{ marginTop: 10, color: t.colors.accentPink }}>
+              Couldn’t load categories.
+            </LexText>
+          ) : null}
         </View>
 
         <Card style={{ marginTop: 12 }}>
@@ -153,6 +177,11 @@ export function DictionaryScreen() {
           {wordsLoading ? (
             <LexText variant="muted" style={{ marginTop: 10 }}>
               Searching…
+            </LexText>
+          ) : null}
+          {wordsError ? (
+            <LexText variant="muted" style={{ marginTop: 10, color: t.colors.accentPink }}>
+              Couldn’t load results.
             </LexText>
           ) : null}
         </View>
