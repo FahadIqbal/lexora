@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useAppStore } from '../store/useAppStore';
+import { TAB_BAR_BOTTOM } from '../theme';
 
 export function WordDetailScreen({ id }: { id: string }) {
   const t = useTheme();
@@ -100,7 +101,14 @@ export function WordDetailScreen({ id }: { id: string }) {
 
         <View style={{ marginTop: 14, gap: 10 }}>
           <Button title="Add to Study List" onPress={() => addToStudyList(word.id)} />
-          <Button title="Practice This Word" variant="ghost" onPress={() => {}} />
+          <Button
+            title="Practice This Word"
+            variant="ghost"
+            onPress={() => {
+              addToStudyList(word.id);
+              router.push('/(tabs)/review');
+            }}
+          />
         </View>
       </ScrollView>
     </Screen>
@@ -108,7 +116,7 @@ export function WordDetailScreen({ id }: { id: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 18, paddingBottom: 32 },
+  wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     paddingHorizontal: 10,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Screen } from '../components/Screen';
@@ -8,6 +8,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
+import { TAB_BAR_BOTTOM } from '../theme';
 
 export function SettingsScreen() {
   const t = useTheme();
@@ -60,21 +61,22 @@ export function SettingsScreen() {
               <LexText variant="muted">Daily goal</LexText>
               <View style={styles.goalRow}>
                 {[5, 10, 15, 20, 30].map((n) => (
-                  <View
+                  <Pressable
                     key={n}
-                    onTouchEnd={() => setDailyGoalWords(n)}
-                    style={[
+                    onPress={() => setDailyGoalWords(n)}
+                    style={({ pressed }) => [
                       styles.goalChip,
                       {
                         borderColor: dailyGoalWords === n ? t.colors.accentTeal : t.colors.border,
                         backgroundColor: dailyGoalWords === n ? 'rgba(0,212,170,0.10)' : 'rgba(255,255,255,0.04)',
+                        opacity: pressed ? 0.82 : 1,
                       },
                     ]}
                   >
                     <LexText variant="body" style={{ fontSize: 12 }}>
                       {n}
                     </LexText>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -126,7 +128,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 18, paddingBottom: 32 },
+  wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { gap: 8 },
   goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },

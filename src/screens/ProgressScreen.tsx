@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -174,7 +175,7 @@ export function ProgressScreen() {
         </Card>
 
         <View style={{ marginTop: 14 }}>
-          <Button title="Back" variant="ghost" onPress={() => {}} />
+          <Button title="Back" variant="ghost" onPress={() => router.back()} />
         </View>
       </ScrollView>
     </Screen>

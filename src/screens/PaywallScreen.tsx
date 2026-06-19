@@ -1,17 +1,22 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { useTheme } from '../theme/ThemeProvider';
+import { TAB_BAR_BOTTOM } from '../theme';
 
 export function PaywallScreen() {
   const t = useTheme();
+  const showScaffoldAlert = (plan: string) => {
+    Alert.alert('Payments not connected yet', `${plan} purchase UI is ready. Connect RevenueCat products before enabling checkout.`);
+  };
+
   return (
     <Screen>
-      <View style={styles.wrap}>
+      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
         <LexText variant="h2">Go Premium</LexText>
         <LexText variant="muted" style={{ marginTop: 6 }}>
           Unlock everything — advanced categories, unlimited AI tutor, all games, offline mode, and deep stats.
@@ -37,7 +42,7 @@ export function PaywallScreen() {
               </LexText>
               <LexText variant="muted">per month</LexText>
               <View style={{ marginTop: 12 }}>
-                <Button title="Choose" onPress={() => {}} />
+                <Button title="Choose" onPress={() => showScaffoldAlert('Monthly')} />
               </View>
             </View>
           </View>
@@ -49,26 +54,29 @@ export function PaywallScreen() {
               </LexText>
               <LexText variant="muted">best value</LexText>
               <View style={{ marginTop: 12 }}>
-                <Button title="Start 7-day trial" onPress={() => {}} />
+                <Button title="Start 7-day trial" onPress={() => showScaffoldAlert('Yearly trial')} />
               </View>
             </View>
           </View>
         </View>
 
         <View style={{ marginTop: 14, gap: 10 }}>
-          <Button title="Restore purchases" variant="ghost" onPress={() => {}} />
+          <Button
+            title="Restore purchases"
+            variant="ghost"
+            onPress={() => Alert.alert('Restore unavailable', 'RevenueCat restore will be enabled after product configuration.')}
+          />
           <Button title="Close" variant="ghost" onPress={() => router.back()} />
           <LexText variant="muted" style={{ textAlign: 'center', fontSize: 12 }}>
             Payments are scaffolded — RevenueCat wiring comes after API keys are ready.
           </LexText>
         </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 18 },
+  wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   priceCard: { borderWidth: 1, borderRadius: 18, padding: 14 },
 });
-

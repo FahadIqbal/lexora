@@ -24,7 +24,7 @@ export function Button({
       {...props}
       disabled={disabled}
       onPress={(e) => {
-        if (!disabled) {
+        if (!disabled && process.env.EXPO_OS !== 'web') {
           Haptics.selectionAsync().catch(() => {});
         }
         onPress?.(e);
