@@ -83,6 +83,7 @@ export function LearnScreen() {
       return;
     }
     if (toQuiz(nextIndex)) {
+      setIndex(nextIndex);
       setPhase('quiz');
       return;
     }
@@ -203,6 +204,7 @@ export function LearnScreen() {
         {phase === 'quiz' && (
           <MiniQuiz
             word={(words ?? [])[index - 1] as Word}
+            words={words ?? []}
             onAnswer={(ok) => {
               setCorrect((c) => c + (ok ? 1 : 0));
               addXp(ok ? 15 : 0);
@@ -505,10 +507,12 @@ function DifficultyDots({ level }: { level: number }) {
 
 function MiniQuiz({
   word,
+  words,
   onAnswer,
   onBack,
 }: {
   word: Word;
+  words: Word[];
   onAnswer: (ok: boolean) => void;
   onBack: () => void;
 }) {
@@ -516,14 +520,21 @@ function MiniQuiz({
   const [selected, setSelected] = useState<string | null>(null);
 
   const options = useMemo(() => {
-    const wrong = ['A place to rest', 'A type of clothing', 'To speak loudly'];
-    return [word.short_definition, ...wrong].sort(() => Math.random() - 0.5);
-  }, [word.id]);
+    const correct = word.short_definition || word.definition;
+    const wrong = words
+      .filter((w) => w.id !== word.id)
+      .map((w) => w.short_definition || w.definition)
+      .filter((definition): definition is string => Boolean(definition && definition !== correct))
+      .slice(0, 3);
+    const fallback = ['A related but incorrect meaning', 'A different usage pattern', 'An unrelated definition'];
+    const choices = [correct, ...wrong, ...fallback].slice(0, 4);
+    return choices.sort(() => Math.random() - 0.5);
+  }, [word.definition, word.id, word.short_definition, words]);
 
   const handleAnswer = (x: string) => {
     if (selected) return;
     setSelected(x);
-    const ok = x === word.short_definition;
+    const ok = x === (word.short_definition || word.definition);
     Haptics.notificationAsync(
       ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error
     ).catch(() => {});
@@ -539,7 +550,7 @@ function MiniQuiz({
 
       <View style={{ gap: 10, marginTop: 18 }}>
         {options.map((x) => {
-          const isCorrect = x === word.short_definition;
+          const isCorrect = x === (word.short_definition || word.definition);
           const isSelected = x === selected;
           const showResult = !!selected;
 
