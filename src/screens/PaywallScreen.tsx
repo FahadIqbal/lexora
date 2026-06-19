@@ -10,8 +10,8 @@ import { TAB_BAR_BOTTOM } from '../theme';
 
 export function PaywallScreen() {
   const t = useTheme();
-  const showScaffoldAlert = (plan: string) => {
-    Alert.alert('Payments not connected yet', `${plan} purchase UI is ready. Connect RevenueCat products before enabling checkout.`);
+  const showCheckoutAlert = (plan: string) => {
+    Alert.alert('Checkout unavailable', `${plan} checkout is not connected in this build.`);
   };
 
   return (
@@ -42,7 +42,7 @@ export function PaywallScreen() {
               </LexText>
               <LexText variant="muted">per month</LexText>
               <View style={{ marginTop: 12 }}>
-                <Button title="Choose" onPress={() => showScaffoldAlert('Monthly')} />
+                <Button title="Choose" onPress={() => showCheckoutAlert('Monthly')} />
               </View>
             </View>
           </View>
@@ -54,7 +54,7 @@ export function PaywallScreen() {
               </LexText>
               <LexText variant="muted">best value</LexText>
               <View style={{ marginTop: 12 }}>
-                <Button title="Start 7-day trial" onPress={() => showScaffoldAlert('Yearly trial')} />
+                <Button title="Start 7-day trial" onPress={() => showCheckoutAlert('Yearly trial')} />
               </View>
             </View>
           </View>
@@ -64,11 +64,11 @@ export function PaywallScreen() {
           <Button
             title="Restore purchases"
             variant="ghost"
-            onPress={() => Alert.alert('Restore unavailable', 'RevenueCat restore will be enabled after product configuration.')}
+            onPress={() => Alert.alert('Restore unavailable', 'Purchase restore is not connected in this build.')}
           />
           <Button title="Close" variant="ghost" onPress={() => router.back()} />
           <LexText variant="muted" style={{ textAlign: 'center', fontSize: 12 }}>
-            Payments are scaffolded — RevenueCat wiring comes after API keys are ready.
+            Checkout is disabled until billing products are configured.
           </LexText>
         </View>
       </ScrollView>

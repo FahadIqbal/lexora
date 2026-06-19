@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { GameShell } from './GameShell';
@@ -104,7 +105,7 @@ export function TrueFalseGame() {
             setMissed([]);
             setDone(false);
           }}
-          onDone={() => {}}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>

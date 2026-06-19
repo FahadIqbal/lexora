@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GameShell } from './GameShell';
@@ -125,6 +126,7 @@ export function SpeedMatchGame() {
           }}
           onDone={() => {
             addXp(xp);
+            router.push('/(tabs)/games');
           }}
         />
       ) : (

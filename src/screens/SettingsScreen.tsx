@@ -43,7 +43,7 @@ export function SettingsScreen() {
       });
     }
 
-    Alert.alert('Enabled', 'Notification permissions granted (scheduling is scaffolded).');
+    Alert.alert('Enabled', 'Daily reminders are scheduled for 9:00 PM.');
   };
 
   return (
@@ -51,7 +51,7 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
         <LexText variant="h2">Settings</LexText>
         <LexText variant="muted" style={{ marginTop: 6 }}>
-          Learning preferences, notifications, and premium (scaffolded).
+          Learning preferences, notifications, and account options.
         </LexText>
 
         <Card style={{ marginTop: 16 }}>
@@ -80,7 +80,7 @@ export function SettingsScreen() {
                 ))}
               </View>
             </View>
-            <LexText variant="muted">Preferred study time: 9:00 PM (time picker coming next)</LexText>
+            <LexText variant="muted">Preferred study time: 9:00 PM</LexText>
             <LexText variant="muted">Sounds: On · Haptics: On</LexText>
           </View>
         </Card>
@@ -101,7 +101,7 @@ export function SettingsScreen() {
         <Card style={{ marginTop: 12 }}>
           <LexText variant="title">Premium</LexText>
           <LexText variant="muted" style={{ marginTop: 8 }}>
-            Paywall UI is ready; RevenueCat wiring will be added after products + API key are ready.
+            Manage premium access and billing options.
           </LexText>
           <View style={{ marginTop: 12 }}>
             <Button title="Open Paywall" onPress={() => router.push('/paywall')} />
