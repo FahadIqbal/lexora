@@ -10,7 +10,6 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
@@ -18,6 +17,7 @@ import { Card } from '../../../components/Card';
 import { ProgressDots } from '../../../components/ProgressDots';
 import { WordParticles } from '../ui/WordParticles';
 import { Shimmer } from '../ui/Shimmer';
+import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../../../utils/haptics';
 
 type Slide =
   | {
@@ -32,13 +32,11 @@ type Slide =
     };
 
 function useHaptics() {
-  const isWeb = process.env.EXPO_OS === 'web';
   return {
-    selection: () => (isWeb ? Promise.resolve() : Haptics.selectionAsync().catch(() => null)),
-    light: () => (isWeb ? Promise.resolve() : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null)),
-    success: () =>
-      isWeb ? Promise.resolve() : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null),
-    error: () => (isWeb ? Promise.resolve() : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null)),
+    selection: () => hapticSelection(),
+    light: () => hapticImpact(Haptics.ImpactFeedbackStyle.Light),
+    success: () => hapticNotify(Haptics.NotificationFeedbackType.Success),
+    error: () => hapticNotify(Haptics.NotificationFeedbackType.Error),
   };
 }
 

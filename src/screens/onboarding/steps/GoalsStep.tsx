@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { useAppStore } from '../../../store/useAppStore';
+import { hapticSelection } from '../../../utils/haptics';
 
 const GOALS = [5, 10, 15, 20] as const;
 const WHY = [
@@ -25,9 +25,7 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
   const toggleLearningWhy = useAppStore((s) => s.toggleLearningWhy);
 
   const tap = () => {
-    if (process.env.EXPO_OS !== 'web') {
-      Haptics.selectionAsync().catch(() => null);
-    }
+    hapticSelection();
   };
 
   return (

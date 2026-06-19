@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -11,6 +10,7 @@ import { repos } from '../../../data/repositories';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
 import { hasSupabase } from '../../../services/env';
 import { upsertUserProfile } from '../../../services/supabaseHelpers';
+import { hapticSelection } from '../../../utils/haptics';
 
 export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
   const t = useTheme();
@@ -25,9 +25,7 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
 
   const toggle = (slug: string) => {
     setTouched(true);
-    if (process.env.EXPO_OS !== 'web') {
-      Haptics.selectionAsync().catch(() => null);
-    }
+    hapticSelection();
     setSelected(selected.includes(slug) ? selected.filter((x) => x !== slug) : [...selected, slug]);
   };
 

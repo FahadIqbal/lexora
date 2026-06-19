@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeProvider';
 import { ProgressDots } from '../../components/ProgressDots';
 import { WelcomeStep } from './steps/WelcomeStep';
@@ -11,6 +10,7 @@ import { PlacementStep } from './steps/PlacementStep';
 import { GoalsStep } from './steps/GoalsStep';
 import { CategoriesStep } from './steps/CategoriesStep';
 import { useAppStore } from '../../store/useAppStore';
+import { Haptics, hapticImpact, hapticNotify } from '../../utils/haptics';
 
 const TOTAL = 5;
 
@@ -27,9 +27,7 @@ export function OnboardingFlow() {
     const clamped = Math.max(0, Math.min(TOTAL - 1, next));
     setStep(clamped);
     translateX.value = withTiming(-clamped * width, { duration: 420 });
-    if (process.env.EXPO_OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-    }
+    hapticImpact(Haptics.ImpactFeedbackStyle.Light);
   };
 
   useEffect(() => {
@@ -64,9 +62,7 @@ export function OnboardingFlow() {
       onNext={({ mode }) => {
         if (mode === 'signin') {
           setOnboardingCompleted(true);
-          if (process.env.EXPO_OS !== 'web') {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
-          }
+          hapticNotify(Haptics.NotificationFeedbackType.Success);
           setTimeout(() => router.replace('/(tabs)/home'), 180);
           return;
         }
@@ -80,9 +76,7 @@ export function OnboardingFlow() {
       onBack={() => go(3)}
       onFinish={() => {
         setOnboardingCompleted(true);
-        if (process.env.EXPO_OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
-        }
+        hapticNotify(Haptics.NotificationFeedbackType.Success);
         setTimeout(() => router.replace('/(tabs)/home'), 240);
       }}
     />,

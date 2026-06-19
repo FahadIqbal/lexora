@@ -10,7 +10,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -23,6 +22,7 @@ import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { hapticSelection } from '../utils/haptics';
 
 type Quality = 0 | 1 | 2 | 3 | 5;
 
@@ -182,7 +182,7 @@ function ReviewCard({
   }));
 
   const flip = () => {
-    Haptics.selectionAsync().catch(() => {});
+    hapticSelection();
     const next = flipped.value ? 0 : 1;
     flipped.value = withSpring(next, { damping: 20, stiffness: 200 });
     if (next === 1) setReveal(true);
@@ -319,7 +319,7 @@ function RatingButton({
   return (
     <Pressable
       onPress={() => {
-        Haptics.selectionAsync().catch(() => {});
+        hapticSelection();
         onPress();
       }}
       style={({ pressed }) => [

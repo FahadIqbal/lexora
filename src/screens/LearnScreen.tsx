@@ -11,7 +11,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
@@ -22,6 +21,7 @@ import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
 
 export function LearnScreen() {
   const t = useTheme();
@@ -100,7 +100,7 @@ export function LearnScreen() {
         addXp(xp);
         recordLearned(current.id);
         showXpPopup(xp);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        hapticImpact(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setCombo(0);
         addToStudyList(current.id);
@@ -417,7 +417,7 @@ function WordFlipCard({ word }: { word: Word }) {
   }));
 
   const flip = () => {
-    Haptics.selectionAsync().catch(() => {});
+    hapticSelection();
     flipped.value = withSpring(flipped.value ? 0 : 1, { damping: 20, stiffness: 200 });
   };
 
@@ -535,9 +535,7 @@ function MiniQuiz({
     if (selected) return;
     setSelected(x);
     const ok = x === (word.short_definition || word.definition);
-    Haptics.notificationAsync(
-      ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error
-    ).catch(() => {});
+    hapticNotify(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error);
     setTimeout(() => onAnswer(ok), 700);
   };
 

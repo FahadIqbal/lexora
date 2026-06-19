@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -24,6 +23,7 @@ import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
 
 export function HomeScreen() {
   const t = useTheme();
@@ -309,7 +309,7 @@ export function HomeScreen() {
         {/* ── Daily Challenge ────────────────────────────────── */}
         <Pressable
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
             router.push(`/games/${dailyChallenge.slug}`);
           }}
           style={{ marginTop: 12 }}
@@ -385,7 +385,7 @@ export function HomeScreen() {
                   e.stopPropagation();
                   if (!wod) return;
                   Speech.speak(wod.word, { rate: 0.9, pitch: 1.0 });
-                  Haptics.selectionAsync().catch(() => {});
+                  hapticSelection();
                 }}
                 style={[styles.wodBtn, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.07)' }]}
               >
@@ -396,7 +396,7 @@ export function HomeScreen() {
                   e.stopPropagation();
                   if (!wod) return;
                   addToStudyList(wod.id);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                  hapticNotify(Haptics.NotificationFeedbackType.Success);
                 }}
                 style={[styles.wodBtn, { borderColor: 'rgba(0,229,184,0.35)', backgroundColor: 'rgba(0,229,184,0.1)', flex: 1 }]}
               >
@@ -460,7 +460,7 @@ export function HomeScreen() {
             <Pressable
               key={a.key}
               onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
+                hapticSelection();
                 a.onPress();
               }}
               style={({ pressed }) => [
