@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -52,12 +52,12 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
       if (e.translationX > 60) {
         // right → next option
         setFocused((f) => Math.min(3, f + 1));
-        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+        if (process.env.EXPO_OS !== 'web') Haptics.selectionAsync().catch(() => null);
         swipeX.value = withTiming(0, { duration: 180 });
       } else if (e.translationX < -60) {
         // left → prev option
         setFocused((f) => Math.max(0, f - 1));
-        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+        if (process.env.EXPO_OS !== 'web') Haptics.selectionAsync().catch(() => null);
         swipeX.value = withTiming(0, { duration: 180 });
       } else {
         swipeX.value = withTiming(0, { duration: 180 });
@@ -66,7 +66,7 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
 
   const confirm = () => {
     const isCorrect = focused === q.correctIndex;
-    if (Platform.OS !== 'web') {
+    if (process.env.EXPO_OS !== 'web') {
       Haptics.notificationAsync(isCorrect ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error).catch(
         () => null
       );
@@ -181,7 +181,7 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
                     <Pressable
                       key={i}
                       onPress={() => {
-                        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+                        if (process.env.EXPO_OS !== 'web') Haptics.selectionAsync().catch(() => null);
                         setFocused(i);
                       }}
                       style={({ pressed }) => [

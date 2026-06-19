@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
@@ -25,7 +25,7 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
   const toggleLearningWhy = useAppStore((s) => s.toggleLearningWhy);
 
   const tap = () => {
-    if (Platform.OS !== 'web') {
+    if (process.env.EXPO_OS !== 'web') {
       Haptics.selectionAsync().catch(() => null);
     }
   };

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Extrapolate,
   FadeInDown,
@@ -32,7 +32,7 @@ type Slide =
     };
 
 function useHaptics() {
-  const isWeb = Platform.OS === 'web';
+  const isWeb = process.env.EXPO_OS === 'web';
   return {
     selection: () => (isWeb ? Promise.resolve() : Haptics.selectionAsync().catch(() => null)),
     light: () => (isWeb ? Promise.resolve() : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null)),

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { useAppStore } from '../../src/store/useAppStore';
@@ -33,7 +33,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 26 : 14,
+          bottom: process.env.EXPO_OS === 'ios' ? 26 : 14,
           left: 14,
           right: 14,
           height: 72,
@@ -41,11 +41,7 @@ export default function TabsLayout() {
           backgroundColor: t.colors.surface2,
           borderTopWidth: 1,
           borderTopColor: 'rgba(255,255,255,0.09)',
-          elevation: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.55,
-          shadowRadius: 22,
+          boxShadow: '0 18px 34px rgba(0,0,0,0.48)',
         },
         tabBarActiveTintColor: t.colors.accentTeal,
         tabBarInactiveTintColor: 'rgba(242,240,255,0.36)',

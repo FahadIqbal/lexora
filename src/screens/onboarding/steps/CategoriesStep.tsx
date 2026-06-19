@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
@@ -25,7 +25,7 @@ export function CategoriesStep({ onBack, onFinish }: { onBack: () => void; onFin
 
   const toggle = (slug: string) => {
     setTouched(true);
-    if (Platform.OS !== 'web') {
+    if (process.env.EXPO_OS !== 'web') {
       Haptics.selectionAsync().catch(() => null);
     }
     setSelected(selected.includes(slug) ? selected.filter((x) => x !== slug) : [...selected, slug]);

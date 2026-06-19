@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -27,7 +27,7 @@ export function OnboardingFlow() {
     const clamped = Math.max(0, Math.min(TOTAL - 1, next));
     setStep(clamped);
     translateX.value = withTiming(-clamped * width, { duration: 420 });
-    if (Platform.OS !== 'web') {
+    if (process.env.EXPO_OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
     }
   };
@@ -64,7 +64,7 @@ export function OnboardingFlow() {
       onNext={({ mode }) => {
         if (mode === 'signin') {
           setOnboardingCompleted(true);
-          if (Platform.OS !== 'web') {
+          if (process.env.EXPO_OS !== 'web') {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
           }
           setTimeout(() => router.replace('/(tabs)/home'), 180);
@@ -80,7 +80,7 @@ export function OnboardingFlow() {
       onBack={() => go(3)}
       onFinish={() => {
         setOnboardingCompleted(true);
-        if (Platform.OS !== 'web') {
+        if (process.env.EXPO_OS !== 'web') {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
         }
         setTimeout(() => router.replace('/(tabs)/home'), 240);
