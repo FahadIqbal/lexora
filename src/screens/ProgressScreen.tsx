@@ -57,6 +57,32 @@ export function ProgressScreen() {
     { slug: 'speed-demon', name: '⚡ Speed Demon', unlocked: false },
   ];
 
+  const skillMastery = useMemo(
+    () => [
+      {
+        label: 'Vocabulary',
+        value: Math.min(100, Math.round((totals.seen / Math.max(1, 120)) * 100)),
+        color: t.colors.accentPurple,
+      },
+      {
+        label: 'Recall',
+        value: totals.accuracy,
+        color: t.colors.accentTeal,
+      },
+      {
+        label: 'Consistency',
+        value: Math.min(100, Math.round((streak / Math.max(1, 14)) * 100)),
+        color: t.colors.accentAmber,
+      },
+      {
+        label: 'Mastery',
+        value: totals.seen ? Math.round((totals.mastered / totals.seen) * 100) : 0,
+        color: t.colors.accentPink,
+      },
+    ],
+    [streak, t.colors.accentAmber, t.colors.accentPink, t.colors.accentPurple, t.colors.accentTeal, totals]
+  );
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
@@ -102,6 +128,18 @@ export function ProgressScreen() {
           <MetricCard label="In review" value={String(totals.inReview)} />
           <MetricCard label="Accuracy" value={`${totals.accuracy}%`} />
         </View>
+
+        <Card style={{ marginTop: 12 }}>
+          <LexText variant="title">Skill Mastery</LexText>
+          <LexText variant="muted" style={{ marginTop: 6 }}>
+            A cleaner snapshot of your learning balance.
+          </LexText>
+          <View style={{ marginTop: 12, gap: 10 }}>
+            {skillMastery.map((skill) => (
+              <SkillBar key={skill.label} {...skill} />
+            ))}
+          </View>
+        </Card>
 
         <Card style={{ marginTop: 12 }}>
           <LexText variant="title">Weekly activity</LexText>
@@ -181,6 +219,27 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SkillBar({ label, value, color }: { label: string; value: number; color: string }) {
+  const t = useTheme();
+  const clamped = Math.max(0, Math.min(100, value));
+
+  return (
+    <View style={{ gap: 5 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <LexText variant="muted" style={{ fontSize: 13 }}>
+          {label}
+        </LexText>
+        <LexText variant="label" style={{ color, fontSize: 11 }}>
+          {clamped}%
+        </LexText>
+      </View>
+      <View style={[styles.skillTrack, { backgroundColor: 'rgba(255,255,255,0.07)' }]}>
+        <View style={[styles.skillFill, { width: `${clamped}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
 function Heatmap30Days({ intensities }: { intensities: number[] }) {
   const t = useTheme();
 
@@ -253,6 +312,8 @@ function WeeklyComboChart({ words, accuracy }: { words: number[]; accuracy: numb
 const styles = StyleSheet.create({
   wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   metric: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 14 },
+  skillTrack: { height: 5, borderRadius: 999, overflow: 'hidden' },
+  skillFill: { height: '100%', borderRadius: 999 },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   ach: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 12 },
 });

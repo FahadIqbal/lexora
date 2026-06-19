@@ -356,6 +356,7 @@ export function HomeScreen() {
           style={{ marginTop: 12 }}
         >
           <GlowCard colors={['rgba(123,111,255,0.55)', 'rgba(0,229,184,0.35)']}>
+            <LexText style={styles.wodQuoteMark}>"</LexText>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <LexText variant="label" style={{ color: '#A89CFF', fontSize: 11 }}>
                 📖 WORD OF THE DAY
@@ -627,6 +628,15 @@ const styles = StyleSheet.create({
   },
   wodBody: {
     overflow: 'hidden',
+  },
+  wodQuoteMark: {
+    position: 'absolute',
+    top: -14,
+    right: 14,
+    fontSize: 86,
+    lineHeight: 92,
+    color: 'rgba(123,111,255,0.18)',
+    fontFamily: 'Georgia',
   },
   goalCard: {
     borderWidth: 1,
