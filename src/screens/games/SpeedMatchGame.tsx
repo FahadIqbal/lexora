@@ -27,6 +27,7 @@ export function SpeedMatchGame() {
   const [matched, setMatched] = useState<Record<string, boolean>>({});
   const [missed, setMissed] = useState<string[]>([]);
   const [score, setScore] = useState(0);
+  const [xpAwarded, setXpAwarded] = useState(false);
 
   const difficultyMax = useMemo(() => {
     if (!proficiency) return null;
@@ -93,6 +94,19 @@ export function SpeedMatchGame() {
   const xp = Math.max(0, score) + tick; // time bonus
   const progress = Math.max(0, Math.min(1, tick / 60));
 
+  useEffect(() => {
+    if (!left.length || done) return;
+    if (Object.keys(matched).length >= left.length) {
+      setDone(true);
+    }
+  }, [done, left.length, matched]);
+
+  useEffect(() => {
+    if (!done || xpAwarded) return;
+    addXp(xp);
+    setXpAwarded(true);
+  }, [addXp, done, xp, xpAwarded]);
+
   return (
     <GameShell title="Speed Match" subtitle="Match the words. 60 seconds.">
       {loading ? (
@@ -123,11 +137,9 @@ export function SpeedMatchGame() {
             setMatched({});
             setMissed([]);
             setScore(0);
+            setXpAwarded(false);
           }}
-          onDone={() => {
-            addXp(xp);
-            router.push('/(tabs)/games');
-          }}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>

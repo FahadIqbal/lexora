@@ -18,7 +18,6 @@ import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import type { Word } from '../domain/schema';
-import { sm2Update } from '../utils/srs';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
@@ -108,7 +107,6 @@ export function ReviewScreen() {
             index={i}
             total={total}
             onRate={(quality) => {
-              const next = sm2Update({ easeFactor: 2.5, interval: 1, repetitions: 0, quality });
               if (quality <= 1) setCounts((s) => ({ ...s, again: s.again + 1 }));
               else if (quality === 2) setCounts((s) => ({ ...s, hard: s.hard + 1 }));
               else if (quality === 3) setCounts((s) => ({ ...s, good: s.good + 1 }));
@@ -125,7 +123,14 @@ export function ReviewScreen() {
         )}
 
         {phase === 'done' && (
-          <ReviewComplete counts={counts} onHome={() => setPhase('intro')} />
+          <ReviewComplete
+            counts={counts}
+            onHome={() => {
+              setI(0);
+              setCounts({ again: 0, hard: 0, good: 0, easy: 0 });
+              setPhase('intro');
+            }}
+          />
         )}
       </View>
     </Screen>
