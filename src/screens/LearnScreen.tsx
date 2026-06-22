@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import Animated, {
   Easing,
   interpolate,
@@ -593,6 +594,9 @@ function CompletionScreen({
   onLearnMore: () => void;
 }) {
   const t = useTheme();
+  const quizCount = Math.max(1, Math.ceil(total / 5));
+  const accuracy = total > 0 ? Math.round((correct / quizCount) * 100) : 0;
+  const nextAction = accuracy >= 80 ? 'Lock it in with a fast game.' : 'Review the tricky cards before adding more.';
   const scale = useSharedValue(0.7);
   useEffect(() => {
     scale.value = withSpring(1, { damping: 12, stiffness: 180 });
@@ -600,26 +604,48 @@ function CompletionScreen({
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <Animated.View style={[{ flex: 1, justifyContent: 'center' }, style]}>
-      <GlowCard colors={['rgba(0,229,184,0.55)', 'rgba(123,111,255,0.35)']}>
-        <LexText style={{ fontSize: 52, textAlign: 'center' }}>🎉</LexText>
-        <LexText variant="h2" style={{ textAlign: 'center', marginTop: 12 }}>
-          Session Complete!
-        </LexText>
-        <LexText variant="muted" style={{ textAlign: 'center', marginTop: 8 }}>
-          {total} words learned · {correct} quiz correct
-        </LexText>
+    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.completeScroll} showsVerticalScrollIndicator={false}>
+      <Animated.View style={style}>
+        <GlowCard colors={['rgba(0,229,184,0.55)', 'rgba(123,111,255,0.35)']}>
+          <LexText style={{ fontSize: 52, textAlign: 'center' }}>🎉</LexText>
+          <LexText variant="h2" style={{ textAlign: 'center', marginTop: 12 }}>
+            Session complete
+          </LexText>
+          <LexText variant="muted" style={{ textAlign: 'center', marginTop: 8 }}>
+            You moved {total} words into your memory queue.
+          </LexText>
 
-        <View style={{ marginTop: 20, gap: 10 }}>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <StatBox value={String(total)} label="Words" color={t.colors.accentTeal} />
-            <StatBox value={String(correct)} label="Correct" color={t.colors.accentPurple} />
-            <StatBox value={total > 0 ? `${Math.round((correct / Math.ceil(total / 5)) * 100)}%` : '—'} label="Accuracy" color={t.colors.accentAmber} />
+          <View style={{ marginTop: 20, gap: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <StatBox value={String(total)} label="Words" color={t.colors.accentTeal} />
+              <StatBox value={String(correct)} label="Correct" color={t.colors.accentPurple} />
+              <StatBox value={total > 0 ? `${accuracy}%` : '—'} label="Accuracy" color={t.colors.accentAmber} />
+            </View>
+
+            <View style={[styles.nextStepPanel, { borderColor: t.colors.border }]}>
+              <LexText variant="label" style={{ color: t.colors.muted }}>
+                Best next step
+              </LexText>
+              <LexText variant="title" style={{ marginTop: 6 }}>
+                {nextAction}
+              </LexText>
+            </View>
+
+            <View style={styles.completionActions}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={accuracy >= 80 ? 'Play a game' : 'Review now'}
+                  onPress={() => router.push(accuracy >= 80 ? '/(tabs)/games' : '/(tabs)/review')}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title="Learn more" variant="ghost" onPress={onLearnMore} />
+              </View>
+            </View>
           </View>
-          <Button title="Learn more words →" onPress={onLearnMore} />
-        </View>
-      </GlowCard>
-    </Animated.View>
+        </GlowCard>
+      </Animated.View>
+    </ScrollView>
   );
 }
 
@@ -677,6 +703,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
+  },
+  completeScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: TAB_BAR_BOTTOM,
+  },
+  nextStepPanel: {
+    borderWidth: 1,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    padding: 13,
+  },
+  completionActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import Animated, {
   Easing,
   FadeInDown,
@@ -349,9 +350,19 @@ function ReviewComplete({
   const t = useTheme();
   const total = Math.max(1, counts.again + counts.hard + counts.good + counts.easy);
   const successRate = Math.round(((counts.good + counts.easy) / total) * 100);
+  const guidance =
+    successRate >= 85
+      ? 'Your recall is strong. A short game will turn it into speed.'
+      : successRate >= 60
+      ? 'Good progress. Replay difficult cards later today for a stronger curve.'
+      : 'The weak spots are visible now. Slow review will help more than speed.';
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }}
+      showsVerticalScrollIndicator={false}
+    >
       <GlowCard colors={['rgba(0,229,184,0.55)', 'rgba(123,111,255,0.35)']}>
         <LexText style={{ fontSize: 44, textAlign: 'center' }}>✅</LexText>
         <LexText variant="h2" style={{ textAlign: 'center', marginTop: 10 }}>
@@ -380,8 +391,31 @@ function ReviewComplete({
           </View>
         </View>
 
+        <View style={[styles.reviewNextPanel, { borderColor: t.colors.border }]}>
+          <LexText variant="label" style={{ color: t.colors.muted }}>
+            Coach note
+          </LexText>
+          <LexText variant="muted" style={{ marginTop: 6, fontSize: 13, lineHeight: 18 }}>
+            {guidance}
+          </LexText>
+        </View>
+
         <View style={{ marginTop: 16, gap: 10 }}>
-          <Button title="Back to review hub →" onPress={onHome} />
+          <Button
+            title={successRate >= 85 ? 'Play recall game' : 'Back to review hub'}
+            onPress={() => {
+              if (successRate >= 85) router.push('/games/true-false');
+              else onHome();
+            }}
+          />
+          <Button
+            title={successRate >= 85 ? 'Back to review hub' : 'Learn new words'}
+            variant="ghost"
+            onPress={() => {
+              if (successRate >= 85) onHome();
+              else router.push('/(tabs)/learn');
+            }}
+          />
         </View>
       </GlowCard>
     </ScrollView>
@@ -487,5 +521,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
     alignItems: 'center',
+  },
+  reviewNextPanel: {
+    borderWidth: 1,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginTop: 16,
   },
 });
