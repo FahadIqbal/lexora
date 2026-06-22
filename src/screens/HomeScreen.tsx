@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import Animated, {
   Easing,
+  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -11,7 +12,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Circle, Rect } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -28,6 +29,7 @@ import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/h
 export function HomeScreen() {
   const t = useTheme();
   const user = useAppStore((s) => s.user);
+  const isPremium = useAppStore((s) => s.user.isPremium);
   const streak = useAppStore((s) => s.streakCurrent);
   const streakLongest = useAppStore((s) => s.streakLongest);
   const xpToday = useAppStore((s) => s.xpToday);
@@ -89,6 +91,59 @@ export function HomeScreen() {
     const todayIdx = (new Date().getDay() + 6) % 7;
     return { days, marks, todayIdx };
   }, [weekly]);
+
+  const dailyMission = useMemo(() => {
+    if (dueCount > 0) {
+      return {
+        eyebrow: 'Smart next step',
+        title: `Review ${dueCount} due ${dueCount === 1 ? 'card' : 'cards'}`,
+        detail: 'Protect your memory curve before learning new words.',
+        action: 'Start review',
+        route: '/(tabs)/review' as const,
+        colors: ['rgba(255,107,157,0.28)', 'rgba(123,111,255,0.14)'] as [string, string],
+        accent: t.colors.accentPink,
+        score: Math.min(1, dueCount / Math.max(8, dailyGoal)),
+      };
+    }
+
+    if (goalP < 1) {
+      const remaining = Math.max(1, dailyGoal - learnedToday);
+      return {
+        eyebrow: 'Today’s mission',
+        title: `Learn ${remaining} more ${remaining === 1 ? 'word' : 'words'}`,
+        detail: 'A short swipe session is enough to move your streak forward.',
+        action: 'Continue learning',
+        route: '/(tabs)/learn' as const,
+        colors: ['rgba(0,229,184,0.24)', 'rgba(91,168,255,0.13)'] as [string, string],
+        accent: t.colors.accentTeal,
+        score: goalP,
+      };
+    }
+
+    if (!isPremium && xpTotal >= 500) {
+      return {
+        eyebrow: 'Level up your loop',
+        title: 'Unlock deeper practice',
+        detail: 'You have momentum. Add tutor coaching, premium packs, and deeper insights.',
+        action: 'See premium',
+        route: '/paywall' as const,
+        colors: ['rgba(123,111,255,0.26)', 'rgba(255,107,157,0.14)'] as [string, string],
+        accent: t.colors.accentPurple,
+        score: 1,
+      };
+    }
+
+    return {
+      eyebrow: 'Goal complete',
+      title: 'Keep the streak warm',
+      detail: 'Play today’s challenge for a bonus burst without adding pressure.',
+      action: 'Play challenge',
+      route: `/games/${dailyChallenge.slug}` as const,
+      colors: ['rgba(255,179,71,0.26)', 'rgba(0,229,184,0.12)'] as [string, string],
+      accent: t.colors.accentAmber,
+      score: 1,
+    };
+  }, [dailyGoal, dailyChallenge.slug, dueCount, goalP, isPremium, learnedToday, t.colors.accentAmber, t.colors.accentPink, t.colors.accentPurple, t.colors.accentTeal, xpTotal]);
 
   // Animations
   const flameScale = useSharedValue(1);
@@ -306,6 +361,55 @@ export function HomeScreen() {
           />
         </View>
 
+        {/* ── Smart Mission ─────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(80).duration(420)} style={{ marginTop: 12 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${dailyMission.eyebrow}. ${dailyMission.title}. ${dailyMission.action}.`}
+            onPress={() => {
+              hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
+              router.push(dailyMission.route);
+            }}
+            style={({ pressed }) => [
+              styles.missionCard,
+              {
+                borderColor: 'rgba(255,255,255,0.10)',
+                opacity: pressed ? 0.9 : 1,
+                transform: [{ scale: pressed ? 0.985 : 1 }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={dailyMission.colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.missionHeader}>
+              <View style={{ flex: 1 }}>
+                <LexText variant="label" style={{ color: dailyMission.accent, fontSize: 10 }}>
+                  {dailyMission.eyebrow}
+                </LexText>
+                <LexText variant="h3" style={{ marginTop: 6 }}>
+                  {dailyMission.title}
+                </LexText>
+              </View>
+              <MissionRing progress={dailyMission.score} color={dailyMission.accent} />
+            </View>
+            <LexText variant="muted" style={{ marginTop: 10 }}>
+              {dailyMission.detail}
+            </LexText>
+            <View style={styles.missionFooter}>
+              <LexText variant="title" style={{ color: dailyMission.accent, fontSize: 14 }}>
+                {dailyMission.action}
+              </LexText>
+              <LexText variant="title" style={{ color: dailyMission.accent, fontSize: 18 }}>
+                →
+              </LexText>
+            </View>
+          </Pressable>
+        </Animated.View>
+
         {/* ── Daily Challenge ────────────────────────────────── */}
         <Pressable
           onPress={() => {
@@ -521,6 +625,46 @@ function StatBento({ value, label, color }: { value: string; label: string; colo
   );
 }
 
+function MissionRing({ progress, color }: { progress: number; color: string }) {
+  const size = 50;
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(1, progress));
+  const dashOffset = circumference * (1 - clamped);
+
+  return (
+    <View style={styles.missionRing}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255,255,255,0.10)"
+          strokeWidth={5}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={5}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.missionRingText}>
+        <LexText variant="label" style={{ color, fontSize: 10 }}>
+          {Math.round(clamped * 100)}
+        </LexText>
+      </View>
+    </View>
+  );
+}
+
 function WeeklyBars({ values, todayIdx }: { values: number[]; todayIdx: number }) {
   const t = useTheme();
   const max = Math.max(...values, 1);
@@ -595,6 +739,46 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
+  },
+  missionCard: {
+    minHeight: 170,
+    borderWidth: 1,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    padding: 18,
+  },
+  missionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  missionFooter: {
+    minHeight: 42,
+    marginTop: 14,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  missionRing: {
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  missionRingText: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   challengeCard: {
     borderRadius: 20,

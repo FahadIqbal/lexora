@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Screen } from '../components/Screen';
@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticNotify } from '../utils/haptics';
 
 export function SettingsScreen() {
   const t = useTheme();
@@ -20,15 +21,16 @@ export function SettingsScreen() {
   const [reviewDue, setReviewDue] = useState(true);
   const [streakRisk, setStreakRisk] = useState(true);
   const [achievements, setAchievements] = useState(true);
+  const [notificationStatus, setNotificationStatus] = useState('');
 
   const enableNotifications = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Notifications disabled', 'Please enable notifications in system settings.');
+      setNotificationStatus('Notifications are off. Enable them in system settings to receive reminders.');
+      hapticNotify(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
-    // Mock schedule: daily reminder at 9pm local time
     if (dailyReminder) {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -44,7 +46,8 @@ export function SettingsScreen() {
       });
     }
 
-    Alert.alert('Enabled', 'Daily reminders are scheduled for 9:00 PM.');
+    setNotificationStatus(dailyReminder ? 'Daily reminders are scheduled for 9:00 PM.' : 'Notification permission is enabled.');
+    hapticNotify(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
@@ -96,6 +99,13 @@ export function SettingsScreen() {
             <View style={{ marginTop: 6 }}>
               <Button title="Enable notifications" onPress={enableNotifications} />
             </View>
+            {notificationStatus ? (
+              <View style={[styles.inlineStatus, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                <LexText variant="muted" style={{ fontSize: 13 }}>
+                  {notificationStatus}
+                </LexText>
+              </View>
+            ) : null}
           </View>
         </Card>
 
@@ -153,4 +163,5 @@ const styles = StyleSheet.create({
   goalChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
   premiumHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  inlineStatus: { borderWidth: 1, borderRadius: 14, borderCurve: 'continuous', padding: 12 },
 });
