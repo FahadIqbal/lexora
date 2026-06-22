@@ -11,7 +11,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
@@ -22,6 +21,7 @@ import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
 
 export function LearnScreen() {
   const t = useTheme();
@@ -83,6 +83,7 @@ export function LearnScreen() {
       return;
     }
     if (toQuiz(nextIndex)) {
+      setIndex(nextIndex);
       setPhase('quiz');
       return;
     }
@@ -99,7 +100,7 @@ export function LearnScreen() {
         addXp(xp);
         recordLearned(current.id);
         showXpPopup(xp);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        hapticImpact(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setCombo(0);
         addToStudyList(current.id);
@@ -203,6 +204,7 @@ export function LearnScreen() {
         {phase === 'quiz' && (
           <MiniQuiz
             word={(words ?? [])[index - 1] as Word}
+            words={words ?? []}
             onAnswer={(ok) => {
               setCorrect((c) => c + (ok ? 1 : 0));
               addXp(ok ? 15 : 0);
@@ -415,7 +417,7 @@ function WordFlipCard({ word }: { word: Word }) {
   }));
 
   const flip = () => {
-    Haptics.selectionAsync().catch(() => {});
+    hapticSelection();
     flipped.value = withSpring(flipped.value ? 0 : 1, { damping: 20, stiffness: 200 });
   };
 
@@ -505,10 +507,12 @@ function DifficultyDots({ level }: { level: number }) {
 
 function MiniQuiz({
   word,
+  words,
   onAnswer,
   onBack,
 }: {
   word: Word;
+  words: Word[];
   onAnswer: (ok: boolean) => void;
   onBack: () => void;
 }) {
@@ -516,17 +520,22 @@ function MiniQuiz({
   const [selected, setSelected] = useState<string | null>(null);
 
   const options = useMemo(() => {
-    const wrong = ['A place to rest', 'A type of clothing', 'To speak loudly'];
-    return [word.short_definition, ...wrong].sort(() => Math.random() - 0.5);
-  }, [word.id]);
+    const correct = word.short_definition || word.definition;
+    const wrong = words
+      .filter((w) => w.id !== word.id)
+      .map((w) => w.short_definition || w.definition)
+      .filter((definition): definition is string => Boolean(definition && definition !== correct))
+      .slice(0, 3);
+    const fallback = ['A related but incorrect meaning', 'A different usage pattern', 'An unrelated definition'];
+    const choices = [correct, ...wrong, ...fallback].slice(0, 4);
+    return choices.sort(() => Math.random() - 0.5);
+  }, [word.definition, word.id, word.short_definition, words]);
 
   const handleAnswer = (x: string) => {
     if (selected) return;
     setSelected(x);
-    const ok = x === word.short_definition;
-    Haptics.notificationAsync(
-      ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error
-    ).catch(() => {});
+    const ok = x === (word.short_definition || word.definition);
+    hapticNotify(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error);
     setTimeout(() => onAnswer(ok), 700);
   };
 
@@ -539,7 +548,7 @@ function MiniQuiz({
 
       <View style={{ gap: 10, marginTop: 18 }}>
         {options.map((x) => {
-          const isCorrect = x === word.short_definition;
+          const isCorrect = x === (word.short_definition || word.definition);
           const isSelected = x === selected;
           const showResult = !!selected;
 

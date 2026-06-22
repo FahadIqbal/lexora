@@ -38,6 +38,7 @@ type AppState = {
   setProficiencyLevel: (lvl: string) => void;
   setDisplayName: (name: string) => void;
   setUserId: (id?: string) => void;
+  setIsPremium: (v: boolean) => void;
   setIsAdmin: (v: boolean) => void;
   setHydrated: (v: boolean) => void;
   addXp: (n: number) => void;
@@ -124,6 +125,10 @@ export const useAppStore = create<AppState>()(
       setUserId: (id) =>
         set((s) => ({
           user: { ...s.user, id },
+        })),
+      setIsPremium: (v) =>
+        set((s) => ({
+          user: { ...s.user, isPremium: v },
         })),
       setIsAdmin: (v) =>
         set((s) => ({

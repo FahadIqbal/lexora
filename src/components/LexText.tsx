@@ -26,7 +26,7 @@ export function LexText({
           fontFamily: t.font.heading.extrabold,
           fontSize: 42,
           lineHeight: 46,
-          letterSpacing: -0.8,
+          letterSpacing: 0,
           color: t.colors.text,
         };
       case 'h2':
@@ -34,7 +34,7 @@ export function LexText({
           fontFamily: t.font.heading.bold,
           fontSize: 30,
           lineHeight: 34,
-          letterSpacing: -0.4,
+          letterSpacing: 0,
           color: t.colors.text,
         };
       case 'h3':
@@ -42,7 +42,7 @@ export function LexText({
           fontFamily: t.font.heading.semibold,
           fontSize: 22,
           lineHeight: 26,
-          letterSpacing: -0.2,
+          letterSpacing: 0,
           color: t.colors.text,
         };
       case 'title':
@@ -50,14 +50,14 @@ export function LexText({
           fontFamily: t.font.body.medium,
           fontSize: 16,
           lineHeight: 20,
-          letterSpacing: -0.1,
+          letterSpacing: 0,
           color: t.colors.text,
         };
       case 'label':
         return {
           fontFamily: t.font.body.medium,
           fontSize: 12,
-          letterSpacing: 0.9,
+          letterSpacing: 0,
           textTransform: 'uppercase' as const,
           color: t.colors.muted,
         };

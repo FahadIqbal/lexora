@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { GameShell } from './GameShell';
 import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
@@ -100,7 +101,7 @@ export function ScrambleGame() {
             setMissed([]);
             setDone(false);
           }}
-          onDone={() => {}}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>
@@ -113,7 +114,7 @@ export function ScrambleGame() {
             </LexText>
             <View style={{ height: 12 }} />
             <View style={[styles.answer, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-              <LexText variant="h2" style={{ fontSize: 28, letterSpacing: 2 }}>
+              <LexText variant="h2" style={{ fontSize: 28, letterSpacing: 0 }}>
                 {current || '—'}
               </LexText>
             </View>

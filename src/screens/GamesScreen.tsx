@@ -2,13 +2,13 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
 import { useTheme } from '../theme/ThemeProvider';
 import { gameList } from './games/gamesData';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticImpact } from '../utils/haptics';
 
 export function GamesScreen() {
   const t = useTheme();
@@ -17,7 +17,7 @@ export function GamesScreen() {
   const rest = gameList.filter((g) => !g.featured);
 
   const goToGame = (slug: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/games/${slug}`);
   };
 

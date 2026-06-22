@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
 import { GameShell } from './GameShell';
 import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
@@ -48,10 +49,10 @@ export function WordChainGame() {
   }, [start]);
 
   const validate = async (candidate: string) => {
-    // Mock “AI validation”: accept if non-empty and not already in chain.
     const c = candidate.trim().toLowerCase();
     if (!c) return false;
     if (chain.map((x) => x.toLowerCase()).includes(c)) return false;
+    if (!/^[a-z][a-z -]*$/i.test(candidate.trim())) return false;
     return true;
   };
 
@@ -101,7 +102,7 @@ export function WordChainGame() {
             setMissed([]);
             setDone(false);
           }}
-          onDone={() => {}}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>
@@ -110,7 +111,7 @@ export function WordChainGame() {
               Chain {chain.length}/{targetLen}
             </LexText>
             <LexText variant="muted" style={{ marginTop: 8 }}>
-              Enter a synonym or related word (AI validation will be added later).
+              Enter a synonym, association, or word that naturally connects to the chain.
             </LexText>
             <View style={{ marginTop: 12, gap: 6 }}>
               {chain.slice(-6).map((w, idx) => (

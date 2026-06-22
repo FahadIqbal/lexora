@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, type ViewStyle, type PressableProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeProvider';
 import { LexText } from './LexText';
+import { hapticSelection } from '../utils/haptics';
 
 export function Button({
   title,
@@ -24,9 +24,7 @@ export function Button({
       {...props}
       disabled={disabled}
       onPress={(e) => {
-        if (!disabled) {
-          Haptics.selectionAsync().catch(() => {});
-        }
+        if (!disabled) hapticSelection();
         onPress?.(e);
       }}
       style={({ pressed }) => [

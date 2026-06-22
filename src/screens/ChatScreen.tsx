@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
@@ -99,7 +99,7 @@ export function ChatScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.wrap} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
         <View style={{ padding: 18, flex: 1 }}>
           <LexText variant="h2">AI Tutor</LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>

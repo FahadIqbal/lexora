@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
 import { GameShell } from './GameShell';
 import { GameResultCard } from './GameResultCard';
 import { Card } from '../../components/Card';
@@ -97,7 +98,7 @@ export function DefinitionTypeGame() {
             setMissed([]);
             setDone(false);
           }}
-          onDone={() => {}}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>

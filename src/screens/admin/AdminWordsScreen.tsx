@@ -257,7 +257,6 @@ export function AdminWordsScreen() {
             <View style={{ flex: 1 }}>
               <FlashList
                 data={(rows ?? []) as any}
-                estimatedItemSize={72}
                 keyExtractor={(x: any) => x.id}
                 ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />}
                 renderItem={({ item }: any) => {

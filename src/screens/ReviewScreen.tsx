@@ -10,7 +10,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -18,12 +17,12 @@ import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import type { Word } from '../domain/schema';
-import { sm2Update } from '../utils/srs';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { hapticSelection } from '../utils/haptics';
 
 type Quality = 0 | 1 | 2 | 3 | 5;
 
@@ -108,7 +107,6 @@ export function ReviewScreen() {
             index={i}
             total={total}
             onRate={(quality) => {
-              const next = sm2Update({ easeFactor: 2.5, interval: 1, repetitions: 0, quality });
               if (quality <= 1) setCounts((s) => ({ ...s, again: s.again + 1 }));
               else if (quality === 2) setCounts((s) => ({ ...s, hard: s.hard + 1 }));
               else if (quality === 3) setCounts((s) => ({ ...s, good: s.good + 1 }));
@@ -125,7 +123,14 @@ export function ReviewScreen() {
         )}
 
         {phase === 'done' && (
-          <ReviewComplete counts={counts} onHome={() => setPhase('intro')} />
+          <ReviewComplete
+            counts={counts}
+            onHome={() => {
+              setI(0);
+              setCounts({ again: 0, hard: 0, good: 0, easy: 0 });
+              setPhase('intro');
+            }}
+          />
         )}
       </View>
     </Screen>
@@ -177,7 +182,7 @@ function ReviewCard({
   }));
 
   const flip = () => {
-    Haptics.selectionAsync().catch(() => {});
+    hapticSelection();
     const next = flipped.value ? 0 : 1;
     flipped.value = withSpring(next, { damping: 20, stiffness: 200 });
     if (next === 1) setReveal(true);
@@ -314,7 +319,7 @@ function RatingButton({
   return (
     <Pressable
       onPress={() => {
-        Haptics.selectionAsync().catch(() => {});
+        hapticSelection();
         onPress();
       }}
       style={({ pressed }) => [

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GameShell } from './GameShell';
 import { GameResultCard } from './GameResultCard';
@@ -10,6 +10,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppStore } from '../../store/useAppStore';
 import { repos } from '../../data/repositories';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { Haptics, hapticNotify } from '../../utils/haptics';
 
 export function SpeedMatchGame() {
   const t = useTheme();
@@ -26,6 +27,7 @@ export function SpeedMatchGame() {
   const [matched, setMatched] = useState<Record<string, boolean>>({});
   const [missed, setMissed] = useState<string[]>([]);
   const [score, setScore] = useState(0);
+  const [xpAwarded, setXpAwarded] = useState(false);
 
   const difficultyMax = useMemo(() => {
     if (!proficiency) return null;
@@ -72,12 +74,12 @@ export function SpeedMatchGame() {
       setMatched((m) => ({ ...m, [selectedLeft]: true }));
       setScore((s) => s + 10);
       setFlash('good');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      hapticNotify(Haptics.NotificationFeedbackType.Success);
     } else {
       setMissed((m) => [...m, selectedLeft]);
       setScore((s) => Math.max(0, s - 2));
       setFlash('bad');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      hapticNotify(Haptics.NotificationFeedbackType.Error);
     }
     setSelectedLeft(null);
     setSelectedRightWord(null);
@@ -91,6 +93,19 @@ export function SpeedMatchGame() {
 
   const xp = Math.max(0, score) + tick; // time bonus
   const progress = Math.max(0, Math.min(1, tick / 60));
+
+  useEffect(() => {
+    if (!left.length || done) return;
+    if (Object.keys(matched).length >= left.length) {
+      setDone(true);
+    }
+  }, [done, left.length, matched]);
+
+  useEffect(() => {
+    if (!done || xpAwarded) return;
+    addXp(xp);
+    setXpAwarded(true);
+  }, [addXp, done, xp, xpAwarded]);
 
   return (
     <GameShell title="Speed Match" subtitle="Match the words. 60 seconds.">
@@ -122,10 +137,9 @@ export function SpeedMatchGame() {
             setMatched({});
             setMissed([]);
             setScore(0);
+            setXpAwarded(false);
           }}
-          onDone={() => {
-            addXp(xp);
-          }}
+          onDone={() => router.push('/(tabs)/games')}
         />
       ) : (
         <>

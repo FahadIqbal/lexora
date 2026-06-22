@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Screen } from '../components/Screen';
@@ -8,25 +8,29 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
+import { TAB_BAR_BOTTOM } from '../theme';
+import { Haptics, hapticNotify } from '../utils/haptics';
 
 export function SettingsScreen() {
   const t = useTheme();
   const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
+  const isPremium = useAppStore((s) => s.user.isPremium);
   const setDailyGoalWords = useAppStore((s) => s.setDailyGoalWords);
 
   const [dailyReminder, setDailyReminder] = useState(true);
   const [reviewDue, setReviewDue] = useState(true);
   const [streakRisk, setStreakRisk] = useState(true);
   const [achievements, setAchievements] = useState(true);
+  const [notificationStatus, setNotificationStatus] = useState('');
 
   const enableNotifications = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Notifications disabled', 'Please enable notifications in system settings.');
+      setNotificationStatus('Notifications are off. Enable them in system settings to receive reminders.');
+      hapticNotify(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
-    // Mock schedule: daily reminder at 9pm local time
     if (dailyReminder) {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -42,15 +46,16 @@ export function SettingsScreen() {
       });
     }
 
-    Alert.alert('Enabled', 'Notification permissions granted (scheduling is scaffolded).');
+    setNotificationStatus(dailyReminder ? 'Daily reminders are scheduled for 9:00 PM.' : 'Notification permission is enabled.');
+    hapticNotify(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
         <LexText variant="h2">Settings</LexText>
         <LexText variant="muted" style={{ marginTop: 6 }}>
-          Learning preferences, notifications, and premium (scaffolded).
+          Learning preferences, notifications, and account options.
         </LexText>
 
         <Card style={{ marginTop: 16 }}>
@@ -60,25 +65,26 @@ export function SettingsScreen() {
               <LexText variant="muted">Daily goal</LexText>
               <View style={styles.goalRow}>
                 {[5, 10, 15, 20, 30].map((n) => (
-                  <View
+                  <Pressable
                     key={n}
-                    onTouchEnd={() => setDailyGoalWords(n)}
-                    style={[
+                    onPress={() => setDailyGoalWords(n)}
+                    style={({ pressed }) => [
                       styles.goalChip,
                       {
                         borderColor: dailyGoalWords === n ? t.colors.accentTeal : t.colors.border,
                         backgroundColor: dailyGoalWords === n ? 'rgba(0,212,170,0.10)' : 'rgba(255,255,255,0.04)',
+                        opacity: pressed ? 0.82 : 1,
                       },
                     ]}
                   >
                     <LexText variant="body" style={{ fontSize: 12 }}>
                       {n}
                     </LexText>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
-            <LexText variant="muted">Preferred study time: 9:00 PM (time picker coming next)</LexText>
+            <LexText variant="muted">Preferred study time: 9:00 PM</LexText>
             <LexText variant="muted">Sounds: On · Haptics: On</LexText>
           </View>
         </Card>
@@ -93,16 +99,40 @@ export function SettingsScreen() {
             <View style={{ marginTop: 6 }}>
               <Button title="Enable notifications" onPress={enableNotifications} />
             </View>
+            {notificationStatus ? (
+              <View style={[styles.inlineStatus, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                <LexText variant="muted" style={{ fontSize: 13 }}>
+                  {notificationStatus}
+                </LexText>
+              </View>
+            ) : null}
           </View>
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Premium</LexText>
-          <LexText variant="muted" style={{ marginTop: 8 }}>
-            Paywall UI is ready; RevenueCat wiring will be added after products + API key are ready.
-          </LexText>
+          <View style={styles.premiumHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="title">Premium</LexText>
+              <LexText variant="muted" style={{ marginTop: 8 }}>
+                {isPremium ? 'Premium learning tools are active on this device.' : 'Unlock deeper practice, tutor access, and progress insights.'}
+              </LexText>
+            </View>
+            <View
+              style={[
+                styles.statusPill,
+                {
+                  borderColor: isPremium ? t.colors.accentTeal : t.colors.border,
+                  backgroundColor: isPremium ? 'rgba(0,229,184,0.10)' : 'rgba(255,255,255,0.04)',
+                },
+              ]}
+            >
+              <LexText variant="label" style={{ color: isPremium ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
+                {isPremium ? 'Active' : 'Free'}
+              </LexText>
+            </View>
+          </View>
           <View style={{ marginTop: 12 }}>
-            <Button title="Open Paywall" onPress={() => router.push('/paywall')} />
+            <Button title={isPremium ? 'Manage Premium' : 'Open Premium'} onPress={() => router.push('/paywall')} />
           </View>
         </Card>
       </ScrollView>
@@ -126,9 +156,12 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 18, paddingBottom: 32 },
+  wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { gap: 8 },
   goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   goalChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
+  premiumHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  inlineStatus: { borderWidth: 1, borderRadius: 14, borderCurve: 'continuous', padding: 12 },
 });

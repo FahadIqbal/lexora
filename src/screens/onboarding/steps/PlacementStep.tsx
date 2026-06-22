@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -11,6 +10,7 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { useAppStore } from '../../../store/useAppStore';
 import { repos } from '../../../data/repositories';
 import { useAsyncResource } from '../../../hooks/useAsyncResource';
+import { Haptics, hapticNotify, hapticSelection } from '../../../utils/haptics';
 
 function levelFromScore(score: number) {
   if (score <= 2) return 'A2';
@@ -52,12 +52,12 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
       if (e.translationX > 60) {
         // right → next option
         setFocused((f) => Math.min(3, f + 1));
-        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+        hapticSelection();
         swipeX.value = withTiming(0, { duration: 180 });
       } else if (e.translationX < -60) {
         // left → prev option
         setFocused((f) => Math.max(0, f - 1));
-        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+        hapticSelection();
         swipeX.value = withTiming(0, { duration: 180 });
       } else {
         swipeX.value = withTiming(0, { duration: 180 });
@@ -66,11 +66,7 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
 
   const confirm = () => {
     const isCorrect = focused === q.correctIndex;
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(isCorrect ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error).catch(
-        () => null
-      );
-    }
+    hapticNotify(isCorrect ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error);
     setCorrectCount((c) => c + (isCorrect ? 1 : 0));
 
     const nextIdx = idx + 1;
@@ -181,7 +177,7 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
                     <Pressable
                       key={i}
                       onPress={() => {
-                        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => null);
+                        hapticSelection();
                         setFocused(i);
                       }}
                       style={({ pressed }) => [
