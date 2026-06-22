@@ -24,6 +24,7 @@ export default function RootLayout() {
   const setProficiencyLevel = useAppStore((s) => s.setProficiencyLevel);
   const setSelectedCategories = useAppStore((s) => s.setSelectedCategories);
   const setOnboardingCompleted = useAppStore((s) => s.setOnboardingCompleted);
+  const setIsPremium = useAppStore((s) => s.setIsPremium);
   const setIsAdmin = useAppStore((s) => s.setIsAdmin);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function RootLayout() {
       if (Array.isArray(profile.selected_categories)) setSelectedCategories(profile.selected_categories);
       if (typeof profile.is_admin === 'boolean') setIsAdmin(profile.is_admin);
       if (typeof profile.is_premium === 'boolean') {
-        // premium flag is persisted in store.user via partialize; keep store as source of truth for now
+        setIsPremium(profile.is_premium);
       }
       if (Array.isArray(profile.selected_categories) && profile.selected_categories.length) {
         setOnboardingCompleted(true);
@@ -103,6 +104,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="dictionary" />
           <Stack.Screen name="chat" />
+          <Stack.Screen name="paywall" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="admin" />
         </Stack>

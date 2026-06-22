@@ -324,7 +324,7 @@ export function HomeScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <View style={styles.challengeBadge}>
-                  <LexText variant="label" style={{ color: 'white', fontSize: 10, letterSpacing: 1 }}>
+                  <LexText variant="label" style={{ color: 'white', fontSize: 10, letterSpacing: 0 }}>
                     ⚡ DAILY CHALLENGE
                   </LexText>
                 </View>

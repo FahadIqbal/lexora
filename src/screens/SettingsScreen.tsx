@@ -13,6 +13,7 @@ import { TAB_BAR_BOTTOM } from '../theme';
 export function SettingsScreen() {
   const t = useTheme();
   const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
+  const isPremium = useAppStore((s) => s.user.isPremium);
   const setDailyGoalWords = useAppStore((s) => s.setDailyGoalWords);
 
   const [dailyReminder, setDailyReminder] = useState(true);
@@ -48,7 +49,7 @@ export function SettingsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
         <LexText variant="h2">Settings</LexText>
         <LexText variant="muted" style={{ marginTop: 6 }}>
           Learning preferences, notifications, and account options.
@@ -99,12 +100,29 @@ export function SettingsScreen() {
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Premium</LexText>
-          <LexText variant="muted" style={{ marginTop: 8 }}>
-            Manage premium access and billing options.
-          </LexText>
+          <View style={styles.premiumHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="title">Premium</LexText>
+              <LexText variant="muted" style={{ marginTop: 8 }}>
+                {isPremium ? 'Premium learning tools are active on this device.' : 'Unlock deeper practice, tutor access, and progress insights.'}
+              </LexText>
+            </View>
+            <View
+              style={[
+                styles.statusPill,
+                {
+                  borderColor: isPremium ? t.colors.accentTeal : t.colors.border,
+                  backgroundColor: isPremium ? 'rgba(0,229,184,0.10)' : 'rgba(255,255,255,0.04)',
+                },
+              ]}
+            >
+              <LexText variant="label" style={{ color: isPremium ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
+                {isPremium ? 'Active' : 'Free'}
+              </LexText>
+            </View>
+          </View>
           <View style={{ marginTop: 12 }}>
-            <Button title="Open Paywall" onPress={() => router.push('/paywall')} />
+            <Button title={isPremium ? 'Manage Premium' : 'Open Premium'} onPress={() => router.push('/paywall')} />
           </View>
         </Card>
       </ScrollView>
@@ -133,4 +151,6 @@ const styles = StyleSheet.create({
   row: { gap: 8 },
   goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   goalChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
+  premiumHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
 });

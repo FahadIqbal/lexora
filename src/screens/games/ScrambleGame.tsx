@@ -114,7 +114,7 @@ export function ScrambleGame() {
             </LexText>
             <View style={{ height: 12 }} />
             <View style={[styles.answer, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-              <LexText variant="h2" style={{ fontSize: 28, letterSpacing: 2 }}>
+              <LexText variant="h2" style={{ fontSize: 28, letterSpacing: 0 }}>
                 {current || '—'}
               </LexText>
             </View>
