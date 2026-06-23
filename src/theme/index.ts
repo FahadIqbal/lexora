@@ -4,13 +4,17 @@ export const TAB_BAR_BOTTOM = 110;
 export const theme = {
   colors: {
     bg: '#080816',
+    bgElevated: '#0B0B1E',
     surface: '#0E0E24',
     surface2: '#151530',
     surface3: '#1D1D40',
+    surfaceGlass: 'rgba(255,255,255,0.055)',
+    surfaceGlassStrong: 'rgba(255,255,255,0.085)',
     border: 'rgba(255,255,255,0.08)',
     borderBright: 'rgba(255,255,255,0.18)',
     text: '#F2F0FF',
     muted: 'rgba(242,240,255,0.5)',
+    mutedStrong: 'rgba(242,240,255,0.68)',
 
     accentPurple: '#7B6FFF',
     accentPink: '#FF6B9D',
@@ -23,6 +27,7 @@ export const theme = {
     glowTeal: 'rgba(0,229,184,0.35)',
     glowPink: 'rgba(255,107,157,0.35)',
     glowAmber: 'rgba(255,179,71,0.35)',
+    shadow: 'rgba(0,0,0,0.42)',
   },
   spacing: {
     1: 4,
@@ -60,4 +65,3 @@ export const theme = {
 } as const;
 
 export type Theme = typeof theme;
-
