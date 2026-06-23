@@ -1,10 +1,10 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Image } from 'expo-image';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { useAppStore } from '../../src/store/useAppStore';
 import { useShallow } from 'zustand/react/shallow';
+import { IconSymbol } from '../../src/components/IconSymbol';
 
 function TabIcon({
   symbol,
@@ -33,16 +33,7 @@ function TabIcon({
         marginTop: 5,
       }}
     >
-      {process.env.EXPO_OS === 'ios' ? (
-        <Image
-          source={`sf:${symbol}`}
-          tintColor={color}
-          style={{ width: 19, height: 19 }}
-          contentFit="contain"
-        />
-      ) : (
-        <Text style={{ fontSize: 18, color }}>{fallback}</Text>
-      )}
+      <IconSymbol name={symbol} fallback={fallback} color={color} size={19} />
     </View>
   );
 }
