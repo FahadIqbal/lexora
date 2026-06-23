@@ -19,6 +19,7 @@ import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
 import { IconSymbol } from '../components/IconSymbol';
+import { LexoraLottie } from '../components/LexoraLottie';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
@@ -26,6 +27,7 @@ import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
+import missionPulse from '../animations/mission-pulse.json';
 
 export function HomeScreen() {
   const t = useTheme();
@@ -470,6 +472,7 @@ export function HomeScreen() {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
+            <LexoraLottie source={missionPulse} size={132} speed={0.86} style={styles.missionLottie} />
             <View style={styles.missionHeader}>
               <View style={{ flex: 1 }}>
                 <LexText variant="label" style={{ color: dailyMission.accent, fontSize: 10 }}>
@@ -546,12 +549,13 @@ export function HomeScreen() {
         >
           <GlowCard colors={['rgba(123,111,255,0.55)', 'rgba(0,229,184,0.35)']}>
             <LexText style={styles.wodQuoteMark}>"</LexText>
+            <LexoraLottie source={missionPulse} size={96} speed={0.72} style={styles.wodLottie} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <LexText variant="label" style={{ color: '#A89CFF', fontSize: 11 }}>
-                📖 WORD OF THE DAY
+                Word of the day
               </LexText>
               <Animated.View style={chevronStyle}>
-                <LexText variant="body" style={{ color: t.colors.muted }}>▾</LexText>
+                <IconSymbol name="chevron.down" fallback="V" color={t.colors.muted} size={14} />
               </Animated.View>
             </View>
 
@@ -578,7 +582,8 @@ export function HomeScreen() {
                 }}
                 style={[styles.wodBtn, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.07)' }]}
               >
-                <LexText variant="title" style={{ fontSize: 14 }}>🔊 Listen</LexText>
+                <IconSymbol name="speaker.wave.2.fill" fallback="S" color={t.colors.text} size={14} />
+                <LexText variant="title" style={{ fontSize: 14 }}>Listen</LexText>
               </Pressable>
               <Pressable
                 onPress={(e) => {
@@ -589,8 +594,9 @@ export function HomeScreen() {
                 }}
                 style={[styles.wodBtn, { borderColor: 'rgba(0,229,184,0.35)', backgroundColor: 'rgba(0,229,184,0.1)', flex: 1 }]}
               >
+                <IconSymbol name="plus.circle.fill" fallback="+" color={t.colors.accentTeal} size={14} />
                 <LexText variant="title" style={{ fontSize: 14, color: t.colors.accentTeal }}>
-                  + Add to list
+                  Add to list
                 </LexText>
               </Pressable>
             </View>
@@ -645,40 +651,41 @@ export function HomeScreen() {
           QUICK ACTIONS
         </LexText>
         <View style={[styles.actionsGrid, { marginTop: 10 }]}>
-          {quickActions.map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={() => {
-                hapticSelection();
-                a.onPress();
-              }}
-              style={({ pressed }) => [
-                styles.actionTile,
-                {
-                  backgroundColor: t.colors.surface,
-                  borderColor: t.colors.border,
-                  opacity: pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={a.colors}
-                style={styles.actionIconBg}
+          {quickActions.map((a, index) => (
+            <Animated.View key={a.key} entering={FadeInDown.delay(120 + index * 35).duration(360).springify().damping(17)} style={styles.actionTileWrap}>
+              <Pressable
+                onPress={() => {
+                  hapticSelection();
+                  a.onPress();
+                }}
+                style={({ pressed }) => [
+                  styles.actionTile,
+                  {
+                    backgroundColor: t.colors.surface,
+                    borderColor: t.colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                ]}
               >
-                <IconSymbol name={a.symbol} fallback={a.fallback} color={a.accent} size={22} />
-              </LinearGradient>
-              <LexText variant="title" style={{ fontSize: 13, marginTop: 8 }}>
-                {a.label}
-              </LexText>
-              {a.badge ? (
-                <View style={[styles.actionBadge, { backgroundColor: 'rgba(255,107,157,0.15)', borderColor: 'rgba(255,107,157,0.35)' }]}>
-                  <LexText variant="label" style={{ fontSize: 10, color: t.colors.accentPink }}>
-                    {a.badge}
-                  </LexText>
-                </View>
-              ) : null}
-            </Pressable>
+                <LinearGradient
+                  colors={a.colors}
+                  style={styles.actionIconBg}
+                >
+                  <IconSymbol name={a.symbol} fallback={a.fallback} color={a.accent} size={22} />
+                </LinearGradient>
+                <LexText variant="title" style={{ fontSize: 13, marginTop: 8 }}>
+                  {a.label}
+                </LexText>
+                {a.badge ? (
+                  <View style={[styles.actionBadge, { backgroundColor: 'rgba(255,107,157,0.15)', borderColor: 'rgba(255,107,157,0.35)' }]}>
+                    <LexText variant="label" style={{ fontSize: 10, color: t.colors.accentPink }}>
+                      {a.badge}
+                    </LexText>
+                  </View>
+                ) : null}
+              </Pressable>
+            </Animated.View>
           ))}
         </View>
 
@@ -950,6 +957,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 18,
   },
+  missionLottie: {
+    position: 'absolute',
+    right: -18,
+    top: -24,
+    opacity: 0.42,
+  },
   missionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1010,6 +1023,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
     paddingHorizontal: 14,
   },
   wodBody: {
@@ -1023,6 +1038,12 @@ const styles = StyleSheet.create({
     lineHeight: 92,
     color: 'rgba(123,111,255,0.18)',
     fontFamily: 'Georgia',
+  },
+  wodLottie: {
+    position: 'absolute',
+    right: -22,
+    bottom: -28,
+    opacity: 0.32,
   },
   goalCard: {
     borderWidth: 1,
@@ -1044,12 +1065,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionTile: {
-    width: '31%',
+    width: '100%',
     borderWidth: 1,
     borderRadius: 18,
     borderCurve: 'continuous',
     padding: 14,
     alignItems: 'center',
+  },
+  actionTileWrap: {
+    width: '31%',
   },
   actionIconBg: {
     width: 48,

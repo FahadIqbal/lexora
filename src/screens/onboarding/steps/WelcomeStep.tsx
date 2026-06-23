@@ -5,8 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
+import { LexoraLottie } from '../../../components/LexoraLottie';
 import { Shimmer } from '../ui/Shimmer';
 import { Haptics, hapticImpact, hapticSelection } from '../../../utils/haptics';
+import wordQuestOrbit from '../../../animations/word-quest-orbit.json';
 
 const LOOP = [
   { label: 'Learn', body: '3 fresh words', color: 'teal' },
@@ -91,6 +93,20 @@ export function WelcomeStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
             <View style={[styles.xpBadge, { borderColor: t.colors.borderBright }]}>
               <LexText variant="title" style={{ fontSize: 14 }}>
                 +80 XP
+              </LexText>
+            </View>
+          </View>
+
+          <View style={styles.animationStage}>
+            <LexoraLottie source={wordQuestOrbit} size={188} speed={0.88} style={styles.questLottie} />
+            <View style={[styles.floatingChip, styles.floatingChipLeft, { borderColor: 'rgba(0,229,184,0.24)' }]}>
+              <LexText variant="label" style={{ color: t.colors.accentTeal, fontSize: 9 }}>
+                Learn
+              </LexText>
+            </View>
+            <View style={[styles.floatingChip, styles.floatingChipRight, { borderColor: 'rgba(255,179,71,0.28)' }]}>
+              <LexText variant="label" style={{ color: t.colors.accentAmber, fontSize: 9 }}>
+                +XP
               </LexText>
             </View>
           </View>
@@ -236,6 +252,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 14,
+  },
+  animationStage: {
+    minHeight: 168,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  questLottie: {
+    opacity: 0.98,
+  },
+  floatingChip: {
+    position: 'absolute',
+    minWidth: 62,
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(8,8,22,0.58)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingChipLeft: {
+    left: 12,
+    top: 28,
+  },
+  floatingChipRight: {
+    right: 10,
+    bottom: 24,
   },
   xpBadge: {
     minWidth: 70,
