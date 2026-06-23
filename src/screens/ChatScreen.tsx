@@ -1,36 +1,61 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { useTheme } from '../theme/ThemeProvider';
 import Markdown from 'react-native-markdown-display';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
 import { hasAnthropic } from '../services/env';
+import { useAppStore } from '../store/useAppStore';
+import { hapticSelection } from '../utils/haptics';
 
 export function ChatScreen() {
   const t = useTheme();
+  const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
     {
       role: 'assistant',
       content:
-        "Hi — I’m your Lexora AI Tutor.\n\nTry:\n- **Use _ephemeral_ in a business email**\n- **Find synonyms for _nuance_**\n- **Quiz me on _meticulous_**",
+        "Hi, I’m your Lexora coach.\n\nSend a word, sentence, or goal and I’ll turn it into examples, recall practice, and cleaner usage.",
     },
   ]);
   const [typing, setTyping] = useState(false);
 
   const scrollRef = useRef<ScrollView | null>(null);
 
-  const chips = [
-    'Use this in a sentence',
-    'Find synonyms',
-    'Etymology?',
-    'Quiz me',
-    'Simpler explanation',
-  ];
+  const liveTutor = hasAnthropic();
+  const topicHint = selectedCategories[0]?.replace(/[-_]/g, ' ') ?? 'daily vocabulary';
+  const coachPrompts = useMemo(
+    () => [
+      {
+        label: 'Explain',
+        title: 'Make it simple',
+        prompt: `Explain a ${proficiency ?? 'B1'} vocabulary word from ${topicHint} in simple terms.`,
+        color: t.colors.accentTeal,
+      },
+      {
+        label: 'Apply',
+        title: 'Use at work',
+        prompt: 'Use meticulous in a concise business update, then show a warmer alternative.',
+        color: t.colors.accentPurple,
+      },
+      {
+        label: 'Recall',
+        title: 'Quiz me',
+        prompt: 'Quiz me on nuance with one multiple-choice question.',
+        color: t.colors.accentAmber,
+      },
+    ],
+    [proficiency, t.colors.accentAmber, t.colors.accentPurple, t.colors.accentTeal, topicHint]
+  );
+
+  const chips = ['Simpler explanation', 'Find synonyms for nuance', 'Quiz me on meticulous', 'Use ephemeral in a sentence'];
 
   const typingDot = useSharedValue(0);
   useEffect(() => {
@@ -59,7 +84,7 @@ export function ChatScreen() {
 
   const send = async (input: string) => {
     const prompt = input.trim();
-    if (!prompt) return;
+    if (!prompt || typing) return;
     setText('');
     setTyping(true);
     const nextMessages: TutorMessage[] = [...messages, { role: 'user', content: prompt }];
@@ -101,13 +126,63 @@ export function ChatScreen() {
     <Screen>
       <KeyboardAvoidingView style={styles.wrap} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
         <View style={{ padding: 18, flex: 1 }}>
-          <LexText variant="h2">AI Tutor</LexText>
-          <LexText variant="muted" style={{ marginTop: 6 }}>
-            {hasAnthropic() ? 'Live tutor enabled (development only).' : 'Offline demo mode. Add EXPO_PUBLIC_ANTHROPIC_API_KEY to enable live responses.'}
-          </LexText>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="h2">AI Tutor</LexText>
+              <LexText variant="muted" style={{ marginTop: 6 }}>
+                Guided coaching for meaning, usage, and recall.
+              </LexText>
+            </View>
+            <View style={[styles.statusPill, { borderColor: liveTutor ? t.colors.accentTeal : t.colors.border }]}>
+              <LexText variant="label" style={{ color: liveTutor ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
+                {liveTutor ? 'Live' : 'Demo'}
+              </LexText>
+            </View>
+          </View>
+
+          <Animated.View entering={FadeInDown.duration(420)} style={styles.coachPanel}>
+            <LinearGradient
+              colors={['rgba(123,111,255,0.24)', 'rgba(0,229,184,0.10)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+              Coach paths
+            </LexText>
+            <View style={styles.promptGrid}>
+              {coachPrompts.map((item) => (
+                <Pressable
+                  key={item.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.label}: ${item.title}`}
+                  onPress={() => {
+                    hapticSelection();
+                    setText(item.prompt);
+                  }}
+                  style={({ pressed }) => [
+                    styles.promptCard,
+                    {
+                      borderColor: item.color,
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      opacity: pressed ? 0.84 : 1,
+                    },
+                  ]}
+                >
+                  <LexText variant="label" style={{ color: item.color, fontSize: 9 }}>
+                    {item.label}
+                  </LexText>
+                  <LexText variant="title" style={{ marginTop: 6, fontSize: 13 }}>
+                    {item.title}
+                  </LexText>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
 
           <Card style={{ marginTop: 16, flex: 1, padding: 0, overflow: 'hidden' }}>
             <ScrollView
+              contentInsetAdjustmentBehavior="automatic"
               ref={(r: ScrollView | null) => {
                 scrollRef.current = r;
               }}
@@ -123,6 +198,7 @@ export function ChatScreen() {
                 return (
                   <View key={idx} style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}>
                     <View
+                      accessibilityLabel={`${isUser ? 'You' : 'Lexora tutor'} message`}
                       style={[
                         styles.bubble,
                         isUser
@@ -144,7 +220,12 @@ export function ChatScreen() {
                           {mentioned.map((w) => (
                             <Pressable
                               key={w}
-                              onPress={() => setText(`Tell me more about ${w}`)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Ask about ${w}`}
+                              onPress={() => {
+                                hapticSelection();
+                                setText(`Tell me more about ${w}`);
+                              }}
                               style={[styles.wordCard, { borderColor: t.colors.border }]}
                             >
                               <LexText variant="body" style={{ fontSize: 12 }}>
@@ -179,7 +260,11 @@ export function ChatScreen() {
             {chips.map((c) => (
               <Pressable
                 key={c}
-                onPress={() => setText(c)}
+                accessibilityRole="button"
+                onPress={() => {
+                  hapticSelection();
+                  setText(c);
+                }}
                 style={[styles.chip, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}
               >
                 <LexText variant="body" style={{ fontSize: 12 }}>
@@ -192,6 +277,7 @@ export function ChatScreen() {
 
         <View style={[styles.inputBar, { borderTopColor: t.colors.border, backgroundColor: t.colors.surface }]}>
           <TextInput
+            accessibilityLabel="Ask Lexora AI Tutor"
             value={text}
             onChangeText={setText}
             placeholder="Ask anything…"
@@ -199,7 +285,7 @@ export function ChatScreen() {
             style={[styles.input, { color: t.colors.text, fontFamily: t.font.body.regular }]}
             onSubmitEditing={() => send(text)}
           />
-          <Button title="Send" onPress={() => send(text)} disabled={!text.trim().length} style={{ width: 92, height: 44 }} />
+          <Button title={typing ? 'Wait' : 'Send'} onPress={() => send(text)} disabled={!text.trim().length || typing} style={{ width: 92, height: 44 }} />
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -208,6 +294,26 @@ export function ChatScreen() {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  coachPanel: {
+    marginTop: 14,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+    padding: 14,
+  },
+  promptGrid: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  promptCard: {
+    flex: 1,
+    minHeight: 76,
+    borderWidth: 1,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    padding: 10,
+  },
   inputBar: {
     padding: 12,
     flexDirection: 'row',
