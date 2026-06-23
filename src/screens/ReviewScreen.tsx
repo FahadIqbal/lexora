@@ -31,13 +31,23 @@ export function ReviewScreen() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
   const dueIds = useAppStore(useShallow((s) => s.getDueWordIds()));
+  const wordProgress = useAppStore((s) => s.wordProgress);
   const recordReview = useAppStore((s) => s.recordReview);
+  const practiceIds = useMemo(() => {
+    return Object.values(wordProgress)
+      .filter((progress) => progress.status !== 'new')
+      .sort((a, b) => (b.lastReviewedAt ?? b.firstSeenAt ?? 0) - (a.lastReviewedAt ?? a.firstSeenAt ?? 0))
+      .map((progress) => progress.wordId)
+      .slice(0, 12);
+  }, [wordProgress]);
+  const activeIds = dueIds.length ? dueIds : practiceIds;
+  const isPracticeMode = !dueIds.length && practiceIds.length > 0;
 
   const { data: due, loading } = useAsyncResource(async () => {
-    const ids = dueIds.slice(0, 20);
+    const ids = activeIds.slice(0, 20);
     const words = await Promise.all(ids.map((id) => repos.words.getById(id)));
     return words.filter(Boolean) as Word[];
-  }, [dueIds.join('|')]);
+  }, [activeIds.join('|')]);
 
   const [phase, setPhase] = useState<'intro' | 'review' | 'done'>('intro');
   const [i, setI] = useState(0);
@@ -53,20 +63,26 @@ export function ReviewScreen() {
           <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }} showsVerticalScrollIndicator={false}>
             <LexText variant="h2">Spaced Review</LexText>
             <LexText variant="muted" style={{ marginTop: 6 }}>
-              SM-2 algorithm schedules each card at the perfect moment.
+              Review due cards first, or run a quick refresher when your queue is clear.
             </LexText>
 
             <GlowCard style={{ marginTop: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <LexText style={{ fontSize: 44 }}>🔁</LexText>
+                <View style={[styles.reviewGlyph, { borderColor: t.colors.border, backgroundColor: 'rgba(0,229,184,0.10)' }]}>
+                  <LexText variant="h3" style={{ color: t.colors.accentTeal }}>
+                    {isPracticeMode ? 'P' : 'R'}
+                  </LexText>
+                </View>
                 <View style={{ flex: 1 }}>
                   <LexText variant="h3">
-                    {total > 0 ? `${total} cards due` : 'All caught up!'}
+                    {total > 0 ? (isPracticeMode ? `${total} refresher cards` : `${total} cards due`) : 'No study cards yet'}
                   </LexText>
                   <LexText variant="muted" style={{ marginTop: 4, fontSize: 13 }}>
                     {total > 0
-                      ? 'Rate each card honestly — it schedules your next review.'
-                      : 'No cards are due right now. Come back later!'}
+                      ? isPracticeMode
+                        ? 'Your due queue is clear. Practice recent words to keep recall warm.'
+                        : 'Rate each card honestly. Lexora schedules your next review.'
+                      : 'Learn or add words first, then review becomes your memory engine.'}
                   </LexText>
                 </View>
               </View>
@@ -75,13 +91,15 @@ export function ReviewScreen() {
                 <>
                   <View style={[styles.ratingGuide, { borderColor: t.colors.border }]}>
                     {[
-                      { emoji: '🔴', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
-                      { emoji: '🟡', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
-                      { emoji: '🟢', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
-                      { emoji: '💙', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
+                      { mark: 'A', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
+                      { mark: 'H', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
+                      { mark: 'G', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
+                      { mark: 'E', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
                     ].map((r) => (
                       <View key={r.label} style={styles.ratingRow}>
-                        <LexText style={{ fontSize: 18, width: 28 }}>{r.emoji}</LexText>
+                        <View style={[styles.ratingMark, { backgroundColor: `${r.color}22` }]}>
+                          <LexText variant="label" style={{ color: r.color, fontSize: 10 }}>{r.mark}</LexText>
+                        </View>
                         <LexText variant="title" style={{ color: r.color, width: 52, fontSize: 14 }}>
                           {r.label}
                         </LexText>
@@ -91,13 +109,18 @@ export function ReviewScreen() {
                   </View>
                   <View style={{ marginTop: 16 }}>
                     <Button
-                      title={loading ? 'Loading…' : 'Start review →'}
+                      title={loading ? 'Loading...' : isPracticeMode ? 'Start refresher' : 'Start review'}
                       onPress={() => setPhase('review')}
                       disabled={loading || !total}
                     />
                   </View>
                 </>
               )}
+              {!total ? (
+                <View style={{ marginTop: 16 }}>
+                  <Button title="Learn words first" onPress={() => router.push('/(tabs)/learn')} />
+                </View>
+              ) : null}
             </GlowCard>
           </ScrollView>
         )}
@@ -487,6 +510,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
+  reviewGlyph: {
+    width: 54,
+    height: 54,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardFace: {
     padding: 22,
     justifyContent: 'center',
@@ -516,6 +548,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  ratingMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   resultPieRow: {
     flexDirection: 'row',
