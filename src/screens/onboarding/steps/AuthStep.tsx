@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
+import { Card } from '../../../components/Card';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { FloatingLabelInput } from '../ui/FloatingLabelInput';
 import { useAppStore } from '../../../store/useAppStore';
@@ -36,6 +37,7 @@ export function AuthStep({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const shake = useSharedValue(0);
+  const syncEnabled = hasSupabase();
 
   useEffect(() => {
     if (!initialMode) return;
@@ -64,7 +66,7 @@ export function AuthStep({
     const name = email.split('@')[0] || '';
     setDisplayName(name);
 
-    if (!hasSupabase()) {
+    if (!syncEnabled) {
       if (mode === 'signin') setOnboardingCompleted(true);
       onNext({ mode });
       return;
@@ -103,15 +105,39 @@ export function AuthStep({
 
   return (
     <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
-      <View style={styles.content}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(520).springify().damping(16)}>
-          <LexText variant="h2">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</LexText>
+          <View style={[styles.syncPill, { borderColor: syncEnabled ? t.colors.accentTeal : t.colors.border }]}>
+            <View style={[styles.syncDot, { backgroundColor: syncEnabled ? t.colors.accentTeal : t.colors.accentAmber }]} />
+            <LexText variant="label" style={{ color: syncEnabled ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
+              {syncEnabled ? 'Cloud sync ready' : 'Private local start'}
+            </LexText>
+          </View>
+          <LexText variant="h2" style={{ marginTop: 14 }}>
+            {mode === 'signup' ? 'Save your progress' : 'Welcome back'}
+          </LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>
-            {hasSupabase() ? 'Sign in with Supabase (email + password).' : 'Local mode. Add Supabase env vars to enable real sign-in.'}
+            {mode === 'signup'
+              ? 'Create a simple profile so streaks, goals, and XP feel personal from day one.'
+              : 'Jump back into your learning loop and keep your streak moving.'}
           </LexText>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).duration(520)} style={{ marginTop: 18 }}>
+          <Card style={{ backgroundColor: 'rgba(255,255,255,0.045)' }}>
+            <View style={styles.promiseRow}>
+              <PromiseDot color={t.colors.accentTeal} />
+              <View style={{ flex: 1 }}>
+                <LexText variant="title">Progress follows your pace</LexText>
+                <LexText variant="muted" style={{ fontSize: 13, lineHeight: 18, marginTop: 2 }}>
+                  Your daily goal, review timing, and topic choices personalize the first session.
+                </LexText>
+              </View>
+            </View>
+          </Card>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(170).duration(520)} style={{ marginTop: 14 }}>
           <Animated.View style={shakeStyle}>
             <FloatingLabelInput
               label="Email"
@@ -125,12 +151,12 @@ export function AuthStep({
           </Animated.View>
           {!valid ? (
             <LexText variant="muted" style={{ marginTop: 10 }}>
-              Use a valid email and a password of 6+ characters.
+              Use any valid email format and a password of 6+ characters.
             </LexText>
           ) : null}
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).duration(520)} style={{ marginTop: 18, gap: 10 }}>
+        <Animated.View entering={FadeInDown.delay(230).duration(520)} style={{ marginTop: 18, gap: 10 }}>
           <Button title={mode === 'signup' ? 'Continue' : 'Sign in'} onPress={submit} disabled={!valid || submitting} />
           <Button title="Back" variant="ghost" onPress={onBack} />
         </Animated.View>
@@ -143,9 +169,9 @@ export function AuthStep({
           </Animated.View>
         ) : null}
 
-        <Animated.View entering={FadeInDown.delay(280).duration(520)} style={{ marginTop: 14 }}>
+        <Animated.View entering={FadeInDown.delay(300).duration(520)} style={{ marginTop: 14 }}>
           <LexText variant="muted" style={{ textAlign: 'center' }}>
-            {mode === 'signup' ? 'Already have account? ' : "Don't have an account? "}
+            {mode === 'signup' ? 'Already have an account? ' : "Don't have an account? "}
             <LexText
               variant="body"
               style={{ color: t.colors.accentTeal, fontFamily: t.font.body.medium }}
@@ -155,12 +181,42 @@ export function AuthStep({
             </LexText>
           </LexText>
         </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
+function PromiseDot({ color }: { color: string }) {
+  return <View style={[styles.promiseDot, { backgroundColor: color }]} />;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { flex: 1, padding: 18, justifyContent: 'center' },
+  content: { padding: 18, paddingBottom: 34, justifyContent: 'center', flexGrow: 1 },
+  syncPill: {
+    alignSelf: 'flex-start',
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  syncDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+  },
+  promiseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  promiseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
 });
