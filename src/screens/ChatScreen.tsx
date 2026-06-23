@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
@@ -12,12 +13,15 @@ import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRep
 import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
 import { hasAnthropic } from '../services/env';
 import { useAppStore } from '../store/useAppStore';
-import { hapticSelection } from '../utils/haptics';
+import { repos } from '../data/repositories';
+import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
 
 export function ChatScreen() {
   const t = useTheme();
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const dueCount = useAppStore((s) => s.getDueWordIds().length);
+  const addToStudyList = useAppStore((s) => s.addToStudyList);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
     {
@@ -87,6 +91,33 @@ export function ChatScreen() {
       if (out.length >= 5) break;
     }
     return out;
+  };
+
+  const addMentionedToStudyList = async (words: string[]) => {
+    const matches = await Promise.all(words.map((word) => repos.words.search(word, {})));
+    const ids = matches.map((match) => match[0]?.id).filter(Boolean) as string[];
+    ids.forEach(addToStudyList);
+
+    if (!ids.length) {
+      hapticNotify(Haptics.NotificationFeedbackType.Warning);
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'assistant',
+          content: 'I could not find exact dictionary matches for those terms yet. Try opening Dictionary and searching the word directly.',
+        },
+      ]);
+      return;
+    }
+
+    hapticNotify(Haptics.NotificationFeedbackType.Success);
+    setMessages((m) => [
+      ...m,
+      {
+        role: 'assistant',
+        content: `Added ${ids.length} ${ids.length === 1 ? 'word' : 'words'} to your memory queue. Review will now include them when they are ready.`,
+      },
+    ]);
   };
 
   const send = async (input: string) => {
@@ -191,6 +222,17 @@ export function ChatScreen() {
                 </Pressable>
               ))}
             </View>
+            <View style={styles.coachActions}>
+              <CoachAction icon="book.fill" fallback="L" label="Learn" color={t.colors.accentPurple} onPress={() => router.push('/(tabs)/learn')} />
+              <CoachAction
+                icon="arrow.clockwise"
+                fallback="R"
+                label={dueCount ? `Review ${dueCount}` : 'Refresher'}
+                color={dueCount ? t.colors.accentPink : t.colors.accentTeal}
+                onPress={() => router.push('/(tabs)/review')}
+              />
+              <CoachAction icon="text.book.closed.fill" fallback="D" label="Dictionary" color={t.colors.accentBlue} onPress={() => router.push('/dictionary')} />
+            </View>
           </Animated.View>
 
           <Card style={{ marginTop: 16, flex: 1, padding: 0, overflow: 'hidden' }}>
@@ -229,24 +271,48 @@ export function ChatScreen() {
                         {content}
                       </Markdown>
                       {mentioned.length ? (
-                        <View style={styles.wordCards}>
-                          {mentioned.map((w) => (
+                        <>
+                          <View style={styles.wordCards}>
+                            {mentioned.map((w) => (
+                              <Pressable
+                                key={w}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Ask about ${w}`}
+                                onPress={() => {
+                                  hapticSelection();
+                                  setText(`Tell me more about ${w}`);
+                                }}
+                                style={[styles.wordCard, { borderColor: t.colors.border }]}
+                              >
+                                <LexText variant="body" style={{ fontSize: 12 }}>
+                                  {w}
+                                </LexText>
+                              </Pressable>
+                            ))}
+                          </View>
+                          <View style={styles.messageActions}>
                             <Pressable
-                              key={w}
                               accessibilityRole="button"
-                              accessibilityLabel={`Ask about ${w}`}
-                              onPress={() => {
-                                hapticSelection();
-                                setText(`Tell me more about ${w}`);
-                              }}
-                              style={[styles.wordCard, { borderColor: t.colors.border }]}
+                              onPress={() => addMentionedToStudyList(mentioned)}
+                              style={[styles.messageAction, { borderColor: 'rgba(0,229,184,0.28)', backgroundColor: 'rgba(0,229,184,0.08)' }]}
                             >
-                              <LexText variant="body" style={{ fontSize: 12 }}>
-                                {w}
+                              <IconSymbol name="plus.circle.fill" fallback="+" color={t.colors.accentTeal} size={13} />
+                              <LexText variant="label" style={{ color: t.colors.accentTeal, fontSize: 9 }}>
+                                Add words
                               </LexText>
                             </Pressable>
-                          ))}
-                        </View>
+                            <Pressable
+                              accessibilityRole="button"
+                              onPress={() => router.push('/(tabs)/review')}
+                              style={[styles.messageAction, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}
+                            >
+                              <IconSymbol name="arrow.clockwise" fallback="R" color={t.colors.muted} size={13} />
+                              <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9 }}>
+                                Practice
+                              </LexText>
+                            </Pressable>
+                          </View>
+                        </>
                       ) : null}
                     </View>
                   </View>
@@ -308,6 +374,29 @@ export function ChatScreen() {
   );
 }
 
+function CoachAction({
+  icon,
+  fallback,
+  label,
+  color,
+  onPress,
+}: {
+  icon: string;
+  fallback: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.coachAction, { borderColor: `${color}44`, backgroundColor: `${color}12` }]}>
+      <IconSymbol name={icon} fallback={fallback} color={color} size={14} />
+      <LexText variant="label" numberOfLines={1} style={{ color, fontSize: 9 }}>
+        {label}
+      </LexText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -338,6 +427,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  coachActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  coachAction: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   inputBar: {
     padding: 12,
@@ -383,6 +485,16 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  messageActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  messageAction: {
+    minHeight: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: 'rgba(240,238,255,0.75)' },
 });
