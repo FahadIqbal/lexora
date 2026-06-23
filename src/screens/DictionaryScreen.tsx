@@ -8,6 +8,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { Skeleton } from '../components/Skeleton';
+import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
@@ -124,17 +125,22 @@ export function DictionaryScreen() {
           </View>
         </Animated.View>
 
-        <TextInput
-          accessibilityLabel="Search dictionary"
-          placeholder="Search…"
-          placeholderTextColor={t.colors.muted}
-          value={q}
-          onChangeText={setQ}
-          style={[
-            styles.input,
-            { backgroundColor: t.colors.surface, borderColor: t.colors.border, color: t.colors.text, fontFamily: t.font.body.regular },
-          ]}
-        />
+        <View style={[styles.searchShell, { backgroundColor: t.colors.surface, borderColor: q ? t.colors.accentTeal : t.colors.border }]}>
+          <IconSymbol name="magnifyingglass" fallback="S" color={q ? t.colors.accentTeal : t.colors.muted} size={16} />
+          <TextInput
+            accessibilityLabel="Search dictionary"
+            placeholder="Search words, roots, or definitions..."
+            placeholderTextColor={t.colors.muted}
+            value={q}
+            onChangeText={setQ}
+            style={[styles.input, { color: t.colors.text, fontFamily: t.font.body.regular }]}
+          />
+          {q ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setQ('')} style={styles.clearSearch}>
+              <IconSymbol name="xmark" fallback="X" color={t.colors.muted} size={13} />
+            </Pressable>
+          ) : null}
+        </View>
 
         {/* Filters */}
         <View style={{ marginTop: 12 }}>
@@ -175,6 +181,7 @@ export function DictionaryScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: item.active }}
                 onPress={item.onPress}
+                onLongPress={item.key === 'all' ? undefined : item.onPress}
                 style={[
                   styles.chip,
                   {
@@ -183,7 +190,7 @@ export function DictionaryScreen() {
                   },
                 ]}
               >
-                <LexText variant="body" style={{ fontSize: 12 }}>
+                <LexText variant="label" style={{ fontSize: 11, color: item.active ? t.colors.accentTeal : t.colors.muted }}>
                   {item.label}
                 </LexText>
               </Pressable>
@@ -207,8 +214,8 @@ export function DictionaryScreen() {
                   },
                 ]}
               >
-                <LexText variant="body" style={{ fontSize: 12 }}>
-                  Difficulty {d}
+                <LexText variant="label" style={{ fontSize: 11, color: difficulty === d ? t.colors.accentPurple : t.colors.muted }}>
+                  Level {d}
                 </LexText>
               </Pressable>
             ))}
@@ -291,15 +298,19 @@ export function DictionaryScreen() {
                   ]}
                 >
                   <View style={{ flex: 1 }}>
-                    <LexText variant="title">{item.word}</LexText>
+                    <View style={styles.wordTitleRow}>
+                      <LexText variant="title">{item.word}</LexText>
+                      <View style={[styles.partPill, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                        <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9 }}>
+                          {item.part_of_speech}
+                        </LexText>
+                      </View>
+                    </View>
                     <LexText variant="muted" style={{ marginTop: 4 }}>
                       {item.short_definition}
                     </LexText>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                    <LexText variant="muted" style={{ fontStyle: 'italic' }}>
-                      {item.part_of_speech}
-                    </LexText>
                     <View style={{ flexDirection: 'row', gap: 4 }}>
                       {Array.from({ length: 5 }).map((_, i) => (
                         <View
@@ -312,6 +323,9 @@ export function DictionaryScreen() {
                           }}
                         />
                       ))}
+                    </View>
+                    <View style={[styles.chevron, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                      <IconSymbol name="chevron.right" fallback=">" color={t.colors.muted} size={13} />
                     </View>
                   </View>
                 </Pressable>
@@ -377,13 +391,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 8,
   },
-  input: {
+  searchShell: {
     marginTop: 16,
     height: 48,
-    paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 16,
+    borderCurve: 'continuous',
     borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
+  input: { flex: 1, height: 46, padding: 0 },
+  clearSearch: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   filterTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   clearButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   chip: {
@@ -397,10 +417,14 @@ const styles = StyleSheet.create({
   row: {
     borderWidth: 1,
     borderRadius: 16,
+    borderCurve: 'continuous',
     padding: 14,
     flexDirection: 'row',
     gap: 12,
   },
+  wordTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  partPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  chevron: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   emptyState: {
     borderWidth: 1,
     borderRadius: 20,
