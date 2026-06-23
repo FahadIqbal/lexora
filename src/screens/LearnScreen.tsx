@@ -269,6 +269,7 @@ function ComboChip({ multiplier, combo }: { multiplier: number; combo: number })
 }
 
 function XpPopup({ amount }: { amount: number }) {
+  const t = useTheme();
   const ty = useSharedValue(0);
   const opacity = useSharedValue(1);
 
@@ -290,7 +291,7 @@ function XpPopup({ amount }: { amount: number }) {
         end={{ x: 1, y: 0 }}
         style={styles.xpPopupGradient}
       >
-        <LexText variant="title" style={{ color: 'white', fontFamily: 'Syne_700Bold', fontSize: 16 }}>
+        <LexText variant="title" style={{ color: 'white', fontFamily: t.font.heading.bold, fontSize: 16 }}>
           +{amount} XP
         </LexText>
       </LinearGradient>

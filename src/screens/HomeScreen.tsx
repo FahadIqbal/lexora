@@ -301,13 +301,16 @@ export function HomeScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <LexText variant="label" style={{ color: t.colors.muted }}>
-              {greeting} ✨
+              Today
             </LexText>
             <LexText variant="h2" style={{ marginTop: 2 }}>
-              {user.displayName || 'Welcome back'}
+              Your word plan
+            </LexText>
+            <LexText variant="muted" style={{ marginTop: 4 }}>
+              {greeting}{user.displayName ? `, ${user.displayName}` : ''}
             </LexText>
           </View>
-          <View style={[styles.levelBadge, { backgroundColor: t.colors.surface2, borderColor: t.colors.border }]}>
+          <View style={[styles.levelBadge, { backgroundColor: t.colors.surfaceGlassStrong, borderColor: t.colors.borderBright }]}>
             <LexText variant="label" style={{ color: t.colors.accentPurple, fontSize: 11 }}>
               LVL {level}
             </LexText>
@@ -342,7 +345,7 @@ export function HomeScreen() {
                 Today's path
               </LexText>
               <LexText variant="h3" style={{ marginTop: 4 }}>
-                One guided loop, three wins
+                Three wins for today
               </LexText>
             </View>
             <View style={[styles.pathBadge, { borderColor: t.colors.borderBright }]}>
@@ -366,7 +369,7 @@ export function HomeScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Animated.View style={flameStyle}>
-                <LexText variant="h1" style={{ fontSize: 40 }}>🔥</LexText>
+                <IconSymbol name="flame.fill" fallback="F" color={t.colors.accentAmber} size={38} />
               </Animated.View>
               <View>
                 <LexText variant="h2" style={{ color: t.colors.accentAmber, fontSize: 36 }}>

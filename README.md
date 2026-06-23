@@ -5,7 +5,7 @@ Lexora is a mobile-first vocabulary learning app built with **Expo (SDK 56)**, *
 ## What’s included
 
 - Expo + TypeScript + Expo Router (file-based routing)
-- Dark-only theme + typography (Syne + DM Sans)
+- Dark-only theme + DM Sans typography system
 - App routes for: onboarding, home, learn, review, games, social, dictionary, AI tutor chat, premium, progress, settings, and admin tools
 - SRS utility (SM-2 style) in `src/utils/srs.ts`
 - Local data fallback plus Supabase repositories in `src/data/repositories/*`

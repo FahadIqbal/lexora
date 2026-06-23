@@ -188,7 +188,7 @@ export function GamesScreen() {
               </View>
             </View>
             <View style={[styles.playBtn]}>
-              <LexText variant="title" style={{ color: 'white', fontFamily: 'Syne_700Bold' }}>
+              <LexText variant="title" style={{ color: 'white', fontFamily: t.font.heading.bold }}>
                 Play now →
               </LexText>
             </View>
