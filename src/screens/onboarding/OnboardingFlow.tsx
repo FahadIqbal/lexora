@@ -58,7 +58,7 @@ export function OnboardingFlow() {
 
   const swipeHint =
     step === 1
-      ? 'Finish account to continue'
+      ? 'Swipe left to skip'
       : step === TOTAL - 1
         ? 'Pick topics to finish'
         : step === 0
@@ -74,7 +74,7 @@ export function OnboardingFlow() {
     .onUpdate((event) => {
       const currentStep = stepSV.value;
       const canSwipeBack = currentStep > 0;
-      const canSwipeForward = currentStep < TOTAL - 1 && currentStep !== 1;
+      const canSwipeForward = currentStep < TOTAL - 1;
       const dampedTranslation =
         (!canSwipeForward && event.translationX < 0) || (!canSwipeBack && event.translationX > 0)
           ? event.translationX * 0.18
@@ -86,7 +86,7 @@ export function OnboardingFlow() {
     .onEnd((event) => {
       const currentStep = stepSV.value;
       const canSwipeBack = currentStep > 0;
-      const canSwipeForward = currentStep < TOTAL - 1 && currentStep !== 1;
+      const canSwipeForward = currentStep < TOTAL - 1;
       const threshold = Math.max(52, width * 0.18);
       let target = currentStep;
 
@@ -162,8 +162,8 @@ export function OnboardingFlow() {
         <View style={styles.progressFooter}>
           <ProgressDots total={TOTAL} activeIndex={step} />
           <View style={[styles.swipePill, { borderColor: t.colors.border, backgroundColor: t.colors.surfaceGlass }]}>
-            <IconSymbol name="arrow.left.arrow.right" fallback="<>" color={step === 1 || step === TOTAL - 1 ? t.colors.muted : t.colors.accentTeal} size={13} />
-            <LexText variant="label" numberOfLines={1} style={{ color: step === 1 || step === TOTAL - 1 ? t.colors.muted : t.colors.accentTeal, fontSize: 9 }}>
+            <IconSymbol name="arrow.left.arrow.right" fallback="<>" color={step === TOTAL - 1 ? t.colors.muted : t.colors.accentTeal} size={13} />
+            <LexText variant="label" numberOfLines={1} style={{ color: step === TOTAL - 1 ? t.colors.muted : t.colors.accentTeal, fontSize: 9 }}>
               {swipeHint}
             </LexText>
           </View>

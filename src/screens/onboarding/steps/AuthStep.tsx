@@ -51,6 +51,13 @@ export function AuthStep({
 
   const valid = useMemo(() => /\S+@\S+\.\S+/.test(email) && password.length >= 6, [email, password]);
 
+  const continueWithoutAccount = () => {
+    const name = email.includes('@') ? email.split('@')[0] : '';
+    if (name) setDisplayName(name);
+    setError(null);
+    onNext({ mode: 'signup' });
+  };
+
   const submit = async () => {
     if (!valid) {
       shake.value = withSequence(
@@ -158,6 +165,9 @@ export function AuthStep({
 
         <Animated.View entering={FadeInDown.delay(230).duration(520)} style={{ marginTop: 18, gap: 10 }}>
           <Button title={mode === 'signup' ? 'Continue' : 'Sign in'} onPress={submit} disabled={!valid || submitting} />
+          {mode === 'signup' ? (
+            <Button title="Continue without account" variant="ghost" onPress={continueWithoutAccount} />
+          ) : null}
           <Button title="Back" variant="ghost" onPress={onBack} />
         </Animated.View>
 
