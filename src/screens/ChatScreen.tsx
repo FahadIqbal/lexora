@@ -5,6 +5,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
 import Markdown from 'react-native-markdown-display';
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -35,18 +36,24 @@ export function ChatScreen() {
     () => [
       {
         label: 'Explain',
+        icon: 'text.magnifyingglass',
+        fallback: 'E',
         title: 'Make it simple',
         prompt: `Explain a ${proficiency ?? 'B1'} vocabulary word from ${topicHint} in simple terms.`,
         color: t.colors.accentTeal,
       },
       {
         label: 'Apply',
+        icon: 'briefcase.fill',
+        fallback: 'A',
         title: 'Use at work',
         prompt: 'Use meticulous in a concise business update, then show a warmer alternative.',
         color: t.colors.accentPurple,
       },
       {
         label: 'Recall',
+        icon: 'questionmark.circle.fill',
+        fallback: 'Q',
         title: 'Quiz me',
         prompt: 'Quiz me on nuance with one multiple-choice question.',
         color: t.colors.accentAmber,
@@ -128,7 +135,10 @@ export function ChatScreen() {
         <View style={{ padding: 18, flex: 1 }}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <LexText variant="h2">AI Tutor</LexText>
+              <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                Coach
+              </LexText>
+              <LexText variant="h2" style={{ marginTop: 2 }}>AI Tutor</LexText>
               <LexText variant="muted" style={{ marginTop: 6 }}>
                 Guided coaching for meaning, usage, and recall.
               </LexText>
@@ -169,10 +179,13 @@ export function ChatScreen() {
                     },
                   ]}
                 >
-                  <LexText variant="label" style={{ color: item.color, fontSize: 9 }}>
+                  <View style={[styles.promptIcon, { borderColor: `${item.color}44`, backgroundColor: `${item.color}14` }]}>
+                    <IconSymbol name={item.icon} fallback={item.fallback} color={item.color} size={16} />
+                  </View>
+                  <LexText variant="label" style={{ color: item.color, fontSize: 9, marginTop: 8 }}>
                     {item.label}
                   </LexText>
-                  <LexText variant="title" style={{ marginTop: 6, fontSize: 13 }}>
+                  <LexText variant="title" style={{ marginTop: 4, fontSize: 13 }}>
                     {item.title}
                   </LexText>
                 </Pressable>
@@ -276,6 +289,9 @@ export function ChatScreen() {
         </View>
 
         <View style={[styles.inputBar, { borderTopColor: t.colors.border, backgroundColor: t.colors.surface }]}>
+          <View style={[styles.inputIcon, { borderColor: t.colors.border }]}>
+            <IconSymbol name="sparkles" fallback="AI" color={t.colors.accentTeal} size={16} />
+          </View>
           <TextInput
             accessibilityLabel="Ask Lexora AI Tutor"
             value={text}
@@ -308,11 +324,20 @@ const styles = StyleSheet.create({
   promptGrid: { flexDirection: 'row', gap: 8, marginTop: 12 },
   promptCard: {
     flex: 1,
-    minHeight: 76,
+    minHeight: 100,
     borderWidth: 1,
     borderRadius: 16,
     borderCurve: 'continuous',
     padding: 10,
+  },
+  promptIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputBar: {
     padding: 12,
@@ -327,6 +352,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  inputIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bubble: {
     maxWidth: '88%',

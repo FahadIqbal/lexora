@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
@@ -41,11 +42,28 @@ export function WordDetailScreen({ id }: { id: string }) {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <Button title="← Back" variant="ghost" onPress={() => router.back()} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => router.back()}
+          style={({ pressed }) => [
+            styles.backButton,
+            {
+              borderColor: t.colors.border,
+              backgroundColor: t.colors.surfaceGlassStrong,
+              opacity: pressed ? 0.78 : 1,
+            },
+          ]}
+        >
+          <IconSymbol name="chevron.left" fallback="<" color={t.colors.text} size={16} />
+          <LexText variant="title" style={{ fontSize: 14 }}>
+            Back
+          </LexText>
+        </Pressable>
 
         <View style={styles.hero}>
           <LinearGradient
-            colors={['rgba(123,111,255,0.24)', 'rgba(0,229,184,0.10)']}
+            colors={['rgba(123,111,255,0.18)', 'rgba(0,229,184,0.10)', 'rgba(255,255,255,0.035)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -55,7 +73,7 @@ export function WordDetailScreen({ id }: { id: string }) {
               <LexText variant="label" style={{ color: t.colors.accentTeal }}>
                 {difficultyLabel}
               </LexText>
-              <LexText variant="h1" style={{ fontSize: 42, marginTop: 6 }}>
+              <LexText variant="h1" style={{ marginTop: 6 }}>
                 {word.word}
               </LexText>
               <LexText variant="muted" style={{ marginTop: 8, color: t.colors.accentPink, fontStyle: 'italic' }}>
@@ -69,9 +87,15 @@ export function WordDetailScreen({ id }: { id: string }) {
                 Speech.speak(word.word, { rate: 0.95 });
                 hapticSelection();
               }}
-              style={[styles.pronounceOrb, { borderColor: t.colors.border }]}
+              style={({ pressed }) => [
+                styles.pronounceOrb,
+                {
+                  borderColor: t.colors.borderBright,
+                  backgroundColor: pressed ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+                },
+              ]}
             >
-              <LexText style={{ fontSize: 24 }}>🔊</LexText>
+              <IconSymbol name="speaker.wave.2.fill" fallback="S" color={t.colors.accentTeal} size={22} />
             </Pressable>
           </View>
           <View style={styles.metaRow}>
@@ -92,24 +116,24 @@ export function WordDetailScreen({ id }: { id: string }) {
         </View>
 
         <Card style={{ marginTop: 14 }}>
-          <LexText variant="title">Definition</LexText>
+          <SectionTitle icon="text.quote" fallback="D" title="Definition" color={t.colors.accentTeal} />
           <LexText variant="muted" style={{ marginTop: 8 }}>
             {word.definition}
           </LexText>
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Etymology</LexText>
+          <SectionTitle icon="clock.arrow.circlepath" fallback="E" title="Etymology" color={t.colors.accentPurple} />
           <LexText variant="muted" style={{ marginTop: 8 }}>
             {word.etymology}
           </LexText>
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Examples</LexText>
+          <SectionTitle icon="quote.bubble.fill" fallback="X" title="Examples" color={t.colors.accentAmber} />
           <View style={{ marginTop: 10, gap: 10 }}>
             {word.example_sentences.map((x, i) => (
-              <View key={i} style={{ gap: 4 }}>
+              <View key={i} style={[styles.exampleRow, { borderColor: t.colors.border }]}>
                 <LexText variant="body">“{x.sentence}”</LexText>
                 <LexText variant="muted" style={{ fontSize: 12 }}>
                   {x.source}
@@ -120,7 +144,7 @@ export function WordDetailScreen({ id }: { id: string }) {
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Synonyms</LexText>
+          <SectionTitle icon="link.circle.fill" fallback="S" title="Synonyms" color={t.colors.accentBlue} />
           <View style={styles.chips}>
             {word.synonyms.slice(0, 5).map((s) => (
               <View key={s} style={[styles.chip, { borderColor: t.colors.border }]}>
@@ -133,9 +157,9 @@ export function WordDetailScreen({ id }: { id: string }) {
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <LexText variant="title">Mnemonic</LexText>
+          <SectionTitle icon="lightbulb.fill" fallback="M" title="Mnemonic" color={t.colors.accentAmber} />
           <LexText variant="muted" style={{ marginTop: 8 }}>
-            💡 {word.mnemonic}
+            {word.mnemonic}
           </LexText>
         </Card>
 
@@ -165,8 +189,29 @@ function MetaPill({ label }: { label: string }) {
   );
 }
 
+function SectionTitle({ icon, fallback, title, color }: { icon: string; fallback: string; title: string; color: string }) {
+  return (
+    <View style={styles.sectionTitle}>
+      <View style={[styles.sectionIcon, { borderColor: `${color}44`, backgroundColor: `${color}14` }]}>
+        <IconSymbol name={icon} fallback={fallback} color={color} size={15} />
+      </View>
+      <LexText variant="title">{title}</LexText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
+  backButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
   hero: {
     marginTop: 14,
     borderRadius: 24,
@@ -175,6 +220,24 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.10)',
     overflow: 'hidden',
     padding: 18,
+  },
+  sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 11,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exampleRow: {
+    borderWidth: 1,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    gap: 4,
   },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   pronounceOrb: {

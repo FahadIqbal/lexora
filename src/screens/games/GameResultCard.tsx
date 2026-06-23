@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { LexText } from '../../components/LexText';
 import { Button } from '../../components/Button';
+import { IconSymbol } from '../../components/IconSymbol';
 import { useTheme } from '../../theme/ThemeProvider';
 
 export function GameResultCard({
@@ -38,7 +39,12 @@ export function GameResultCard({
       />
       <View style={styles.heroRow}>
         <View style={[styles.resultIcon, { backgroundColor: cleanRound ? 'rgba(0,229,184,0.16)' : 'rgba(255,179,71,0.16)' }]}>
-          <LexText style={{ fontSize: 30 }}>{cleanRound ? '🏆' : '🎯'}</LexText>
+          <IconSymbol
+            name={cleanRound ? 'trophy.fill' : 'scope'}
+            fallback={cleanRound ? 'T' : 'R'}
+            color={cleanRound ? t.colors.accentTeal : t.colors.accentAmber}
+            size={28}
+          />
         </View>
         <View style={{ flex: 1 }}>
           <LexText variant="label" style={{ color: cleanRound ? t.colors.accentTeal : t.colors.accentAmber }}>
