@@ -20,6 +20,7 @@ function scramble(s: string) {
 export function ScrambleGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
@@ -40,7 +41,7 @@ export function ScrambleGame() {
   );
 
   const [i, setI] = useState(0);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [pickedIndexes, setPickedIndexes] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [missed, setMissed] = useState<string[]>([]);
   const [done, setDone] = useState(false);
@@ -48,15 +49,15 @@ export function ScrambleGame() {
   const word = (set ?? [])[i];
   const letters = useMemo(() => (word ? scramble(word.word.toUpperCase()).split('') : []), [word?.id]);
 
-  const current = picked.join('');
+  const current = pickedIndexes.map((idx) => letters[idx]).join('');
 
-  const pick = (ch: string, idx: number) => {
+  const pick = (idx: number) => {
     if (!word) return;
-    if (picked.length >= letters.length) return;
-    setPicked((p) => [...p, ch]);
+    if (pickedIndexes.includes(idx) || pickedIndexes.length >= letters.length) return;
+    setPickedIndexes((p) => [...p, idx]);
   };
 
-  const reset = () => setPicked([]);
+  const reset = () => setPickedIndexes([]);
 
   const submit = () => {
     if (!word) return;
@@ -64,12 +65,13 @@ export function ScrambleGame() {
     if (ok) setScore((s) => s + 12);
     else setMissed((m) => [...m, word.word]);
     addXp(ok ? 15 : 8);
+    recordReview(word.id, ok ? 5 : 2);
 
     const ni = i + 1;
     if (ni >= (set ?? []).length) setDone(true);
     else {
       setI(ni);
-      setPicked([]);
+      setPickedIndexes([]);
     }
   };
 
@@ -96,7 +98,7 @@ export function ScrambleGame() {
           missed={[...new Set(missed)]}
           onPlayAgain={() => {
             setI(0);
-            setPicked([]);
+            setPickedIndexes([]);
             setScore(0);
             setMissed([]);
             setDone(false);
@@ -124,10 +126,15 @@ export function ScrambleGame() {
             {letters.map((ch, idx) => (
               <Pressable
                 key={`${ch}-${idx}`}
-                onPress={() => pick(ch, idx)}
+                disabled={pickedIndexes.includes(idx)}
+                onPress={() => pick(idx)}
                 style={[
                   styles.letter,
-                  { borderColor: t.colors.border, backgroundColor: t.colors.surface },
+                  {
+                    borderColor: pickedIndexes.includes(idx) ? 'rgba(0,229,184,0.35)' : t.colors.border,
+                    backgroundColor: pickedIndexes.includes(idx) ? 'rgba(0,229,184,0.12)' : t.colors.surface,
+                    opacity: pickedIndexes.includes(idx) ? 0.48 : 1,
+                  },
                 ]}
               >
                 <LexText variant="h3" style={{ textAlign: 'center' }}>

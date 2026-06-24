@@ -15,6 +15,7 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 export function TrueFalseGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
@@ -72,6 +73,7 @@ export function TrueFalseGame() {
     setScore((s) => s + (ok ? 10 : 0));
     if (!ok) setMissed((m) => [...m, word.word]);
     addXp(ok ? 12 : 6);
+    recordReview(word.id, ok ? 4 : 2);
 
     const ni = i + 1;
     if (ni >= (set ?? []).length) setDone(true);

@@ -14,6 +14,7 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 export function WordChainGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
 
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
@@ -34,7 +35,8 @@ export function WordChainGame() {
     [categoriesKey, difficultyMax]
   );
 
-  const start = (set ?? [])[0]?.word ?? '';
+  const startWord = (set ?? [])[0];
+  const start = startWord?.word ?? '';
   const [chain, setChain] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [score, setScore] = useState(0);
@@ -70,6 +72,7 @@ export function WordChainGame() {
     setText('');
 
     if (chain.length + 1 >= targetLen) {
+      if (startWord) recordReview(startWord.id, 4);
       setDone(true);
     }
   };

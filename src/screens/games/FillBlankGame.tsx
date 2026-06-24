@@ -13,6 +13,7 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 export function FillBlankGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
@@ -41,7 +42,12 @@ export function FillBlankGame() {
 
   const sentence = useMemo(() => {
     if (!word) return '';
-    return `The idea was ____ at first, but it quickly changed.`;
+    const example = word.example_sentences[0]?.sentence;
+    if (example) {
+      const pattern = new RegExp(`\\b${word.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return pattern.test(example) ? example.replace(pattern, '____') : `${example}  ____`;
+    }
+    return `Choose the word that means: ${word.short_definition || word.definition}`;
   }, [word?.id]);
 
   const options = useMemo(() => {
@@ -57,6 +63,7 @@ export function FillBlankGame() {
     const ok = opt === word.word;
     if (ok) setScore((s) => s + 10);
     else setMissed((m) => [...m, word.word]);
+    recordReview(word.id, ok ? 4 : 2);
 
     const ni = i + 1;
     if (ni >= (set ?? []).length) {

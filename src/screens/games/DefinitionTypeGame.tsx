@@ -13,6 +13,7 @@ import { useAsyncResource } from '../../hooks/useAsyncResource';
 export function DefinitionTypeGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
@@ -47,6 +48,7 @@ export function DefinitionTypeGame() {
     if (ok) {
       setScore((s) => s + 12);
       addXp(15);
+      recordReview(word.id, attempts === 0 ? 5 : 4);
       next();
       return;
     }
@@ -54,6 +56,7 @@ export function DefinitionTypeGame() {
     addXp(6);
     if (attempts >= 2) {
       setMissed((m) => [...m, word.word]);
+      recordReview(word.id, 1);
       next();
     }
   };
