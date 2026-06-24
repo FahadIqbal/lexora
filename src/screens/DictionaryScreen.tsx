@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
@@ -279,56 +279,61 @@ export function DictionaryScreen() {
                   </View>
                 </View>
               }
-              renderItem={({ item }: any) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.word}, ${item.part_of_speech}. ${item.short_definition}`}
-                  onPress={() => {
-                    hapticSelection();
-                    router.push(`/dictionary/${item.id}`);
-                  }}
-                  style={({ pressed }) => [
-                    styles.row,
-                    {
-                      backgroundColor: t.colors.surface,
-                      borderColor: t.colors.border,
-                      opacity: pressed ? 0.88 : 1,
-                      transform: [{ scale: pressed ? 0.985 : 1 }],
-                    },
-                  ]}
+              renderItem={({ item, index }: any) => (
+                <Animated.View
+                  entering={FadeInDown.duration(240).delay(Math.min(index, 8) * 28)}
+                  layout={LinearTransition.duration(180)}
                 >
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.wordTitleRow}>
-                      <LexText variant="title">{item.word}</LexText>
-                      <View style={[styles.partPill, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-                        <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9 }}>
-                          {item.part_of_speech}
-                        </LexText>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.word}, ${item.part_of_speech}. ${item.short_definition}`}
+                    onPress={() => {
+                      hapticSelection();
+                      router.push(`/dictionary/${item.id}`);
+                    }}
+                    style={({ pressed }) => [
+                      styles.row,
+                      {
+                        backgroundColor: t.colors.surface,
+                        borderColor: t.colors.border,
+                        opacity: pressed ? 0.88 : 1,
+                        transform: [{ scale: pressed ? 0.985 : 1 }],
+                      },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.wordTitleRow}>
+                        <LexText variant="title">{item.word}</LexText>
+                        <View style={[styles.partPill, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                          <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9 }}>
+                            {item.part_of_speech}
+                          </LexText>
+                        </View>
+                      </View>
+                      <LexText variant="muted" style={{ marginTop: 4 }}>
+                        {item.short_definition}
+                      </LexText>
+                    </View>
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <View
+                            key={i}
+                            style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: 999,
+                              backgroundColor: i < item.difficulty_level ? t.colors.accentAmber : 'rgba(255,255,255,0.10)',
+                            }}
+                          />
+                        ))}
+                      </View>
+                      <View style={[styles.chevron, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                        <IconSymbol name="chevron.right" fallback=">" color={t.colors.muted} size={13} />
                       </View>
                     </View>
-                    <LexText variant="muted" style={{ marginTop: 4 }}>
-                      {item.short_definition}
-                    </LexText>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                    <View style={{ flexDirection: 'row', gap: 4 }}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <View
-                          key={i}
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: 999,
-                            backgroundColor: i < item.difficulty_level ? t.colors.accentAmber : 'rgba(255,255,255,0.10)',
-                          }}
-                        />
-                      ))}
-                    </View>
-                    <View style={[styles.chevron, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                      <IconSymbol name="chevron.right" fallback=">" color={t.colors.muted} size={13} />
-                    </View>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                </Animated.View>
               )}
             />
           )}

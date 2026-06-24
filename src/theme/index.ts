@@ -1,5 +1,5 @@
-/** Bottom padding to add to scrollable screens so content clears the floating tab bar. */
-export const TAB_BAR_BOTTOM = 110;
+/** Bottom padding for scrollable content above native tabs and bottom controls. */
+export const TAB_BAR_BOTTOM = 34;
 
 export const theme = {
   colors: {
