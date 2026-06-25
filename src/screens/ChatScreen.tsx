@@ -2,19 +2,20 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Markdown from 'react-native-markdown-display';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
-import { Card } from '../components/Card';
 import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
-import Markdown from 'react-native-markdown-display';
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
 import { hasAnthropic } from '../services/env';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
+
+type UiMessage = { role: 'user' | 'assistant'; content: string };
 
 export function ChatScreen() {
   const t = useTheme();
@@ -23,15 +24,14 @@ export function ChatScreen() {
   const dueCount = useAppStore((s) => s.getDueWordIds().length);
   const addToStudyList = useAppStore((s) => s.addToStudyList);
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+  const [messages, setMessages] = useState<UiMessage[]>([
     {
       role: 'assistant',
       content:
-        "Hi, I’m your Lexora coach.\n\nSend a word, sentence, or goal and I’ll turn it into examples, recall practice, and cleaner usage.",
+        "I am your Lexora coach. Send a word, sentence, or goal and I will turn it into examples, recall practice, and better usage.",
     },
   ]);
   const [typing, setTyping] = useState(false);
-
   const scrollRef = useRef<ScrollView | null>(null);
 
   const liveTutor = hasAnthropic();
@@ -43,14 +43,14 @@ export function ChatScreen() {
         icon: 'text.magnifyingglass',
         fallback: 'E',
         title: 'Make it simple',
-        prompt: `Explain a ${proficiency ?? 'B1'} vocabulary word from ${topicHint} in simple terms.`,
+        prompt: `Explain a ${proficiency ?? 'B1'} vocabulary word from ${topicHint} in simple terms, then give one memory hook.`,
         color: t.colors.accentTeal,
       },
       {
         label: 'Apply',
         icon: 'briefcase.fill',
         fallback: 'A',
-        title: 'Use at work',
+        title: 'Use it in life',
         prompt: 'Use meticulous in a concise business update, then show a warmer alternative.',
         color: t.colors.accentPurple,
       },
@@ -58,21 +58,20 @@ export function ChatScreen() {
         label: 'Recall',
         icon: 'questionmark.circle.fill',
         fallback: 'Q',
-        title: 'Quiz me',
-        prompt: 'Quiz me on nuance with one multiple-choice question.',
+        title: 'Quiz me fast',
+        prompt: 'Quiz me on nuance with one multiple-choice question and explain the answer.',
         color: t.colors.accentAmber,
       },
     ],
     [proficiency, t.colors.accentAmber, t.colors.accentPurple, t.colors.accentTeal, topicHint]
   );
-
   const chips = ['Simpler explanation', 'Find synonyms for nuance', 'Quiz me on meticulous', 'Use ephemeral in a sentence'];
 
   const typingDot = useSharedValue(0);
   useEffect(() => {
     if (!typing) return;
     typingDot.value = withRepeat(withTiming(1, { duration: 650, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [typing]);
+  }, [typing, typingDot]);
 
   const dotStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -3 * typingDot.value }],
@@ -82,10 +81,11 @@ export function ChatScreen() {
   const extractMentionedWords = (content: string) => {
     const lc = content.toLowerCase();
     const tokens = (lc.match(/[a-z]{4,}/g) ?? []).filter(Boolean);
+    const blocked = new Set(['your', 'into', 'with', 'then', 'this', 'that', 'from', 'will', 'word', 'words']);
     const seen = new Set<string>();
     const out: string[] = [];
     for (const tok of tokens) {
-      if (seen.has(tok)) continue;
+      if (blocked.has(tok) || seen.has(tok)) continue;
       seen.add(tok);
       out.push(tok);
       if (out.length >= 5) break;
@@ -104,7 +104,7 @@ export function ChatScreen() {
         ...m,
         {
           role: 'assistant',
-          content: 'I could not find exact dictionary matches for those terms yet. Try opening Dictionary and searching the word directly.',
+          content: 'I could not find exact dictionary matches yet. Try searching the word directly in Dictionary.',
         },
       ]);
       return;
@@ -115,7 +115,7 @@ export function ChatScreen() {
       ...m,
       {
         role: 'assistant',
-        content: `Added ${ids.length} ${ids.length === 1 ? 'word' : 'words'} to your memory queue. Review will now include them when they are ready.`,
+        content: `Added ${ids.length} ${ids.length === 1 ? 'word' : 'words'} to your memory queue. Review will include them when ready.`,
       },
     ]);
   };
@@ -163,19 +163,20 @@ export function ChatScreen() {
   return (
     <Screen>
       <KeyboardAvoidingView style={styles.wrap} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ padding: 18, flex: 1 }}>
+        <View style={styles.container}>
           <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <LexText variant="label" style={{ color: t.colors.accentTeal }}>
-                Coach
-              </LexText>
-              <LexText variant="h2" style={{ marginTop: 2 }}>AI Tutor</LexText>
-              <LexText variant="muted" style={{ marginTop: 6 }}>
-                Guided coaching for meaning, usage, and recall.
-              </LexText>
+            <View style={styles.coachIdentity}>
+              <CoachAvatar />
+              <View style={{ flex: 1 }}>
+                <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                  Lexora Coach
+                </LexText>
+                <LexText variant="h2" style={{ marginTop: 2 }}>Practice Studio</LexText>
+              </View>
             </View>
             <View style={[styles.statusPill, { borderColor: liveTutor ? t.colors.accentTeal : t.colors.border }]}>
-              <LexText variant="label" style={{ color: liveTutor ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
+              <View style={[styles.statusDot, { backgroundColor: liveTutor ? t.colors.accentTeal : t.colors.accentAmber }]} />
+              <LexText variant="label" style={{ color: liveTutor ? t.colors.accentTeal : t.colors.mutedStrong, fontSize: 10 }}>
                 {liveTutor ? 'Live' : 'Demo'}
               </LexText>
             </View>
@@ -183,14 +184,27 @@ export function ChatScreen() {
 
           <Animated.View entering={FadeInDown.duration(420)} style={styles.coachPanel}>
             <LinearGradient
-              colors={['rgba(123,111,255,0.24)', 'rgba(0,229,184,0.10)']}
+              colors={['rgba(0,229,184,0.18)', 'rgba(123,111,255,0.16)', 'rgba(255,179,71,0.08)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <LexText variant="label" style={{ color: t.colors.accentTeal }}>
-              Coach paths
-            </LexText>
+            <View style={styles.panelTop}>
+              <View style={{ flex: 1 }}>
+                <LexText variant="label" style={{ color: t.colors.accentAmber }}>
+                  Pick a coaching move
+                </LexText>
+                <LexText variant="title" style={{ marginTop: 5, fontSize: 17 }}>
+                  Turn any word into recall, nuance, and real usage.
+                </LexText>
+              </View>
+              <View style={[styles.memoryBadge, { borderColor: dueCount ? t.colors.accentPink : t.colors.accentTeal }]}>
+                <LexText variant="h3" style={{ color: dueCount ? t.colors.accentPink : t.colors.accentTeal, fontSize: 20, textAlign: 'center' }}>
+                  {dueCount}
+                </LexText>
+                <LexText variant="label" style={{ fontSize: 8, textAlign: 'center' }}>due</LexText>
+              </View>
+            </View>
             <View style={styles.promptGrid}>
               {coachPrompts.map((item, index) => (
                 <AnimatedPressable
@@ -205,19 +219,19 @@ export function ChatScreen() {
                   style={({ pressed }) => [
                     styles.promptCard,
                     {
-                      borderColor: item.color,
-                      backgroundColor: 'rgba(255,255,255,0.06)',
-                      opacity: pressed ? 0.84 : 1,
+                      borderColor: `${item.color}4D`,
+                      backgroundColor: pressed ? `${item.color}22` : 'rgba(255,255,255,0.07)',
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
                     },
                   ]}
                 >
-                  <View style={[styles.promptIcon, { borderColor: `${item.color}44`, backgroundColor: `${item.color}14` }]}>
-                    <IconSymbol name={item.icon} fallback={item.fallback} color={item.color} size={16} />
+                  <View style={[styles.promptIcon, { borderColor: `${item.color}55`, backgroundColor: `${item.color}18` }]}>
+                    <IconSymbol name={item.icon} fallback={item.fallback} color={item.color} size={17} />
                   </View>
                   <LexText variant="label" style={{ color: item.color, fontSize: 9, marginTop: 8 }}>
                     {item.label}
                   </LexText>
-                  <LexText variant="title" style={{ marginTop: 4, fontSize: 13 }}>
+                  <LexText variant="title" numberOfLines={2} style={{ marginTop: 4, fontSize: 13, lineHeight: 17 }}>
                     {item.title}
                   </LexText>
                 </AnimatedPressable>
@@ -236,16 +250,17 @@ export function ChatScreen() {
             </View>
           </Animated.View>
 
-          <Card style={{ marginTop: 16, flex: 1, padding: 0, overflow: 'hidden' }}>
+          <View style={[styles.thread, { borderColor: t.colors.border }]}>
             <ScrollView
               contentInsetAdjustmentBehavior="automatic"
               ref={(r: ScrollView | null) => {
                 scrollRef.current = r;
               }}
-              contentContainerStyle={{ padding: 14, paddingBottom: 18, gap: 12 }}
+              contentContainerStyle={styles.threadContent}
               onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+              showsVerticalScrollIndicator={false}
             >
-              {messages.map((m: TutorMessage, idx: number) => {
+              {messages.map((m, idx) => {
                 const isUser = m.role === 'user';
                 const streaming = m.role === 'assistant' && m.content.startsWith('STREAM:');
                 const content = streaming ? m.content.replace(/^STREAM:/, '') : m.content;
@@ -255,78 +270,36 @@ export function ChatScreen() {
                   <Animated.View
                     key={idx}
                     entering={FadeInDown.delay(Math.min(idx, 4) * 25).duration(260)}
-                    style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}
+                    style={[styles.messageRow, { alignItems: isUser ? 'flex-end' : 'flex-start' }]}
                   >
-                    <View
-                      accessibilityLabel={`${isUser ? 'You' : 'Lexora tutor'} message`}
-                      style={[
-                        styles.bubble,
-                        isUser
-                          ? { borderColor: 'rgba(108,99,255,0.45)', backgroundColor: 'rgba(108,99,255,0.22)' }
-                          : { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' },
-                      ]}
-                    >
-                      <Markdown
-                        style={{
-                          body: { color: t.colors.text, fontFamily: t.font.body.regular, lineHeight: 20 },
-                          strong: { color: 'white' },
-                          bullet_list: { marginVertical: 4 },
-                        }}
-                      >
-                        {content}
-                      </Markdown>
-                      {mentioned.length ? (
-                        <>
-                          <View style={styles.wordCards}>
-                            {mentioned.map((w) => (
-                              <Pressable
-                                key={w}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Ask about ${w}`}
-                                onPress={() => {
-                                  hapticSelection();
-                                  setText(`Tell me more about ${w}`);
-                                }}
-                                style={[styles.wordCard, { borderColor: t.colors.border }]}
-                              >
-                                <LexText variant="body" style={{ fontSize: 12 }}>
-                                  {w}
-                                </LexText>
-                              </Pressable>
-                            ))}
-                          </View>
-                          <View style={styles.messageActions}>
-                            <Pressable
-                              accessibilityRole="button"
-                              onPress={() => addMentionedToStudyList(mentioned)}
-                              style={[styles.messageAction, { borderColor: 'rgba(0,229,184,0.28)', backgroundColor: 'rgba(0,229,184,0.08)' }]}
-                            >
-                              <IconSymbol name="plus.circle.fill" fallback="+" color={t.colors.accentTeal} size={13} />
-                              <LexText variant="label" style={{ color: t.colors.accentTeal, fontSize: 9 }}>
-                                Add words
-                              </LexText>
-                            </Pressable>
-                            <Pressable
-                              accessibilityRole="button"
-                              onPress={() => router.push('/(tabs)/review')}
-                              style={[styles.messageAction, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}
-                            >
-                              <IconSymbol name="arrow.clockwise" fallback="R" color={t.colors.muted} size={13} />
-                              <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9 }}>
-                                Practice
-                              </LexText>
-                            </Pressable>
-                          </View>
-                        </>
-                      ) : null}
-                    </View>
+                    {!isUser ? (
+                      <View style={styles.messageMeta}>
+                        <CoachAvatar size={28} />
+                        <LexText variant="label" style={{ color: t.colors.mutedStrong, fontSize: 9 }}>
+                          Coach
+                        </LexText>
+                      </View>
+                    ) : null}
+                    <MessageBubble
+                      isUser={isUser}
+                      content={content}
+                      mentioned={mentioned}
+                      onAskWord={(word) => setText(`Tell me more about ${word}`)}
+                      onAddWords={() => addMentionedToStudyList(mentioned)}
+                    />
                   </Animated.View>
                 );
               })}
 
               {typing ? (
                 <View style={{ alignItems: 'flex-start' }}>
-                  <View style={[styles.bubble, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                  <View style={styles.messageMeta}>
+                    <CoachAvatar size={28} />
+                    <LexText variant="label" style={{ color: t.colors.mutedStrong, fontSize: 9 }}>
+                      Thinking
+                    </LexText>
+                  </View>
+                  <View style={[styles.bubble, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.05)' }]}>
                     <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                       <Animated.View style={[styles.dot, dotStyle]} />
                       <Animated.View style={[styles.dot, dotStyle, { opacity: 0.6 }]} />
@@ -336,10 +309,10 @@ export function ChatScreen() {
                 </View>
               ) : null}
             </ScrollView>
-          </Card>
+          </View>
         </View>
 
-        <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 8 }}>
             {chips.map((c, index) => (
               <AnimatedPressable
@@ -350,9 +323,9 @@ export function ChatScreen() {
                   hapticSelection();
                   setText(c);
                 }}
-                style={[styles.chip, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.04)' }]}
+                style={[styles.chip, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.045)' }]}
               >
-                <LexText variant="body" style={{ fontSize: 12 }}>
+                <LexText variant="body" numberOfLines={1} style={{ fontSize: 12 }}>
                   {c}
                 </LexText>
               </AnimatedPressable>
@@ -360,20 +333,20 @@ export function ChatScreen() {
           </ScrollView>
         </View>
 
-        <View style={[styles.inputBar, { borderTopColor: t.colors.border, backgroundColor: t.colors.surface }]}>
-          <View style={[styles.inputIcon, { borderColor: t.colors.border }]}>
-            <IconSymbol name="sparkles" fallback="AI" color={t.colors.accentTeal} size={16} />
+        <View style={[styles.inputBar, { borderTopColor: t.colors.border, backgroundColor: t.colors.bgElevated }]}>
+          <View style={[styles.inputShell, { borderColor: text.trim() ? t.colors.accentTeal : t.colors.border }]}>
+            <IconSymbol name="sparkles" fallback="AI" color={text.trim() ? t.colors.accentTeal : t.colors.mutedStrong} size={16} />
+            <TextInput
+              accessibilityLabel="Ask Lexora AI Tutor"
+              value={text}
+              onChangeText={setText}
+              placeholder="Ask for examples, quizzes, grammar..."
+              placeholderTextColor={t.colors.muted}
+              style={[styles.input, { color: t.colors.text, fontFamily: t.font.body.regular }]}
+              onSubmitEditing={() => send(text)}
+            />
           </View>
-          <TextInput
-            accessibilityLabel="Ask Lexora AI Tutor"
-            value={text}
-            onChangeText={setText}
-            placeholder="Ask anything…"
-            placeholderTextColor={t.colors.muted}
-            style={[styles.input, { color: t.colors.text, fontFamily: t.font.body.regular }]}
-            onSubmitEditing={() => send(text)}
-          />
-          <Button title={typing ? 'Wait' : 'Send'} onPress={() => send(text)} disabled={!text.trim().length || typing} style={{ width: 92, height: 44 }} />
+          <Button title={typing ? 'Wait' : 'Send'} onPress={() => send(text)} disabled={!text.trim().length || typing} style={{ width: 82, height: 46 }} />
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -381,6 +354,111 @@ export function ChatScreen() {
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function CoachAvatar({ size = 48 }: { size?: number }) {
+  const t = useTheme();
+  return (
+    <LinearGradient
+      colors={[t.colors.accentTeal, t.colors.accentPurple]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[
+        styles.avatar,
+        {
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.36),
+        },
+      ]}
+    >
+      <LexText variant="title" style={{ color: 'white', fontSize: Math.max(13, size * 0.34), fontFamily: t.font.heading.bold }}>
+        L
+      </LexText>
+    </LinearGradient>
+  );
+}
+
+function MessageBubble({
+  isUser,
+  content,
+  mentioned,
+  onAskWord,
+  onAddWords,
+}: {
+  isUser: boolean;
+  content: string;
+  mentioned: string[];
+  onAskWord: (word: string) => void;
+  onAddWords: () => void;
+}) {
+  const t = useTheme();
+  return (
+    <View
+      accessibilityLabel={`${isUser ? 'You' : 'Lexora tutor'} message`}
+      style={[
+        styles.bubble,
+        isUser
+          ? { borderColor: 'rgba(0,229,184,0.42)', backgroundColor: 'rgba(0,229,184,0.14)' }
+          : { borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.055)' },
+      ]}
+    >
+      <Markdown
+        style={{
+          body: { color: t.colors.text, fontFamily: t.font.body.regular, lineHeight: 21, fontSize: 14 },
+          strong: { color: 'white', fontFamily: t.font.body.bold },
+          bullet_list: { marginVertical: 4 },
+          paragraph: { marginTop: 0, marginBottom: 5 },
+        }}
+      >
+        {content}
+      </Markdown>
+      {mentioned.length ? (
+        <>
+          <View style={styles.wordCards}>
+            {mentioned.map((w) => (
+              <Pressable
+                key={w}
+                accessibilityRole="button"
+                accessibilityLabel={`Ask about ${w}`}
+                onPress={() => {
+                  hapticSelection();
+                  onAskWord(w);
+                }}
+                style={[styles.wordCard, { borderColor: t.colors.border }]}
+              >
+                <LexText variant="label" style={{ fontSize: 9, color: t.colors.accentTeal }}>
+                  {w}
+                </LexText>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.messageActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onAddWords}
+              style={[styles.messageAction, { borderColor: 'rgba(0,229,184,0.28)', backgroundColor: 'rgba(0,229,184,0.08)' }]}
+            >
+              <IconSymbol name="plus.circle.fill" fallback="+" color={t.colors.accentTeal} size={13} />
+              <LexText variant="label" style={{ color: t.colors.accentTeal, fontSize: 9 }}>
+                Add words
+              </LexText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(tabs)/review')}
+              style={[styles.messageAction, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}
+            >
+              <IconSymbol name="arrow.clockwise" fallback="R" color={t.colors.mutedStrong} size={13} />
+              <LexText variant="label" style={{ color: t.colors.mutedStrong, fontSize: 9 }}>
+                Practice
+              </LexText>
+            </Pressable>
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
 
 function CoachAction({
   icon,
@@ -407,25 +485,57 @@ function CoachAction({
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  container: { padding: 16, paddingBottom: 0, flex: 1 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  coachIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    boxShadow: '0 10px 28px rgba(0,229,184,0.22)',
+  },
+  statusPill: {
+    minHeight: 30,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 999 },
   coachPanel: {
-    marginTop: 14,
-    borderRadius: 22,
+    marginTop: 12,
+    borderRadius: 24,
     borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     overflow: 'hidden',
     padding: 14,
   },
+  panelTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  memoryBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
   promptGrid: { flexDirection: 'row', gap: 8, marginTop: 12 },
   promptCard: {
     flex: 1,
-    minHeight: 100,
+    minHeight: 112,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     borderCurve: 'continuous',
     padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   promptIcon: {
     width: 32,
@@ -436,7 +546,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coachActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  coachActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   coachAction: {
     flex: 1,
     minHeight: 38,
@@ -449,6 +559,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  thread: {
+    flex: 1,
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+  },
+  threadContent: {
+    padding: 14,
+    paddingBottom: 18,
+    gap: 14,
+  },
+  messageRow: { gap: 6 },
+  messageMeta: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  bubble: {
+    maxWidth: '90%',
+    borderWidth: 1,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  chip: {
+    maxWidth: 220,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   inputBar: {
     padding: 12,
     flexDirection: 'row',
@@ -456,35 +597,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     alignItems: 'center',
   },
+  inputShell: {
+    flex: 1,
+    height: 46,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   input: {
     flex: 1,
     height: 44,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  inputIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bubble: {
-    maxWidth: '88%',
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
+    padding: 0,
+    fontSize: 14,
   },
   wordCards: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   wordCard: {

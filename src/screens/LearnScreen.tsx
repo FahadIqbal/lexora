@@ -159,13 +159,13 @@ export function LearnScreen() {
           >
             <Animated.View entering={FadeInDown.duration(440)}>
               <LexText variant="label" style={{ color: t.colors.accentTeal }}>
-                Today's learning run
+                Skill run
               </LexText>
               <LexText variant="h2" style={{ marginTop: 6 }}>
-                Build recall in {estimatedMinutes} minutes
+                Win today's words in {estimatedMinutes} minutes
               </LexText>
               <LexText variant="muted" style={{ marginTop: 6 }}>
-                Swipe through a compact deck, earn combo XP, then prove it with quick checks.
+                A fast deck, combo rewards, and quick recall checks tuned to your level.
               </LexText>
             </Animated.View>
 
@@ -180,7 +180,7 @@ export function LearnScreen() {
               <View style={styles.learnHeroTop}>
                 <View>
                   <LexText variant="label" style={{ color: 'rgba(255,255,255,0.68)' }}>
-                    Session deck
+                    Today's deck
                   </LexText>
                   <LexText variant="h2" style={{ color: 'white', marginTop: 4, fontSize: 36 }}>
                     {loading ? '...' : total}
@@ -190,10 +190,15 @@ export function LearnScreen() {
                   </LexText>
                 </View>
                 <View style={styles.learnHeroBadge}>
-                  <LexText variant="title" style={{ color: 'white', fontSize: 28 }}>
-                    Go
+                  <LexText variant="title" style={{ color: 'white', fontSize: 25 }}>
+                    XP
                   </LexText>
                 </View>
+              </View>
+              <View style={styles.rewardRail}>
+                <RewardPill label="Combo streaks" color={t.colors.accentAmber} />
+                <RewardPill label="Mini quizzes" color={t.colors.accentPurple} />
+                <RewardPill label="Review queue" color={t.colors.accentTeal} />
               </View>
               <View style={styles.learnHeroStats}>
                 <HeroMetric label="Quizzes" value={String(quizCount)} color={t.colors.accentPurple} />
@@ -211,13 +216,13 @@ export function LearnScreen() {
             <Animated.View entering={FadeInDown.delay(130).duration(440)}>
               <GlowCard style={{ marginTop: 14 }}>
                 <LexText variant="title" style={{ fontSize: 15 }}>
-                  Swipe rules
+                  How the run works
                 </LexText>
                 <View style={{ gap: 10, marginTop: 12 }}>
-                  <HintRow emoji="R" text="Swipe RIGHT - Got it (+10 XP)" color={t.colors.accentTeal} />
-                  <HintRow emoji="L" text="Swipe LEFT - Still learning (+3 XP)" color={t.colors.accentPink} />
-                  <HintRow emoji="🔥" text="3+ in a row = Combo (2x or 3x XP)" color={t.colors.accentAmber} />
-                  <HintRow emoji="?" text="Mini quiz every 5 cards" color={t.colors.accentPurple} />
+                  <HintRow badge="Right" text="Got it and collect full XP." color={t.colors.accentTeal} />
+                  <HintRow badge="Left" text="Keep it in your review queue." color={t.colors.accentPink} />
+                  <HintRow badge="3x" text="Chain correct cards for a combo burst." color={t.colors.accentAmber} />
+                  <HintRow badge="Quiz" text="Short checks keep recall honest." color={t.colors.accentPurple} />
                 </View>
               {!!error && (
                 <LexText variant="muted" style={{ marginTop: 12, color: t.colors.accentPink }}>
@@ -322,13 +327,26 @@ export function LearnScreen() {
   );
 }
 
-function HintRow({ emoji, text, color }: { emoji: string; text: string; color: string }) {
+function RewardPill({ label, color }: { label: string; color: string }) {
+  return (
+    <View style={[styles.rewardPill, { borderColor: `${color}55`, backgroundColor: `${color}16` }]}>
+      <LexText variant="label" numberOfLines={1} style={{ color, fontSize: 9 }}>
+        {label}
+      </LexText>
+    </View>
+  );
+}
+
+function HintRow({ badge, text, color }: { badge: string; text: string; color: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <LexText style={{ fontSize: 18, width: 28 }}>{emoji}</LexText>
+      <View style={[styles.hintBadge, { borderColor: `${color}55`, backgroundColor: `${color}14` }]}>
+        <LexText variant="label" style={{ color, fontSize: 9 }}>
+          {badge}
+        </LexText>
+      </View>
       <LexText variant="muted" style={{ flex: 1, fontSize: 14 }}>
-        <LexText variant="body" style={{ color, fontSize: 14 }}>{text.split(' -')[0]}</LexText>
-        {' -' + (text.split(' -')[1] ?? '')}
+        {text}
       </LexText>
     </View>
   );
@@ -851,7 +869,29 @@ const styles = StyleSheet.create({
   learnHeroStats: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 20,
+    marginTop: 12,
+  },
+  rewardRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 18,
+  },
+  rewardPill: {
+    minHeight: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hintBadge: {
+    width: 52,
+    minHeight: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroMetric: {
     flex: 1,
