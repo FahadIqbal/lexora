@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import Animated, {
   Easing,
+  FadeInDown,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -107,6 +108,7 @@ export function LearnScreen() {
         addToStudyList(current.id);
         addXp(3);
         showXpPopup(3);
+        hapticImpact(Haptics.ImpactFeedbackStyle.Light);
       }
       onDoneWord();
     },
@@ -199,6 +201,27 @@ export function LearnScreen() {
               )}
               {xpPopup && <XpPopup key={xpPopup.key} amount={xpPopup.amount} />}
             </View>
+
+            {current ? (
+              <Animated.View entering={FadeInDown.delay(90).duration(260)} style={styles.learnActions}>
+                <LearnActionButton
+                  label="Still learning"
+                  hint="+3 XP"
+                  icon="↺"
+                  colors={['rgba(255,107,157,0.20)', 'rgba(255,107,157,0.08)']}
+                  borderColor="rgba(255,107,157,0.35)"
+                  onPress={() => handleSwipe('left')}
+                />
+                <LearnActionButton
+                  label="Got it"
+                  hint={`+${10 * comboMultiplier} XP`}
+                  icon="✓"
+                  colors={['rgba(0,229,184,0.22)', 'rgba(123,111,255,0.10)']}
+                  borderColor="rgba(0,229,184,0.38)"
+                  onPress={() => handleSwipe('right')}
+                />
+              </Animated.View>
+            ) : null}
           </>
         )}
 
@@ -296,6 +319,52 @@ function XpPopup({ amount }: { amount: number }) {
         </LexText>
       </LinearGradient>
     </Animated.View>
+  );
+}
+
+function LearnActionButton({
+  label,
+  hint,
+  icon,
+  colors,
+  borderColor,
+  onPress,
+}: {
+  label: string;
+  hint: string;
+  icon: string;
+  colors: [string, string];
+  borderColor: string;
+  onPress: () => void;
+}) {
+  const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${hint}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.learnActionButton,
+        {
+          borderColor,
+          opacity: pressed ? 0.86 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        },
+      ]}
+    >
+      <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LexText variant="h3" style={{ fontSize: 18, color: t.colors.text }}>
+        {icon}
+      </LexText>
+      <View style={{ flex: 1 }}>
+        <LexText variant="title" style={{ fontSize: 14 }}>
+          {label}
+        </LexText>
+        <LexText variant="label" style={{ marginTop: 2, fontSize: 9, color: t.colors.mutedStrong }}>
+          {hint}
+        </LexText>
+      </View>
+    </Pressable>
   );
 }
 
@@ -672,6 +741,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
+  },
+  learnActions: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingTop: 12,
+  },
+  learnActionButton: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    overflow: 'hidden',
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   xpPopup: {
     position: 'absolute',
