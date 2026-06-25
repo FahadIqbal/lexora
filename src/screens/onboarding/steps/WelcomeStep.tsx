@@ -212,6 +212,10 @@ const styles = StyleSheet.create({
     padding: 18,
     paddingBottom: 34,
     gap: 16,
+    width: '100%',
+    maxWidth: 430,
+    alignSelf: 'center',
+    boxSizing: 'border-box',
   },
   topRow: {
     minHeight: 44,
@@ -238,6 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 36,
     lineHeight: 40,
+    width: '100%',
   },
   subhead: {
     marginTop: 10,

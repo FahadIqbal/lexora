@@ -191,6 +191,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 8,
     gap: 8,
+    width: '100%',
+    maxWidth: 430,
+    alignSelf: 'center',
+    boxSizing: 'border-box',
   },
   stepMeta: {
     minHeight: 36,
