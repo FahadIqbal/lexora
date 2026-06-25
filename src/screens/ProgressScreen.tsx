@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -278,15 +278,7 @@ export function ProgressScreen() {
                   {a.name}
                 </LexText>
                 <View style={styles.achTrack}>
-                  <View
-                    style={[
-                      styles.achFill,
-                      {
-                        width: `${Math.round(a.progress * 100)}%`,
-                        backgroundColor: a.unlocked ? t.colors.accentAmber : 'rgba(255,255,255,0.22)',
-                      },
-                    ]}
-                  />
+                  <AnimatedFill progress={a.progress} color={a.unlocked ? t.colors.accentAmber : 'rgba(255,255,255,0.22)'} />
                 </View>
               </Pressable>
             ))}
@@ -388,6 +380,15 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 function SkillBar({ label, value, color }: { label: string; value: number; color: string }) {
   const t = useTheme();
   const clamped = Math.max(0, Math.min(100, value));
+  const fill = useSharedValue(0);
+
+  useEffect(() => {
+    fill.value = withTiming(clamped / 100, { duration: 720, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
 
   return (
     <View style={{ gap: 5 }}>
@@ -400,10 +401,25 @@ function SkillBar({ label, value, color }: { label: string; value: number; color
         </LexText>
       </View>
       <View style={[styles.skillTrack, { backgroundColor: 'rgba(255,255,255,0.07)' }]}>
-        <View style={[styles.skillFill, { width: `${clamped}%`, backgroundColor: color }]} />
+        <Animated.View style={[styles.skillFill, { backgroundColor: color }, fillStyle]} />
       </View>
     </View>
   );
+}
+
+function AnimatedFill({ progress, color }: { progress: number; color: string }) {
+  const fill = useSharedValue(0);
+  const clamped = Math.max(0, Math.min(1, progress));
+
+  useEffect(() => {
+    fill.value = withTiming(clamped, { duration: 680, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
+
+  return <Animated.View style={[styles.achFill, { backgroundColor: color }, fillStyle]} />;
 }
 
 function Heatmap30Days({ intensities }: { intensities: number[] }) {

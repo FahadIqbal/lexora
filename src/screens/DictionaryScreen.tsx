@@ -26,6 +26,7 @@ export function DictionaryScreen() {
   const [difficulty, setDifficulty] = useState<number | null>(null);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
+  const addToStudyList = useAppStore((s) => s.addToStudyList);
 
   useEffect(() => {
     const id = setTimeout(() => setDq(q), 240);
@@ -67,6 +68,11 @@ export function DictionaryScreen() {
     setQ('');
     setCat(null);
     setDifficulty(null);
+  };
+
+  const saveWord = (id: string) => {
+    addToStudyList(id);
+    hapticSelection();
   };
 
   return (
@@ -315,6 +321,24 @@ export function DictionaryScreen() {
                       </LexText>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Save ${item.word} to study list`}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          saveWord(item.id);
+                        }}
+                        style={({ pressed }) => [
+                          styles.saveWordButton,
+                          {
+                            borderColor: t.colors.accentTeal,
+                            backgroundColor: 'rgba(0,229,184,0.10)',
+                            opacity: pressed ? 0.78 : 1,
+                          },
+                        ]}
+                      >
+                        <IconSymbol name="plus" fallback="+" color={t.colors.accentTeal} size={13} />
+                      </Pressable>
                       <View style={{ flexDirection: 'row', gap: 4 }}>
                         {Array.from({ length: 5 }).map((_, i) => (
                           <View
@@ -430,6 +454,14 @@ const styles = StyleSheet.create({
   wordTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   partPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
   chevron: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  saveWordButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emptyState: {
     borderWidth: 1,
     borderRadius: 20,
