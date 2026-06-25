@@ -69,6 +69,8 @@ export function LearnScreen() {
   const next = (words ?? [])[index + 1];
   const after = (words ?? [])[index + 2];
   const total = (words ?? []).length;
+  const quizCount = Math.max(1, Math.ceil(total / 5));
+  const estimatedMinutes = Math.max(2, Math.ceil(total * 0.42));
 
   const toQuiz = (i: number) => i > 0 && i % 5 === 0;
 
@@ -126,41 +128,105 @@ export function LearnScreen() {
     width: `${progressFill.value * 100}%`,
   }));
 
+  const introPulse = useSharedValue(1);
+  const introDrift = useSharedValue(0);
+  useEffect(() => {
+    introPulse.value = withTiming(1.04, { duration: 900, easing: Easing.out(Easing.quad) }, () => {
+      introPulse.value = withTiming(1, { duration: 900, easing: Easing.in(Easing.quad) });
+    });
+    introDrift.value = withTiming(1, { duration: 1200, easing: Easing.out(Easing.cubic) });
+  }, [total]);
+
+  const introHeroStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: introPulse.value }],
+  }));
+
+  const introOrbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: introDrift.value * 12 }, { translateY: introDrift.value * -8 }],
+    opacity: 0.58 + introDrift.value * 0.18,
+  }));
+
   const comboMultiplier = combo >= 5 ? 3 : combo >= 3 ? 2 : 1;
 
   return (
     <Screen>
       <View style={[styles.wrap, { backgroundColor: t.colors.bg }]}>
         {phase === 'intro' && (
-          <>
-            <LexText variant="h2">Learn Mode</LexText>
-            <LexText variant="muted" style={{ marginTop: 6 }}>
-              You're about to learn {total} new words.
-            </LexText>
-            <GlowCard style={{ marginTop: 20 }}>
-              <LexText variant="title" style={{ fontSize: 15 }}>
-                How it works
+          <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
+            contentContainerStyle={styles.introScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInDown.duration(440)}>
+              <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                Today's learning run
               </LexText>
-              <View style={{ gap: 10, marginTop: 12 }}>
-                <HintRow emoji="👉" text="Swipe RIGHT — Got it! (+10 XP)" color={t.colors.accentTeal} />
-                <HintRow emoji="👈" text="Swipe LEFT — Still learning (+3 XP)" color={t.colors.accentPink} />
-                <HintRow emoji="🔥" text="3+ in a row = Combo! (2× or 3× XP)" color={t.colors.accentAmber} />
-                <HintRow emoji="🧠" text="Mini quiz every 5 cards" color={t.colors.accentPurple} />
+              <LexText variant="h2" style={{ marginTop: 6 }}>
+                Build recall in {estimatedMinutes} minutes
+              </LexText>
+              <LexText variant="muted" style={{ marginTop: 6 }}>
+                Swipe through a compact deck, earn combo XP, then prove it with quick checks.
+              </LexText>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(70).duration(480).springify().damping(17)} style={[styles.learnHeroWrap, introHeroStyle]}>
+              <LinearGradient
+                colors={['rgba(123,111,255,0.34)', 'rgba(0,229,184,0.16)', 'rgba(255,179,71,0.10)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Animated.View style={[styles.learnHeroOrb, { backgroundColor: `${t.colors.accentTeal}30` }, introOrbStyle]} />
+              <View style={styles.learnHeroTop}>
+                <View>
+                  <LexText variant="label" style={{ color: 'rgba(255,255,255,0.68)' }}>
+                    Session deck
+                  </LexText>
+                  <LexText variant="h2" style={{ color: 'white', marginTop: 4, fontSize: 36 }}>
+                    {loading ? '...' : total}
+                  </LexText>
+                  <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.68)' }}>
+                    words ready
+                  </LexText>
+                </View>
+                <View style={styles.learnHeroBadge}>
+                  <LexText variant="title" style={{ color: 'white', fontSize: 28 }}>
+                    Go
+                  </LexText>
+                </View>
               </View>
+              <View style={styles.learnHeroStats}>
+                <HeroMetric label="Quizzes" value={String(quizCount)} color={t.colors.accentPurple} />
+                <HeroMetric label="Combo XP" value="3x" color={t.colors.accentAmber} />
+                <HeroMetric label="Goal" value={`${dailyGoalWords}`} color={t.colors.accentTeal} />
+              </View>
+              <Button
+                title={loading ? 'Loading...' : `Start ${total} words`}
+                onPress={() => setPhase('cards')}
+                disabled={loading || !total}
+                style={{ marginTop: 16 }}
+              />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(130).duration(440)}>
+              <GlowCard style={{ marginTop: 14 }}>
+                <LexText variant="title" style={{ fontSize: 15 }}>
+                  Swipe rules
+                </LexText>
+                <View style={{ gap: 10, marginTop: 12 }}>
+                  <HintRow emoji="R" text="Swipe RIGHT - Got it (+10 XP)" color={t.colors.accentTeal} />
+                  <HintRow emoji="L" text="Swipe LEFT - Still learning (+3 XP)" color={t.colors.accentPink} />
+                  <HintRow emoji="🔥" text="3+ in a row = Combo (2x or 3x XP)" color={t.colors.accentAmber} />
+                  <HintRow emoji="?" text="Mini quiz every 5 cards" color={t.colors.accentPurple} />
+                </View>
               {!!error && (
                 <LexText variant="muted" style={{ marginTop: 12, color: t.colors.accentPink }}>
                   Can't load words. Check Supabase config.
                 </LexText>
               )}
-              <View style={{ marginTop: 16 }}>
-                <Button
-                  title={loading ? 'Loading…' : `Start ${total} words →`}
-                  onPress={() => setPhase('cards')}
-                  disabled={loading || !total}
-                />
-              </View>
-            </GlowCard>
-          </>
+              </GlowCard>
+            </Animated.View>
+          </ScrollView>
         )}
 
         {phase === 'cards' && (
@@ -261,8 +327,21 @@ function HintRow({ emoji, text, color }: { emoji: string; text: string; color: s
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <LexText style={{ fontSize: 18, width: 28 }}>{emoji}</LexText>
       <LexText variant="muted" style={{ flex: 1, fontSize: 14 }}>
-        <LexText variant="body" style={{ color, fontSize: 14 }}>{text.split(' —')[0]}</LexText>
-        {' —' + (text.split(' —')[1] ?? '')}
+        <LexText variant="body" style={{ color, fontSize: 14 }}>{text.split(' -')[0]}</LexText>
+        {' -' + (text.split(' -')[1] ?? '')}
+      </LexText>
+    </View>
+  );
+}
+
+function HeroMetric({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.heroMetric}>
+      <LexText variant="h3" style={{ color, fontSize: 18, textAlign: 'center' }}>
+        {value}
+      </LexText>
+      <LexText variant="label" style={{ fontSize: 9, marginTop: 2, textAlign: 'center', color: 'rgba(255,255,255,0.56)' }}>
+        {label}
       </LexText>
     </View>
   );
@@ -731,6 +810,61 @@ function StatBox({ value, label, color }: { value: string; label: string; color:
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 18, paddingBottom: TAB_BAR_BOTTOM },
+  introScroll: {
+    paddingBottom: TAB_BAR_BOTTOM,
+  },
+  learnHeroWrap: {
+    minHeight: 248,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    padding: 18,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  learnHeroOrb: {
+    position: 'absolute',
+    right: -48,
+    top: -46,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
+  learnHeroTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  learnHeroBadge: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  learnHeroStats: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 20,
+  },
+  heroMetric: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
   progressTrack: {
     height: 4,
     borderRadius: 999,

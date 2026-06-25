@@ -60,68 +60,93 @@ export function ReviewScreen() {
     <Screen>
       <View style={[styles.wrap, { backgroundColor: t.colors.bg }]}>
         {phase === 'intro' && (
-          <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }} showsVerticalScrollIndicator={false}>
-            <LexText variant="h2">Spaced Review</LexText>
-            <LexText variant="muted" style={{ marginTop: 6 }}>
-              Review due cards first, or run a quick refresher when your queue is clear.
-            </LexText>
+          <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
+            contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInDown.duration(420)}>
+              <LexText variant="label" style={{ color: t.colors.accentPink }}>
+                Memory engine
+              </LexText>
+              <LexText variant="h2" style={{ marginTop: 6 }}>
+                Protect today's recall
+              </LexText>
+              <LexText variant="muted" style={{ marginTop: 6 }}>
+                Review due cards first, or run a quick refresher when your queue is clear.
+              </LexText>
+            </Animated.View>
 
-            <GlowCard style={{ marginTop: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <View style={[styles.reviewGlyph, { borderColor: t.colors.border, backgroundColor: 'rgba(0,229,184,0.10)' }]}>
-                  <LexText variant="h3" style={{ color: t.colors.accentTeal }}>
-                    {isPracticeMode ? 'P' : 'R'}
-                  </LexText>
+            <Animated.View entering={FadeInDown.delay(70).duration(460).springify().damping(17)}>
+              <GlowCard style={{ marginTop: 18 }} colors={['rgba(255,107,157,0.38)', 'rgba(123,111,255,0.24)']}>
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={[styles.reviewGlyph, { borderColor: t.colors.border, backgroundColor: 'rgba(0,229,184,0.10)' }]}>
+                    <LexText variant="h3" style={{ color: t.colors.accentTeal }}>
+                      {isPracticeMode ? 'P' : 'R'}
+                    </LexText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <LexText variant="h3">
+                      {total > 0 ? (isPracticeMode ? `${total} refresher cards` : `${total} cards due`) : 'No study cards yet'}
+                    </LexText>
+                    <LexText variant="muted" style={{ marginTop: 4, fontSize: 13 }}>
+                      {total > 0
+                        ? isPracticeMode
+                          ? 'Your due queue is clear. Practice recent words to keep recall warm.'
+                          : 'Rate each card honestly. Lexora schedules your next review.'
+                        : 'Learn or add words first, then review becomes your memory engine.'}
+                    </LexText>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <LexText variant="h3">
-                    {total > 0 ? (isPracticeMode ? `${total} refresher cards` : `${total} cards due`) : 'No study cards yet'}
-                  </LexText>
-                  <LexText variant="muted" style={{ marginTop: 4, fontSize: 13 }}>
-                    {total > 0
-                      ? isPracticeMode
-                        ? 'Your due queue is clear. Practice recent words to keep recall warm.'
-                        : 'Rate each card honestly. Lexora schedules your next review.'
-                      : 'Learn or add words first, then review becomes your memory engine.'}
-                  </LexText>
-                </View>
-              </View>
 
-              {total > 0 && (
-                <>
-                  <View style={[styles.ratingGuide, { borderColor: t.colors.border }]}>
-                    {[
-                      { mark: 'A', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
-                      { mark: 'H', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
-                      { mark: 'G', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
-                      { mark: 'E', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
-                    ].map((r) => (
-                      <View key={r.label} style={styles.ratingRow}>
-                        <View style={[styles.ratingMark, { backgroundColor: `${r.color}22` }]}>
-                          <LexText variant="label" style={{ color: r.color, fontSize: 10 }}>{r.mark}</LexText>
+                <View style={styles.reviewStatsRow}>
+                  <ReviewStat value={loading ? '...' : String(total)} label={isPracticeMode ? 'refresher' : 'due cards'} color={t.colors.accentPink} />
+                  <ReviewStat value={isPracticeMode ? 'Warm' : dueIds.length ? 'Due' : 'Clear'} label="queue" color={t.colors.accentTeal} />
+                  <ReviewStat value="SRS" label="schedule" color={t.colors.accentPurple} />
+                </View>
+
+                {total > 0 && (
+                  <>
+                    <View style={[styles.ratingGuide, { borderColor: t.colors.border }]}>
+                      {[
+                        { mark: 'A', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
+                        { mark: 'H', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
+                        { mark: 'G', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
+                        { mark: 'E', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
+                      ].map((r) => (
+                        <View key={r.label} style={styles.ratingRow}>
+                          <View style={[styles.ratingMark, { backgroundColor: `${r.color}22` }]}>
+                            <LexText variant="label" style={{ color: r.color, fontSize: 10 }}>{r.mark}</LexText>
+                          </View>
+                          <LexText variant="title" style={{ color: r.color, width: 52, fontSize: 14 }}>
+                            {r.label}
+                          </LexText>
+                          <LexText variant="muted" style={{ flex: 1, fontSize: 13 }}>{r.desc}</LexText>
                         </View>
-                        <LexText variant="title" style={{ color: r.color, width: 52, fontSize: 14 }}>
-                          {r.label}
-                        </LexText>
-                        <LexText variant="muted" style={{ flex: 1, fontSize: 13 }}>{r.desc}</LexText>
-                      </View>
-                    ))}
-                  </View>
+                      ))}
+                    </View>
+                    <View style={{ marginTop: 16 }}>
+                      <Button
+                        title={loading ? 'Loading...' : isPracticeMode ? 'Start refresher' : 'Start review'}
+                        onPress={() => setPhase('review')}
+                        disabled={loading || !total}
+                      />
+                    </View>
+                  </>
+                )}
+                {!total ? (
                   <View style={{ marginTop: 16 }}>
-                    <Button
-                      title={loading ? 'Loading...' : isPracticeMode ? 'Start refresher' : 'Start review'}
-                      onPress={() => setPhase('review')}
-                      disabled={loading || !total}
-                    />
+                    <Button title="Learn words first" onPress={() => router.push('/(tabs)/learn')} />
                   </View>
-                </>
-              )}
-              {!total ? (
-                <View style={{ marginTop: 16 }}>
-                  <Button title="Learn words first" onPress={() => router.push('/(tabs)/learn')} />
-                </View>
-              ) : null}
-            </GlowCard>
+                ) : null}
+              </GlowCard>
+            </Animated.View>
           </ScrollView>
         )}
 
@@ -328,6 +353,19 @@ function ReviewCard({
   );
 }
 
+function ReviewStat({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.reviewStat}>
+      <LexText variant="h3" style={{ color, fontSize: 18, textAlign: 'center' }}>
+        {value}
+      </LexText>
+      <LexText variant="label" style={{ fontSize: 9, marginTop: 2, textAlign: 'center' }}>
+        {label}
+      </LexText>
+    </View>
+  );
+}
+
 function RatingButton({
   emoji,
   label,
@@ -518,6 +556,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reviewStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  reviewStat: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
   },
   cardFace: {
     padding: 22,
