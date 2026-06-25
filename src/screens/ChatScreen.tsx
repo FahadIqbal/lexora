@@ -192,9 +192,10 @@ export function ChatScreen() {
               Coach paths
             </LexText>
             <View style={styles.promptGrid}>
-              {coachPrompts.map((item) => (
-                <Pressable
+              {coachPrompts.map((item, index) => (
+                <AnimatedPressable
                   key={item.label}
+                  entering={FadeInDown.delay(80 + index * 45).duration(360).springify().damping(17)}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.label}: ${item.title}`}
                   onPress={() => {
@@ -219,7 +220,7 @@ export function ChatScreen() {
                   <LexText variant="title" style={{ marginTop: 4, fontSize: 13 }}>
                     {item.title}
                   </LexText>
-                </Pressable>
+                </AnimatedPressable>
               ))}
             </View>
             <View style={styles.coachActions}>
@@ -251,7 +252,11 @@ export function ChatScreen() {
                 const mentioned = m.role === 'assistant' ? extractMentionedWords(content) : [];
 
                 return (
-                  <View key={idx} style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                  <Animated.View
+                    key={idx}
+                    entering={FadeInDown.delay(Math.min(idx, 4) * 25).duration(260)}
+                    style={{ alignItems: isUser ? 'flex-end' : 'flex-start' }}
+                  >
                     <View
                       accessibilityLabel={`${isUser ? 'You' : 'Lexora tutor'} message`}
                       style={[
@@ -315,7 +320,7 @@ export function ChatScreen() {
                         </>
                       ) : null}
                     </View>
-                  </View>
+                  </Animated.View>
                 );
               })}
 
@@ -336,9 +341,10 @@ export function ChatScreen() {
 
         <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 8 }}>
-            {chips.map((c) => (
-              <Pressable
+            {chips.map((c, index) => (
+              <AnimatedPressable
                 key={c}
+                entering={FadeInDown.delay(120 + index * 30).duration(300)}
                 accessibilityRole="button"
                 onPress={() => {
                   hapticSelection();
@@ -349,7 +355,7 @@ export function ChatScreen() {
                 <LexText variant="body" style={{ fontSize: 12 }}>
                   {c}
                 </LexText>
-              </Pressable>
+              </AnimatedPressable>
             ))}
           </ScrollView>
         </View>
@@ -373,6 +379,8 @@ export function ChatScreen() {
     </Screen>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function CoachAction({
   icon,
