@@ -93,7 +93,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -103,6 +103,11 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+          <Stack.Screen name="child-profiles" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="lessons/[id]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="practice/[mode]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="rewards" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="parent" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.82, 1], sheetGrabberVisible: true }} />
           <Stack.Screen name="dictionary" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="dictionary/[id]" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="games/[slug]" options={{ animation: 'ios_from_right' }} />

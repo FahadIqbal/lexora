@@ -1,32 +1,32 @@
 import React from 'react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useTheme } from '../../src/theme/ThemeProvider';
 import { useAppStore } from '../../src/store/useAppStore';
 import { useShallow } from 'zustand/react/shallow';
 import { hapticSelection } from '../../src/utils/haptics';
+import { kidTheme } from '../../src/theme/kidTheme';
 
 export default function TabsLayout() {
-  const t = useTheme();
   const dueCount = useAppStore(useShallow((s) => s.getDueWordIds())).length;
   const reviewBadge = dueCount > 99 ? '99+' : dueCount ? String(dueCount) : undefined;
+  const c = kidTheme.colors;
 
   return (
     <NativeTabs
       minimizeBehavior="onScrollDown"
-      blurEffect="systemMaterialDark"
-      tintColor={t.colors.accentTeal}
+      blurEffect="systemMaterialLight"
+      tintColor={c.purple}
       iconColor={{
-        default: 'rgba(242,240,255,0.54)',
-        selected: t.colors.accentTeal,
+        default: c.muted,
+        selected: c.purple,
       }}
       labelStyle={{
-        fontFamily: t.font.body.medium,
+        fontFamily: 'DMSans_700Bold',
         fontSize: 11,
       }}
-      badgeBackgroundColor={t.colors.accentPink}
+      badgeBackgroundColor={c.coral}
       badgeTextColor="white"
-      backgroundColor="rgba(8,8,22,0.90)"
-      shadowColor="rgba(0,0,0,0.24)"
+      backgroundColor="rgba(255,255,255,0.94)"
+      shadowColor="rgba(71,57,146,0.14)"
       disableTransparentOnScrollEdge
       sidebarAdaptable
       screenListeners={{

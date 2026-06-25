@@ -1,6 +1,6 @@
 import React from 'react';
 import { Redirect } from 'expo-router';
-import { OnboardingFlow } from '../../src/screens/onboarding/OnboardingFlow';
+import { KidsOnboardingScreen } from '../../src/screens/kids/KidsScreens';
 import { useAppStore } from '../../src/store/useAppStore';
 
 export default function OnboardingRoute() {
@@ -9,5 +9,5 @@ export default function OnboardingRoute() {
 
   if (!hydrated) return null;
   if (onboardingCompleted) return <Redirect href="/(tabs)/home" />;
-  return <OnboardingFlow />;
+  return <KidsOnboardingScreen />;
 }
