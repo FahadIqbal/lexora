@@ -8,6 +8,7 @@ import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { IconSymbol } from '../components/IconSymbol';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { TAB_BAR_BOTTOM } from '../theme';
@@ -55,17 +56,15 @@ export function SettingsScreen() {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <LexText variant="h2">Settings</LexText>
-            <LexText variant="muted" style={{ marginTop: 6 }}>
-              Tune Lexora around your pace, reminders, and learning energy.
-            </LexText>
-          </View>
-          <View style={[styles.headerGlyph, { borderColor: t.colors.border, backgroundColor: t.colors.surfaceGlass }]}>
-            <IconSymbol name="slider.horizontal.3" fallback="S" color={t.colors.accentTeal} size={20} />
-          </View>
-        </View>
+        <AppHeader
+          eyebrow="Control center"
+          title="Settings"
+          subtitle="Tune Lexora around your pace, reminders, and learning energy."
+          icon="slider.horizontal.3"
+          fallback="S"
+          accent={t.colors.accentTeal}
+          metric={isPremium ? 'Pro' : 'Free'}
+        />
 
         <View style={styles.hero}>
           <LinearGradient

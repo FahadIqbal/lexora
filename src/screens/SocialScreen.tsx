@@ -5,6 +5,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { IconSymbol } from '../components/IconSymbol';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { useAppStore } from '../store/useAppStore';
@@ -51,17 +52,15 @@ export function SocialScreen() {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[styles.wrap, { paddingBottom: TAB_BAR_BOTTOM }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <LexText variant="h2">League</LexText>
-            <LexText variant="muted" style={{ marginTop: 6 }}>
-              Compete weekly, challenge friends, and protect your streak.
-            </LexText>
-          </View>
-          <View style={[styles.headerGlyph, { borderColor: t.colors.border, backgroundColor: t.colors.surfaceGlass }]}>
-            <IconSymbol name="person.2.fill" fallback="L" color={t.colors.accentPurple} size={20} />
-          </View>
-        </View>
+        <AppHeader
+          eyebrow="Community"
+          title="League"
+          subtitle="Compete weekly, challenge friends, and protect your streak."
+          icon="person.2.fill"
+          fallback="L"
+          accent={t.colors.accentPurple}
+          metric={`#${you.rank}`}
+        />
 
         <LinearGradient
           colors={['rgba(123,111,255,0.34)', 'rgba(0,229,184,0.18)', 'rgba(255,179,71,0.08)']}

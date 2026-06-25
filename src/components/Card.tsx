@@ -11,7 +11,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: V
         {
           backgroundColor: t.colors.surfaceGlass,
           borderColor: t.colors.borderBright,
-          boxShadow: `0 18px 34px ${t.colors.shadow}`,
+          boxShadow: `0 18px 42px ${t.colors.shadow}`,
         },
         style,
       ]}
@@ -24,7 +24,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: V
 const styles = StyleSheet.create({
   base: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     borderCurve: 'continuous',
     padding: 16,
     overflow: 'hidden',

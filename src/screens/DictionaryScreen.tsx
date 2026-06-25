@@ -9,6 +9,7 @@ import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { Skeleton } from '../components/Skeleton';
 import { IconSymbol } from '../components/IconSymbol';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
@@ -78,10 +79,15 @@ export function DictionaryScreen() {
   return (
     <Screen>
       <View style={styles.wrap}>
-        <LexText variant="h2">Dictionary</LexText>
-        <LexText variant="muted" style={{ marginTop: 6 }}>
-          Search, filter, and turn discoveries into practice.
-        </LexText>
+        <AppHeader
+          eyebrow="Explore"
+          title="Dictionary"
+          subtitle="Search, filter, and turn discoveries into practice."
+          icon="text.book.closed.fill"
+          fallback="D"
+          accent={t.colors.accentBlue}
+          metric={proficiency ?? 'All'}
+        />
 
         {!hasSupabase() ? (
           <Card style={{ marginTop: 14, backgroundColor: 'rgba(91,168,255,0.08)' }}>

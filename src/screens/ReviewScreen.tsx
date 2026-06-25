@@ -16,6 +16,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import type { Word } from '../domain/schema';
 import { useAppStore } from '../store/useAppStore';
@@ -66,15 +67,15 @@ export function ReviewScreen() {
             showsVerticalScrollIndicator={false}
           >
             <Animated.View entering={FadeInDown.duration(420)}>
-              <LexText variant="label" style={{ color: t.colors.accentPink }}>
-                Memory engine
-              </LexText>
-              <LexText variant="h2" style={{ marginTop: 6 }}>
-                Protect today's recall
-              </LexText>
-              <LexText variant="muted" style={{ marginTop: 6 }}>
-                Review due cards first, or run a quick refresher when your queue is clear.
-              </LexText>
+              <AppHeader
+                eyebrow="Memory engine"
+                title="Protect today's recall"
+                subtitle="Clear due cards first, or run a quick refresher when your queue is clear."
+                icon="arrow.clockwise"
+                fallback="R"
+                accent={t.colors.accentPink}
+                metric={String(total)}
+              />
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(70).duration(460).springify().damping(17)}>

@@ -14,6 +14,7 @@ import Animated, {
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { gameList } from './games/gamesData';
 import { TAB_BAR_BOTTOM } from '../theme';
@@ -94,10 +95,15 @@ export function GamesScreen() {
         contentContainerStyle={[styles.wrap, { paddingBottom: TAB_BAR_BOTTOM }]}
         showsVerticalScrollIndicator={false}
       >
-        <LexText variant="h2">Word Games</LexText>
-        <LexText variant="muted" style={{ marginTop: 6 }}>
-          Quick drills tuned for today’s memory curve.
-        </LexText>
+        <AppHeader
+          eyebrow="Arcade"
+          title="Word Games"
+          subtitle="Fast drills tuned for today’s memory curve."
+          icon="gamecontroller.fill"
+          fallback="G"
+          accent={t.colors.accentAmber}
+          metric={`${xpToday} XP`}
+        />
 
         {/* ── Arcade Plan ───────────────────────────────────── */}
         <Animated.View entering={FadeInDown.duration(420)} style={{ marginTop: 16 }}>

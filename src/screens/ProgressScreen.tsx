@@ -8,6 +8,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { addDays } from 'date-fns';
@@ -143,10 +144,15 @@ export function ProgressScreen() {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <LexText variant="h2">Progress</LexText>
-        <LexText variant="muted" style={{ marginTop: 6 }}>
-          Your growth, momentum, and next best move.
-        </LexText>
+        <AppHeader
+          eyebrow="Growth"
+          title="Progress"
+          subtitle="Your momentum, mastery, and next best move."
+          icon="chart.bar.fill"
+          fallback="P"
+          accent={t.colors.accentTeal}
+          metric={`L${level}`}
+        />
 
         <Animated.View entering={FadeInDown.duration(420)} style={styles.insightCard}>
           <LinearGradient

@@ -19,12 +19,24 @@ export function Screen({
     <Container style={[styles.base, { backgroundColor: t.colors.bg }, style]}>
       <LinearGradient
         pointerEvents="none"
-        colors={[t.colors.bgElevated, t.colors.bg, 'rgba(13,18,42,0.98)']}
-        locations={[0, 0.52, 1]}
+        colors={[t.colors.bgElevated, t.colors.bg, 'rgba(8,20,28,0.98)']}
+        locations={[0, 0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View pointerEvents="none" style={[styles.topWash, { backgroundColor: 'rgba(123,111,255,0.045)' }]} />
-      <View pointerEvents="none" style={[styles.bottomWash, { backgroundColor: 'rgba(0,229,184,0.035)' }]} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0,216,167,0.09)', 'rgba(138,124,255,0.04)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.topWash}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['transparent', 'rgba(255,200,87,0.035)', 'rgba(79,179,255,0.05)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.bottomWash}
+      />
       {children}
     </Container>
   );
@@ -37,13 +49,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 220,
+    height: 260,
   },
   bottomWash: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 260,
+    height: 300,
   },
 });
