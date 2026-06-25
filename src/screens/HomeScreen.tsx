@@ -871,6 +871,32 @@ function DailyQuestItem({
   const t = useTheme();
   const clamped = Math.max(0, Math.min(1, progress));
   const done = clamped >= 1;
+  const fill = useSharedValue(0);
+  const iconScale = useSharedValue(1);
+
+  useEffect(() => {
+    fill.value = withTiming(clamped, { duration: 680, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  useEffect(() => {
+    iconScale.value = done
+      ? withRepeat(
+          withSequence(
+            withTiming(1.08, { duration: 620, easing: Easing.out(Easing.quad) }),
+            withTiming(1, { duration: 620, easing: Easing.in(Easing.quad) })
+          ),
+          -1
+        )
+      : withTiming(1, { duration: 220 });
+  }, [done, iconScale]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
 
   return (
     <Pressable
@@ -889,9 +915,9 @@ function DailyQuestItem({
         },
       ]}
     >
-      <View style={[styles.questIcon, { borderColor: `${accent}44`, backgroundColor: `${accent}16` }]}>
+      <Animated.View style={[styles.questIcon, { borderColor: `${accent}44`, backgroundColor: `${accent}16` }, iconStyle]}>
         <IconSymbol name={done ? 'checkmark.circle.fill' : symbol} fallback={done ? '✓' : fallback} color={accent} size={17} />
-      </View>
+      </Animated.View>
       <View style={{ flex: 1 }}>
         <View style={styles.questTextRow}>
           <LexText variant="title" style={{ fontSize: 13 }} numberOfLines={1}>
@@ -905,7 +931,7 @@ function DailyQuestItem({
           {detail}
         </LexText>
         <View style={[styles.questTrack, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
-          <View style={[styles.questFill, { width: `${Math.round(clamped * 100)}%`, backgroundColor: accent }]} />
+          <Animated.View style={[styles.questFill, { backgroundColor: accent }, fillStyle]} />
         </View>
       </View>
     </Pressable>

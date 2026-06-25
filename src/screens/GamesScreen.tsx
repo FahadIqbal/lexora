@@ -1,8 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
@@ -49,6 +57,31 @@ export function GamesScreen() {
     [dueCount, featured, recommended]
   );
 
+  const pulse = useSharedValue(1);
+  const drift = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 900, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 900, easing: Easing.in(Easing.quad) })
+      ),
+      -1
+    );
+    drift.value = withRepeat(withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [drift, pulse]);
+
+  const playPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
+
+  const orbOneStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drift.value * 16 }, { translateY: drift.value * -10 }, { scale: 1 + drift.value * 0.06 }],
+  }));
+
+  const orbTwoStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drift.value * -12 }, { translateY: drift.value * 12 }, { scale: 1.05 - drift.value * 0.05 }],
+  }));
+
   const goToGame = (slug: string) => {
     hapticImpact(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/games/${slug}`);
@@ -75,6 +108,8 @@ export function GamesScreen() {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
+            <Animated.View style={[styles.ambientOrb, styles.ambientOrbOne, { backgroundColor: `${recommended.colors[0]}33` }, orbOneStyle]} />
+            <Animated.View style={[styles.ambientOrb, styles.ambientOrbTwo, { backgroundColor: `${recommended.colors[1]}28` }, orbTwoStyle]} />
             <View style={styles.planHeader}>
               <View style={{ flex: 1 }}>
                 <LexText variant="label" style={{ color: t.colors.accentTeal }}>
@@ -102,33 +137,43 @@ export function GamesScreen() {
               <PlanMetric value={String(dueCount)} label="due" color={dueCount > 0 ? t.colors.accentPink : t.colors.muted} />
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Play recommended game, ${recommended.title}`}
-              onPress={() => goToGame(recommended.slug)}
-              style={({ pressed }) => [
-                styles.primaryPlay,
-                {
-                  backgroundColor: 'rgba(255,255,255,0.12)',
-                  borderColor: 'rgba(255,255,255,0.18)',
-                  opacity: pressed ? 0.86 : 1,
-                },
-              ]}
-            >
-              <LexText variant="title" style={{ color: 'white' }}>
-                Play recommended
-              </LexText>
-              <LexText variant="title" style={{ color: recommended.colors[0], fontSize: 18 }}>
-                →
-              </LexText>
-            </Pressable>
+            <Animated.View style={playPulseStyle}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Play recommended game, ${recommended.title}`}
+                onPress={() => goToGame(recommended.slug)}
+                style={({ pressed }) => [
+                  styles.primaryPlay,
+                  {
+                    backgroundColor: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.18)',
+                    opacity: pressed ? 0.86 : 1,
+                  },
+                ]}
+              >
+                <View>
+                  <LexText variant="title" style={{ color: 'white' }}>
+                    Play recommended
+                  </LexText>
+                  <LexText variant="label" style={{ color: 'rgba(255,255,255,0.58)', fontSize: 9, marginTop: 2 }}>
+                    {recommended.xpReward} XP / under 2 min
+                  </LexText>
+                </View>
+                <View style={[styles.playArrow, { backgroundColor: `${recommended.colors[0]}26`, borderColor: `${recommended.colors[0]}55` }]}>
+                  <LexText variant="title" style={{ color: recommended.colors[0], fontSize: 18 }}>
+                    →
+                  </LexText>
+                </View>
+              </Pressable>
+            </Animated.View>
           </View>
         </Animated.View>
 
         <View style={styles.playlistRow}>
           {arcadePlan.map((item, index) => (
-            <Pressable
+            <AnimatedPressable
               key={`${item.label}-${item.game.slug}`}
+              entering={FadeInDown.delay(70 + index * 45).duration(360).springify().damping(17)}
               accessibilityRole="button"
               accessibilityLabel={`${item.label}: ${item.game.title}. ${item.note}.`}
               onPress={() => goToGame(item.game.slug)}
@@ -151,7 +196,7 @@ export function GamesScreen() {
               <LexText variant="muted" style={{ fontSize: 11, lineHeight: 14, marginTop: 3 }} numberOfLines={2}>
                 {item.note}
               </LexText>
-            </Pressable>
+            </AnimatedPressable>
           ))}
         </View>
 
@@ -201,9 +246,10 @@ export function GamesScreen() {
         </LexText>
 
         <View style={[styles.grid, { marginTop: 10 }]}>
-          {rest.map((g) => (
-            <Pressable
+          {rest.map((g, index) => (
+            <AnimatedPressable
               key={g.slug}
+              entering={FadeInDown.delay(110 + index * 35).duration(360).springify().damping(18)}
               accessibilityRole="button"
               accessibilityLabel={`${g.title}. ${g.subtitle}. Difficulty ${g.difficulty} of 5. Rewards ${g.xpReward} XP.`}
               onPress={() => goToGame(g.slug)}
@@ -234,11 +280,13 @@ export function GamesScreen() {
               </LexText>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                 <DifficultyPips level={g.difficulty} color={g.colors[0]} />
-                <LexText variant="label" style={{ fontSize: 10, color: g.colors[0] }}>
-                  +{g.xpReward} XP
-                </LexText>
+                <View style={[styles.rewardChip, { backgroundColor: `${g.colors[0]}18`, borderColor: `${g.colors[0]}35` }]}>
+                  <LexText variant="label" style={{ fontSize: 9, color: g.colors[0] }}>
+                    +{g.xpReward} XP
+                  </LexText>
+                </View>
               </View>
-            </Pressable>
+            </AnimatedPressable>
           ))}
         </View>
 
@@ -256,6 +304,8 @@ export function GamesScreen() {
     </Screen>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function DifficultyPips({ level, color }: { level: number; color?: string }) {
   return (
@@ -301,6 +351,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 18,
   },
+  ambientOrb: {
+    position: 'absolute',
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    opacity: 0.78,
+  },
+  ambientOrbOne: {
+    right: -42,
+    top: -42,
+  },
+  ambientOrbTwo: {
+    left: -58,
+    bottom: -60,
+  },
   planHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -341,6 +406,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  playArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playlistRow: {
     flexDirection: 'row',
@@ -399,6 +473,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     overflow: 'hidden',
+  },
+  rewardChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
   gameIconBg: {
     width: 48,
