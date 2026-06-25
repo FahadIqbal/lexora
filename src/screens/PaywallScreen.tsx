@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
@@ -87,7 +88,7 @@ export function PaywallScreen() {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <Animated.View entering={FadeInDown.duration(460).springify().damping(17)} style={styles.hero}>
           <LinearGradient
             colors={['rgba(123,111,255,0.26)', 'rgba(0,229,184,0.12)', 'rgba(255,107,157,0.10)']}
             start={{ x: 0, y: 0 }}
@@ -120,40 +121,47 @@ export function PaywallScreen() {
             <Metric icon="bolt.fill" fallback="G" label="Games" value="6 modes" />
             <Metric icon="chart.bar.fill" fallback="I" label="Insight" value="Deep stats" />
           </View>
-        </View>
+        </Animated.View>
 
-        <Card style={{ marginTop: 14 }}>
-          <View style={styles.cardTitleRow}>
-            <View style={[styles.cardTitleGlyph, { backgroundColor: 'rgba(123,111,255,0.14)' }]}>
-              <IconSymbol name="checkmark.seal.fill" fallback="C" color={t.colors.accentPurple} size={16} />
-            </View>
-            <LexText variant="title">Included</LexText>
-          </View>
-          <View style={styles.perkList}>
-            {perks.map((perk) => (
-              <View key={perk.title} style={[styles.perkRow, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}>
-                <View style={[styles.checkDot, { backgroundColor: 'rgba(0,229,184,0.14)' }]}>
-                  <IconSymbol name={perk.icon} fallback={perk.fallback} color={t.colors.accentTeal} size={15} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <LexText variant="title" style={{ fontSize: 15 }}>
-                    {perk.title}
-                  </LexText>
-                  <LexText variant="muted" style={{ marginTop: 3, fontSize: 12, lineHeight: 17 }}>
-                    {perk.detail}
-                  </LexText>
-                </View>
+        <Animated.View entering={FadeInDown.delay(80).duration(420)}>
+          <Card style={{ marginTop: 14 }}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardTitleGlyph, { backgroundColor: 'rgba(123,111,255,0.14)' }]}>
+                <IconSymbol name="checkmark.seal.fill" fallback="C" color={t.colors.accentPurple} size={16} />
               </View>
-            ))}
-          </View>
-        </Card>
+              <LexText variant="title">Included</LexText>
+            </View>
+            <View style={styles.perkList}>
+              {perks.map((perk, index) => (
+                <Animated.View
+                  key={perk.title}
+                  entering={FadeInDown.delay(120 + index * 35).duration(360)}
+                  style={[styles.perkRow, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}
+                >
+                  <View style={[styles.checkDot, { backgroundColor: 'rgba(0,229,184,0.14)' }]}>
+                    <IconSymbol name={perk.icon} fallback={perk.fallback} color={t.colors.accentTeal} size={15} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <LexText variant="title" style={{ fontSize: 15 }}>
+                      {perk.title}
+                    </LexText>
+                    <LexText variant="muted" style={{ marginTop: 3, fontSize: 12, lineHeight: 17 }}>
+                      {perk.detail}
+                    </LexText>
+                  </View>
+                </Animated.View>
+              ))}
+            </View>
+          </Card>
+        </Animated.View>
 
         <View style={styles.planGrid}>
-          {plans.map((plan) => {
+          {plans.map((plan, index) => {
             const selected = selectedPlan === plan.key;
             return (
-              <Pressable
+              <AnimatedPressable
                 key={plan.key}
+                entering={FadeInDown.delay(130 + index * 55).duration(420).springify().damping(17)}
                 onPress={() => {
                   setSelectedPlan(plan.key);
                   hapticSelection();
@@ -199,36 +207,38 @@ export function PaywallScreen() {
                 <LexText variant="muted" style={{ marginTop: 8, fontSize: 13, lineHeight: 18 }}>
                   {plan.detail}
                 </LexText>
-              </Pressable>
+              </AnimatedPressable>
             );
           })}
         </View>
 
-        <Card style={{ marginTop: 12, backgroundColor: isPremium ? 'rgba(0,229,184,0.08)' : t.colors.surface2 }}>
-          <View style={styles.summaryRow}>
-            <View style={[styles.summaryGlyph, { backgroundColor: isPremium ? 'rgba(0,229,184,0.14)' : 'rgba(255,179,71,0.14)' }]}>
-              <IconSymbol name={isPremium ? 'checkmark.seal.fill' : 'gift.fill'} fallback={isPremium ? 'Y' : 'G'} color={isPremium ? t.colors.accentTeal : t.colors.accentAmber} size={17} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <LexText variant="label" style={{ color: t.colors.muted }}>
-                Selected plan
+        <Animated.View entering={FadeInDown.delay(210).duration(420)}>
+          <Card style={{ marginTop: 12, backgroundColor: isPremium ? 'rgba(0,229,184,0.08)' : t.colors.surface2 }}>
+            <View style={styles.summaryRow}>
+              <View style={[styles.summaryGlyph, { backgroundColor: isPremium ? 'rgba(0,229,184,0.14)' : 'rgba(255,179,71,0.14)' }]}>
+                <IconSymbol name={isPremium ? 'checkmark.seal.fill' : 'gift.fill'} fallback={isPremium ? 'Y' : 'G'} color={isPremium ? t.colors.accentTeal : t.colors.accentAmber} size={17} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <LexText variant="label" style={{ color: t.colors.muted }}>
+                  Selected plan
+                </LexText>
+                <LexText variant="title" style={{ marginTop: 4 }}>
+                  {selectedPlan === 'yearly' ? 'Yearly preview trial' : 'Monthly preview'}
+                </LexText>
+              </View>
+              <LexText variant="title" style={{ color: t.colors.accentTeal }}>
+                {selectedPlan === 'yearly' ? '7 days' : 'Now'}
               </LexText>
-              <LexText variant="title" style={{ marginTop: 4 }}>
-                {selectedPlan === 'yearly' ? 'Yearly preview trial' : 'Monthly preview'}
-              </LexText>
             </View>
-            <LexText variant="title" style={{ color: t.colors.accentTeal }}>
-              {selectedPlan === 'yearly' ? '7 days' : 'Now'}
-            </LexText>
-          </View>
-          {status ? (
-            <LexText variant="muted" style={{ marginTop: 10, color: isPremium ? t.colors.accentTeal : t.colors.muted }}>
-              {status}
-            </LexText>
-          ) : null}
-        </Card>
+            {status ? (
+              <LexText variant="muted" style={{ marginTop: 10, color: isPremium ? t.colors.accentTeal : t.colors.muted }}>
+                {status}
+              </LexText>
+            ) : null}
+          </Card>
+        </Animated.View>
 
-        <View style={styles.actions}>
+        <Animated.View entering={FadeInDown.delay(260).duration(420)} style={styles.actions}>
           <Button
             title={isPremium ? 'Premium active' : selectedPlan === 'yearly' ? 'Start preview trial' : 'Activate preview'}
             onPress={activatePreview}
@@ -239,11 +249,13 @@ export function PaywallScreen() {
           <LexText variant="muted" style={{ textAlign: 'center', fontSize: 12 }}>
             Premium status is saved locally and synced from your profile when available.
           </LexText>
-        </View>
+        </Animated.View>
       </ScrollView>
     </Screen>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function Metric({ icon, fallback, label, value }: { icon: string; fallback: string; label: string; value: string }) {
   const t = useTheme();
