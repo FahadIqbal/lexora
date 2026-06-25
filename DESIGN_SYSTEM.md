@@ -52,6 +52,8 @@ Reusable kid UI lives in `src/components/kids/KidKit.tsx`.
 - `QuizOption`: multiple-choice option with correct/wrong states.
 - `BadgeTile`: rewards and locked badge states.
 
+Centralized kid visual assets live in `src/assets/kidAssets.ts`. Screens should pull character, route, category, and native icon references from that file instead of scattering visual constants through feature code.
+
 ## Animation Rules
 
 - Use entrance animations on cards and major sections.
@@ -66,7 +68,8 @@ Reusable kid UI lives in `src/components/kids/KidKit.tsx`.
 The current kid-focused routes include:
 
 - Splash: native Expo splash + first onboarding screen.
-- Onboarding/login: `/onboarding`.
+- Onboarding: `/onboarding`.
+- Login/signup: `/auth`.
 - Child profile selection: `/child-profiles`.
 - Home dashboard: `/(tabs)/home`.
 - Course/category selection and lesson list: `/(tabs)/learn`.

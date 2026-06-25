@@ -103,6 +103,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+          <Stack.Screen name="auth" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.86, 1], sheetGrabberVisible: true }} />
           <Stack.Screen name="child-profiles" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="lessons/[id]" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="practice/[mode]" options={{ animation: 'ios_from_right' }} />

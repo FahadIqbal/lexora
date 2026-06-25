@@ -33,6 +33,7 @@ import {
 } from '../../data/kidsMock';
 import { hapticSelection } from '../../utils/haptics';
 import { useAppStore } from '../../store/useAppStore';
+import { kidCharacters, kidRouteArt } from '../../assets/kidAssets';
 
 export function KidsHomeScreen() {
   const child = kidProfiles[0];
@@ -132,19 +133,19 @@ export function KidsOnboardingScreen() {
     {
       title: 'Let’s learn with lots of fun!',
       subtitle: 'English lessons with games, stories, songs, and stars.',
-      icon: '🚀',
+      icon: kidRouteArt.adventure,
       color: c.purple,
     },
     {
       title: 'Choose a learning buddy',
       subtitle: 'Kids tap, listen, speak, and read with a friendly guide.',
-      icon: '🦊',
+      icon: kidCharacters.buddy,
       color: c.coral,
     },
     {
       title: 'Parents stay in control',
       subtitle: 'Safe progress, no ads, and calm parent tools.',
-      icon: '🔐',
+      icon: kidRouteArt.parent,
       color: c.mint,
     },
   ];
@@ -178,9 +179,102 @@ export function KidsOnboardingScreen() {
             }}
           />
           <View style={{ height: 10 }} />
-          <KidButton title="Parent sign in" color={c.sky} onPress={() => router.push('/parent')} />
+          <KidButton title="Parent sign in" color={c.sky} onPress={() => router.push('/auth')} />
         </View>
       </View>
+    </KidScreen>
+  );
+}
+
+export function KidsAuthScreen() {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [name, setName] = useState('Fahad');
+  const [email, setEmail] = useState('parent@lexora.app');
+  const [password, setPassword] = useState('');
+  const isSignup = mode === 'signup';
+
+  return (
+    <KidScreen>
+      <KidHeader
+        eyebrow="Parent account"
+        title={isSignup ? 'Create a safe family space' : 'Welcome back, grown-up'}
+        subtitle="Short setup, child-safe profiles, and parent controls before kids start learning."
+        avatar={kidCharacters.guardian}
+      />
+
+      <KidCard color={c.purple} style={styles.authHero}>
+        <View style={{ flex: 1 }}>
+          <LexText variant="label" style={{ color: c.yellow }}>
+            No ads. No public chat. Parent-first controls.
+          </LexText>
+          <LexText variant="h2" style={{ color: 'white', marginTop: 8 }}>
+            Unlock Mika’s learning world
+          </LexText>
+          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 8 }}>
+            Save streaks, badges, offline lessons, and progress reports.
+          </LexText>
+        </View>
+        <CharacterBubble mood="star" text={kidRouteArt.rewards} />
+      </KidCard>
+
+      <View style={styles.authToggle}>
+        <KidPill label="Sign in" active={mode === 'signin'} onPress={() => setMode('signin')} />
+        <KidPill label="Create account" active={mode === 'signup'} color={c.mint} onPress={() => setMode('signup')} />
+      </View>
+
+      <KidCard>
+        <SectionMini title={isSignup ? 'Family details' : 'Parent sign in'} />
+        {isSignup ? (
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Parent name"
+            placeholderTextColor={c.muted}
+            accessibilityLabel="Parent name"
+            style={styles.parentInput}
+          />
+        ) : null}
+        <View style={{ height: 10 }} />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email address"
+          placeholderTextColor={c.muted}
+          accessibilityLabel="Email address"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={styles.parentInput}
+        />
+        <View style={{ height: 10 }} />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Password"
+          placeholderTextColor={c.muted}
+          accessibilityLabel="Password"
+          secureTextEntry
+          style={styles.parentInput}
+        />
+        <View style={{ marginTop: 16 }}>
+          <KidButton
+            title={isSignup ? 'Create child profiles' : 'Open parent dashboard'}
+            onPress={() => router.replace(isSignup ? '/child-profiles' : '/parent')}
+          />
+        </View>
+      </KidCard>
+
+      <KidCard animated={false} color={c.mintSoft}>
+        {['Kids never need to type passwords', 'Purchases and settings stay behind the parent gate', 'Offline lesson cache keeps practice available'].map((item) => (
+          <View key={item} style={styles.authHintRow}>
+            <LexText style={{ fontSize: 18 }}>✓</LexText>
+            <LexText variant="muted" style={{ color: c.ink, flex: 1 }}>
+              {item}
+            </LexText>
+          </View>
+        ))}
+      </KidCard>
+
+      <KidButton title="Continue with demo profiles" color={c.sky} onPress={() => router.replace('/child-profiles')} />
     </KidScreen>
   );
 }
@@ -765,6 +859,9 @@ const styles = StyleSheet.create({
   onboardingHero: { flex: 1, marginTop: 16, marginBottom: 18 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
   dot: { width: 12, height: 12, borderRadius: 6 },
+  authHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  authToggle: { flexDirection: 'row', gap: 10, marginTop: 18, marginBottom: 12 },
+  authHintRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   miniStat: { flex: 1, minHeight: 112, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
