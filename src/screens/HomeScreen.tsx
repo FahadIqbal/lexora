@@ -291,6 +291,55 @@ export function HomeScreen() {
     ],
     [dailyChallenge.slug, dailyChallenge.title, dailyGoal, dueCount, goalP, learnedToday, t.colors.accentAmber, t.colors.accentPink, t.colors.accentTeal]
   );
+  const dailyQuests = useMemo(
+    () => [
+      {
+        key: 'learn',
+        title: 'Learn words',
+        detail: `${learnedToday}/${dailyGoal} today`,
+        progress: dailyGoal ? learnedToday / dailyGoal : 0,
+        reward: '+40 XP',
+        accent: t.colors.accentTeal,
+        symbol: 'book.fill',
+        fallback: 'L',
+        route: '/(tabs)/learn' as const,
+      },
+      {
+        key: 'review',
+        title: dueCount > 0 ? 'Clear due reviews' : 'Keep memory warm',
+        detail: dueCount > 0 ? `${dueCount} due cards` : 'Queue protected',
+        progress: dueCount > 0 ? 0 : 1,
+        reward: dueCount > 0 ? '+30 XP' : 'Done',
+        accent: dueCount > 0 ? t.colors.accentPink : t.colors.accentTeal,
+        symbol: 'arrow.clockwise',
+        fallback: 'R',
+        route: '/(tabs)/review' as const,
+      },
+      {
+        key: 'challenge',
+        title: 'Play challenge',
+        detail: dailyChallenge.title,
+        progress: xpToday >= 80 ? 1 : Math.min(1, xpToday / 80),
+        reward: '2x XP',
+        accent: t.colors.accentAmber,
+        symbol: 'gamecontroller.fill',
+        fallback: 'G',
+        route: `/games/${dailyChallenge.slug}` as const,
+      },
+    ],
+    [
+      dailyChallenge.slug,
+      dailyChallenge.title,
+      dailyGoal,
+      dueCount,
+      learnedToday,
+      t.colors.accentAmber,
+      t.colors.accentPink,
+      t.colors.accentTeal,
+      xpToday,
+    ]
+  );
+  const completedQuestCount = dailyQuests.filter((quest) => quest.progress >= 1).length;
 
   return (
     <Screen>
@@ -359,6 +408,29 @@ export function HomeScreen() {
           <View style={styles.pathSteps}>
             {sessionPath.map(({ key, ...item }, index) => (
               <SessionPathItem key={key} index={index + 1} {...item} />
+            ))}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(65).duration(420)} style={[styles.questBoard, { borderColor: t.colors.border }]}>
+          <View style={styles.questBoardHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: t.colors.accentAmber }}>
+                Daily quests
+              </LexText>
+              <LexText variant="title" style={{ marginTop: 4 }}>
+                {completedQuestCount}/3 complete
+              </LexText>
+            </View>
+            <View style={[styles.questReward, { borderColor: t.colors.borderBright }]}>
+              <LexText variant="label" style={{ color: t.colors.accentAmber, fontSize: 10 }}>
+                Chest
+              </LexText>
+            </View>
+          </View>
+          <View style={styles.questList}>
+            {dailyQuests.map(({ key, ...quest }) => (
+              <DailyQuestItem key={key} {...quest} />
             ))}
           </View>
         </Animated.View>
@@ -777,6 +849,69 @@ function SessionPathItem({
   );
 }
 
+function DailyQuestItem({
+  title,
+  detail,
+  progress,
+  reward,
+  accent,
+  symbol,
+  fallback,
+  route,
+}: {
+  title: string;
+  detail: string;
+  progress: number;
+  reward: string;
+  accent: string;
+  symbol: string;
+  fallback: string;
+  route: '/(tabs)/learn' | '/(tabs)/review' | `/games/${string}`;
+}) {
+  const t = useTheme();
+  const clamped = Math.max(0, Math.min(1, progress));
+  const done = clamped >= 1;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${detail}. ${Math.round(clamped * 100)} percent complete. Reward ${reward}.`}
+      onPress={() => {
+        hapticSelection();
+        router.push(route);
+      }}
+      style={({ pressed }) => [
+        styles.questItem,
+        {
+          borderColor: done ? `${accent}55` : t.colors.border,
+          backgroundColor: done ? `${accent}12` : 'rgba(255,255,255,0.04)',
+          opacity: pressed ? 0.86 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.questIcon, { borderColor: `${accent}44`, backgroundColor: `${accent}16` }]}>
+        <IconSymbol name={done ? 'checkmark.circle.fill' : symbol} fallback={done ? '✓' : fallback} color={accent} size={17} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.questTextRow}>
+          <LexText variant="title" style={{ fontSize: 13 }} numberOfLines={1}>
+            {title}
+          </LexText>
+          <LexText variant="label" style={{ color: accent, fontSize: 9 }}>
+            {reward}
+          </LexText>
+        </View>
+        <LexText variant="muted" style={{ marginTop: 2, fontSize: 12 }} numberOfLines={1}>
+          {detail}
+        </LexText>
+        <View style={[styles.questTrack, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+          <View style={[styles.questFill, { width: `${Math.round(clamped * 100)}%`, backgroundColor: accent }]} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 function MissionRing({ progress, color }: { progress: number; color: string }) {
   const size = 50;
   const radius = 20;
@@ -948,6 +1083,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+  },
+  questBoard: {
+    borderWidth: 1,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    padding: 14,
+    marginTop: 12,
+  },
+  questBoardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  questReward: {
+    height: 30,
+    minWidth: 58,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,179,71,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  questList: {
+    gap: 8,
+    marginTop: 12,
+  },
+  questItem: {
+    minHeight: 66,
+    borderWidth: 1,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  questIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  questTrack: {
+    height: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  questFill: {
+    height: '100%',
+    borderRadius: 999,
   },
   missionCard: {
     minHeight: 170,
