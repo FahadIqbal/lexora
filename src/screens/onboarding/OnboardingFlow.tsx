@@ -58,12 +58,12 @@ export function OnboardingFlow() {
 
   const swipeHint =
     step === 1
-      ? 'Swipe left to skip'
+      ? 'Swipe to skip'
       : step === TOTAL - 1
-        ? 'Pick topics to finish'
+        ? 'Finish setup'
         : step === 0
-          ? 'Swipe left'
-          : 'Swipe left or right';
+          ? 'Swipe to continue'
+          : 'Swipe anytime';
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-18, 18])
@@ -144,9 +144,9 @@ export function OnboardingFlow() {
         <View style={styles.stepMeta}>
           <View>
             <LexText variant="label" style={{ color: t.colors.accentTeal }}>
-              Setup
+              Lexora setup
             </LexText>
-            <LexText variant="title" style={{ marginTop: 2 }}>
+            <LexText variant="title" style={{ marginTop: 2, color: t.colors.mutedStrong, fontSize: 13 }}>
               {STEP_LABELS[step]}
             </LexText>
           </View>
@@ -189,11 +189,11 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   top: {
     paddingHorizontal: 18,
-    paddingBottom: 10,
-    gap: 10,
+    paddingBottom: 8,
+    gap: 8,
   },
   stepMeta: {
-    minHeight: 42,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   swipePill: {
-    minHeight: 30,
-    maxWidth: 190,
+    minHeight: 28,
+    maxWidth: 176,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

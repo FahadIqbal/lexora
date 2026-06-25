@@ -66,15 +66,29 @@ export function WelcomeStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
           <LexText variant="label" style={{ color: t.colors.accentTeal }}>
             Lexora
           </LexText>
-          <LexText variant="h1" style={styles.headline}>
+          <LexText variant="h1" style={[styles.headline, { color: t.colors.text }]}>
             Play your way to sharper words.
           </LexText>
-          <LexText variant="muted" style={styles.subhead}>
+          <LexText variant="body" style={[styles.subhead, { color: t.colors.mutedStrong }]}>
             Learn sharper words through quick games, smart review, and a daily loop that feels easy to return to.
           </LexText>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(130).duration(540).springify().damping(16)} style={styles.hero}>
+        <Animated.View entering={FadeInDown.delay(110).duration(520)} style={styles.primaryActions}>
+          <Shimmer>
+            <Button title="Start my first quest" onPress={next} />
+          </Shimmer>
+          <Pressable accessibilityRole="button" onPress={onSignIn} hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}>
+            <LexText variant="muted" style={{ textAlign: 'center', color: t.colors.mutedStrong }}>
+              Already learning with Lexora?{' '}
+              <LexText variant="body" style={{ color: t.colors.accentTeal, fontFamily: t.font.body.medium }}>
+                Sign in
+              </LexText>
+            </LexText>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(160).duration(540).springify().damping(16)} style={styles.hero}>
           <LinearGradient
             colors={['rgba(123,111,255,0.28)', 'rgba(0,229,184,0.12)', 'rgba(255,179,71,0.08)']}
             start={{ x: 0, y: 0 }}
@@ -183,18 +197,8 @@ export function WelcomeStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(320).duration(520)} style={styles.actions}>
-          <Shimmer>
-            <Button title="Start my first quest" onPress={next} />
-          </Shimmer>
-          <LexText variant="muted" style={{ textAlign: 'center' }}>
-            Already learning with Lexora?{' '}
-            <LexText
-              variant="body"
-              style={{ color: t.colors.accentTeal, fontFamily: t.font.body.medium }}
-              onPress={onSignIn}
-            >
-              Sign in
-            </LexText>
+          <LexText variant="muted" style={{ textAlign: 'center', color: t.colors.mutedStrong }}>
+            Swipe left anytime, or use the button above when you are ready.
           </LexText>
         </Animated.View>
       </ScrollView>
@@ -207,7 +211,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 18,
     paddingBottom: 34,
-    gap: 18,
+    gap: 16,
   },
   topRow: {
     minHeight: 44,
@@ -232,12 +236,17 @@ const styles = StyleSheet.create({
   },
   headline: {
     marginTop: 8,
-    fontSize: 29,
-    lineHeight: 33,
+    fontSize: 36,
+    lineHeight: 40,
   },
   subhead: {
     marginTop: 10,
     maxWidth: 390,
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  primaryActions: {
+    gap: 12,
   },
   hero: {
     borderRadius: 26,
