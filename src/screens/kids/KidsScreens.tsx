@@ -25,10 +25,9 @@ import {
   kidBadges,
   kidCategories,
   kidCourses,
-  kidFriends,
-  kidLessons,
   kidProfiles,
-  kidQuizQuestions,
+  kidPracticeActivities,
+  type KidPracticeActivity,
 } from '../../data/kidContent';
 import { hapticSelection } from '../../utils/haptics';
 import { useAppStore } from '../../store/useAppStore';
@@ -45,6 +44,7 @@ import {
   getKidLeaderboard,
   getKidLessons,
   getKidMissions,
+  getKidPracticeActivities,
   getRecommendedLessons,
   getTotalStars,
 } from '../../services/kidLearningService';
@@ -116,7 +116,7 @@ export function KidsHomeScreen() {
         {kidCategories.map((cat) => (
           <Pressable key={cat.id} accessibilityRole="button" onPress={() => router.push('/(tabs)/learn')}>
             <KidCard animated={false} style={[styles.categoryTile, { backgroundColor: `${cat.color}22` }]}>
-              <LexText style={{ fontSize: 32 }}>{cat.icon}</LexText>
+              <LexText style={{ fontSize: 32, lineHeight: 40 }}>{cat.icon}</LexText>
               <LexText variant="title" style={{ color: c.ink, fontSize: 13, marginTop: 8 }}>
                 {cat.label}
               </LexText>
@@ -191,7 +191,7 @@ export function KidsOnboardingScreen() {
           <View style={styles.onboardingArt}>
             <LexoraLottie source={wordQuestOrbit} size={188} speed={0.9} />
             <View style={styles.onboardingIconBadge}>
-              <LexText style={{ fontSize: 38 }}>{slide.icon}</LexText>
+              <LexText style={{ fontSize: 38, lineHeight: 48 }}>{slide.icon}</LexText>
             </View>
           </View>
         </KidCard>
@@ -341,7 +341,7 @@ export function KidsAuthScreen() {
       <KidCard animated={false} color={c.mintSoft}>
         {['Kids never need to type passwords', 'Purchases and settings stay behind the parent gate', 'Offline lesson cache keeps practice available'].map((item) => (
           <View key={item} style={styles.authHintRow}>
-            <LexText style={{ fontSize: 18 }}>✓</LexText>
+            <LexText style={{ fontSize: 18, lineHeight: 24 }}>✓</LexText>
             <LexText variant="muted" style={{ color: c.ink, flex: 1 }}>
               {item}
             </LexText>
@@ -384,7 +384,7 @@ export function KidsLearnScreen() {
         <Pressable key={course.id} accessibilityRole="button" onPress={() => setActive(course.id)}>
           <KidCard color={course.color} style={styles.courseCard}>
             <View style={{ flex: 1 }}>
-              <LexText style={{ fontSize: 38 }}>{course.icon}</LexText>
+              <LexText style={{ fontSize: 38, lineHeight: 48 }}>{course.icon}</LexText>
               <LexText variant="h3" style={{ color: 'white', marginTop: 8 }}>
                 {course.title}
               </LexText>
@@ -451,7 +451,7 @@ export function KidsLessonDetailScreen() {
         ].map(([title, subtitle, mode]) => (
           <Pressable key={mode} accessibilityRole="button" onPress={() => router.push(`/practice/${mode}?lesson=${lesson.id}`)} style={styles.activityRow}>
             <View style={[styles.activityIcon, { backgroundColor: `${lesson.color}22` }]}>
-              <LexText style={{ fontSize: 22 }}>{mode === 'speaking' ? '🎤' : mode === 'listening' ? '🎧' : mode === 'story' ? '📖' : '⭐'}</LexText>
+              <LexText style={{ fontSize: 22, lineHeight: 30 }}>{mode === 'speaking' ? '🎤' : mode === 'listening' ? '🎧' : mode === 'story' ? '📖' : '⭐'}</LexText>
             </View>
             <View style={{ flex: 1 }}>
               <LexText variant="title" style={{ color: c.ink }}>
@@ -481,15 +481,23 @@ export function KidsPracticeScreen() {
   const kid = useAppStore((s) => s.kid);
   const recordKidLessonCompletion = useAppStore((s) => s.recordKidLessonCompletion);
   const currentLesson = getKidLessons(kid).find((item) => item.id === lesson) ?? getKidLessons(kid)[0];
+  const selectedMode = String(mode ?? currentLesson.type);
+  const activities = getKidPracticeActivities(selectedMode);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [complete, setComplete] = useState(false);
-  const question = kidQuizQuestions[index % kidQuizQuestions.length];
+  const activity = activities[index % activities.length];
   const done = Boolean(selected);
-  const ok = selected === question.answer;
+  const ok = selected === activity.answer;
 
   const stars = Math.max(1, Math.min(3, correctCount + (ok ? 1 : 0)));
+  const choose = (answer: string) => {
+    if (done) return;
+    hapticSelection();
+    setSelected(answer);
+    if (answer === activity.answer) setCorrectCount((value) => value + 1);
+  };
 
   if (complete) {
     return (
@@ -500,7 +508,7 @@ export function KidsPracticeScreen() {
           <LexText variant="h2" style={{ color: 'white' }}>
             +{currentLesson.xp} XP
           </LexText>
-          <LexText style={{ fontSize: 34 }}>{'⭐'.repeat(stars)}</LexText>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{'⭐'.repeat(stars)}</LexText>
           <KidPill label="Badge unlocked" active color={c.yellow} />
         </KidCard>
         <KidButton title="Next lesson" onPress={() => router.push('/(tabs)/learn')} />
@@ -510,65 +518,56 @@ export function KidsPracticeScreen() {
   }
 
   return (
-    <KidScreen scroll={false}>
-      <View style={{ flex: 1, paddingTop: 10 }}>
-        <KidHeader eyebrow={String(mode ?? currentLesson.type)} title={currentLesson.title} avatar={currentLesson.icon} right={<TimerPill />} />
+    <KidScreen>
+      <View style={{ paddingTop: 10 }}>
+        <KidHeader eyebrow={formatPracticeMode(selectedMode)} title={currentLesson.title} avatar={currentLesson.icon} right={<TimerPill />} />
         <View style={{ marginTop: 18 }}>
-          <KidProgressBar progress={(index + 1) / kidQuizQuestions.length} color={currentLesson.color} />
+          <KidProgressBar progress={(index + 1) / activities.length} color={currentLesson.color} />
         </View>
         <KidCard color={currentLesson.color} style={styles.quizCard}>
-          <CharacterBubble mood={mode === 'listening' ? 'listen' : mode === 'reading' || mode === 'story' ? 'read' : 'happy'} />
+          <KidPill label={formatPracticeMode(activity.kind)} active color="rgba(255,255,255,0.24)" />
           <LexText variant="h2" style={{ color: 'white', marginTop: 18, textAlign: 'center' }}>
-            {mode === 'speaking' ? 'Say this answer out loud' : question.prompt}
+            {activity.prompt}
           </LexText>
-          <LexText style={{ fontSize: 68, textAlign: 'center', marginTop: 12 }}>{question.visual}</LexText>
+          {activity.passage ? (
+            <View style={styles.practicePassage}>
+              <LexText variant="title" style={{ color: c.ink, textAlign: 'center', lineHeight: 25 }}>
+                {activity.passage}
+              </LexText>
+            </View>
+          ) : null}
+          <LexText style={{ fontSize: 68, lineHeight: 82, textAlign: 'center', marginTop: 12 }}>{activity.visual}</LexText>
           <View style={{ marginTop: 12, alignSelf: 'center' }}>
             <KidButton
-              title={mode === 'speaking' ? 'Speak answer' : 'Play audio'}
-              icon={mode === 'speaking' ? 'mic.fill' : 'speaker.wave.2.fill'}
-              onPress={() => Speech.speak(question.audioText)}
+              title={activity.kind === 'speak' ? 'Hear model' : 'Play audio'}
+              icon="speaker.wave.2.fill"
+              onPress={() => Speech.speak(activity.audioText)}
             />
           </View>
         </KidCard>
 
-        <View style={styles.optionsGrid}>
-          {question.options.map((option) => (
-            <QuizOption
-              key={option}
-              label={option}
-              selected={selected === option}
-              correct={done && option === question.answer}
-              wrong={done && selected === option && !ok}
-              onPress={() => {
-                if (done) return;
-                hapticSelection();
-                setSelected(option);
-                if (option === question.answer) setCorrectCount((value) => value + 1);
-              }}
-            />
-          ))}
-        </View>
+        <PracticeInteraction activity={activity} selected={selected} done={done} ok={ok} onChoose={choose} />
 
         {done ? (
           <KidCard color={ok ? c.mintSoft : c.coralSoft} style={{ marginTop: 12 }}>
             <LexText variant="title" style={{ color: c.ink }}>
-              {ok ? 'Great job! 🎉' : `Good try. ${question.hint}`}
+              {ok ? 'Great job! 🎉' : `Good try. ${activity.hint}`}
             </LexText>
           </KidCard>
         ) : null}
 
-        <View style={{ marginTop: 'auto', paddingBottom: 10 }}>
+        <View style={{ marginTop: 16, paddingBottom: 10 }}>
           <KidButton
-            title={index >= kidQuizQuestions.length - 1 ? 'Finish lesson' : 'Next'}
+            title={index >= activities.length - 1 ? 'Finish lesson' : 'Next'}
             disabled={!done}
             onPress={() => {
-              if (index >= kidQuizQuestions.length - 1) {
+              if (index >= activities.length - 1) {
                 recordKidLessonCompletion({
                   lessonId: currentLesson.id,
                   xp: currentLesson.xp,
                   stars,
                   correctCount: correctCount + (ok ? 1 : 0),
-                  attemptCount: kidQuizQuestions.length,
+                  attemptCount: activities.length,
                 });
                 setComplete(true);
               }
@@ -581,6 +580,92 @@ export function KidsPracticeScreen() {
         </View>
       </View>
     </KidScreen>
+  );
+}
+
+function PracticeInteraction({
+  activity,
+  selected,
+  done,
+  ok,
+  onChoose,
+}: {
+  activity: KidPracticeActivity;
+  selected: string | null;
+  done: boolean;
+  ok: boolean;
+  onChoose: (answer: string) => void;
+}) {
+  if (activity.kind === 'match' && activity.pairs?.length) {
+    return (
+      <View style={styles.matchPanel}>
+        <View style={styles.matchGrid}>
+          {activity.pairs.map((pair) => (
+            <View key={pair.word} style={styles.matchTile}>
+              <LexText style={{ fontSize: 32, lineHeight: 40 }}>{pair.visual}</LexText>
+              <LexText variant="label" style={{ color: c.muted }}>
+                picture
+              </LexText>
+            </View>
+          ))}
+        </View>
+        <View style={styles.optionsGrid}>
+          {activity.options.map((option) => (
+            <QuizOption
+              key={option}
+              label={option}
+              selected={selected === option}
+              correct={done && option === activity.answer}
+              wrong={done && selected === option && !ok}
+              onPress={() => onChoose(option)}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (activity.kind === 'speak') {
+    return (
+      <KidCard animated={false} style={styles.speakPanel}>
+        <IconSymbol name="mic.fill" fallback="M" color={c.coral} size={28} />
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" style={{ color: c.ink }}>
+            Say: {activity.audioText}
+          </LexText>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 4 }}>
+            Listen first, say it out loud, then choose how you did.
+          </LexText>
+        </View>
+        <View style={{ flex: 1, gap: 10 }}>
+          {activity.options.map((option) => (
+            <QuizOption
+              key={option}
+              label={option}
+              selected={selected === option}
+              correct={done && option === activity.answer}
+              wrong={done && selected === option && !ok}
+              onPress={() => onChoose(option)}
+            />
+          ))}
+        </View>
+      </KidCard>
+    );
+  }
+
+  return (
+    <View style={styles.optionsGrid}>
+      {activity.options.map((option) => (
+        <QuizOption
+          key={option}
+          label={option}
+          selected={selected === option}
+          correct={done && option === activity.answer}
+          wrong={done && selected === option && !ok}
+          onPress={() => onChoose(option)}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -849,7 +934,7 @@ export function KidsAdminTeacherScreen() {
       {drafts.map((lesson) => (
         <KidCard key={lesson.id} style={styles.adminLessonRow}>
           <View style={[styles.activityIcon, { backgroundColor: `${lesson.color}22` }]}>
-            <LexText style={{ fontSize: 22 }}>{lesson.icon}</LexText>
+            <LexText style={{ fontSize: 22, lineHeight: 30 }}>{lesson.icon}</LexText>
           </View>
           <View style={{ flex: 1 }}>
             <LexText variant="title" style={{ color: c.ink }}>
@@ -867,12 +952,14 @@ export function KidsAdminTeacherScreen() {
 }
 
 export function KidsReviewScreen() {
+  const reviewActivities = kidPracticeActivities.filter((activity) => activity.mode === 'vocabulary' || activity.mode === 'grammar').slice(0, 5);
+
   return (
     <KidScreen>
       <KidHeader eyebrow="Review" title="Warm up your words" subtitle="Quick, gentle recall before learning more." avatar="🔁" />
       <KidCard color={c.mint}>
         <LexText variant="h2" style={{ color: 'white' }}>
-          5 words ready
+          {reviewActivities.length} activities ready
         </LexText>
         <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
           Review cards adapt to what your child remembers.
@@ -881,9 +968,9 @@ export function KidsReviewScreen() {
           <KidButton title="Start review" onPress={() => router.push('/practice/vocabulary?lesson=animals-1')} />
         </View>
       </KidCard>
-      {kidQuizQuestions.map((q) => (
+      {reviewActivities.map((q) => (
         <KidCard key={q.id} style={styles.reviewPreview}>
-          <LexText style={{ fontSize: 34 }}>{q.visual}</LexText>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{q.visual}</LexText>
           <View style={{ flex: 1 }}>
             <LexText variant="title" style={{ color: c.ink }}>
               {q.answer}
@@ -899,6 +986,19 @@ export function KidsReviewScreen() {
 }
 
 export function KidsGamesScreen() {
+  const kid = useAppStore((s) => s.kid);
+  const lessons = getKidLessons(kid);
+  const gameModes = [
+    { title: 'Listening Pop', subtitle: 'Hear a word and tap the picture', icon: '🎧', mode: 'listening' },
+    { title: 'Speaking Star', subtitle: 'Say the answer out loud', icon: '🎤', mode: 'speaking' },
+    { title: 'Grammar Garden', subtitle: 'Choose the best sentence', icon: '🌱', mode: 'grammar' },
+    { title: 'Story Island', subtitle: 'Read and unlock the ending', icon: '🏝️', mode: 'story' },
+  ].map((item) => {
+    const lessonForMode = lessons.find((lessonItem) => lessonItem.type === item.mode) ?? lessons.find((lessonItem) => !lessonItem.locked) ?? lessons[0];
+    return { ...item, lessonId: lessonForMode.id, progress: lessonForMode.progress };
+  });
+  const dailyGame = gameModes[0];
+
   return (
     <KidScreen>
       <KidHeader eyebrow="Play" title="Daily challenge" subtitle="Games that make English practice feel alive." avatar="🎮" />
@@ -908,32 +1008,27 @@ export function KidsGamesScreen() {
             Today’s game
           </LexText>
           <LexText variant="h2" style={{ color: 'white', marginTop: 6 }}>
-            Picture Match
+            {dailyGame.title}
           </LexText>
           <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
-            Match 6 pictures before the timer ends.
+            {dailyGame.subtitle}
           </LexText>
           <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
-            <KidButton title="Play now" onPress={() => router.push('/practice/vocabulary?lesson=animals-1')} />
+            <KidButton title="Play now" onPress={() => router.push(`/practice/${dailyGame.mode}?lesson=${dailyGame.lessonId}`)} />
           </View>
         </View>
         <CharacterBubble mood="star" />
       </KidCard>
       <SectionTitle title="Game modes" />
-      {[
-        ['Listening Pop', 'Hear a word and tap the picture', '🎧', 'listening'],
-        ['Speaking Star', 'Say the answer out loud', '🎤', 'speaking'],
-        ['Grammar Garden', 'Choose the best sentence', '🌱', 'grammar'],
-        ['Story Island', 'Read and unlock the ending', '🏝️', 'story'],
-      ].map(([title, subtitle, icon, mode]) => (
+      {gameModes.map(({ title, subtitle, icon, mode, lessonId, progress }) => (
         <LessonCard
           key={mode}
           title={title}
           subtitle={subtitle}
           icon={icon}
           color={mode === 'grammar' ? c.mint : mode === 'speaking' ? c.coral : c.purple}
-          progress={0.25}
-          onPress={() => router.push(`/practice/${mode}?lesson=animals-1`)}
+          progress={progress}
+          onPress={() => router.push(`/practice/${mode}?lesson=${lessonId}`)}
         />
       ))}
     </KidScreen>
@@ -968,7 +1063,7 @@ function SectionMini({ title }: { title: string }) {
 function MiniStat({ icon, value, label, color }: { icon: string; value: string; label: string; color: string }) {
   return (
     <KidCard animated={false} color={color} style={styles.miniStat}>
-      <LexText style={{ fontSize: 24 }}>{icon}</LexText>
+      <LexText style={{ fontSize: 24, lineHeight: 32 }}>{icon}</LexText>
       <LexText variant="h3" style={{ color: c.ink, marginTop: 4 }}>
         {value}
       </LexText>
@@ -993,7 +1088,7 @@ function XpChip({ xp }: { xp: number }) {
 function MissionRow({ title, reward, progress, icon }: { title: string; reward: string; progress: number; icon: string }) {
   return (
     <KidCard animated={false} style={styles.missionRow}>
-      <LexText style={{ fontSize: 28 }}>{icon}</LexText>
+      <LexText style={{ fontSize: 28, lineHeight: 36 }}>{icon}</LexText>
       <View style={{ flex: 1 }}>
         <LexText variant="title" style={{ color: c.ink }}>
           {title}
@@ -1014,6 +1109,13 @@ function TimerPill() {
       </LexText>
     </View>
   );
+}
+
+function formatPracticeMode(mode: string) {
+  return mode
+    .split('-')
+    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
 }
 
 function CelebrationBurst() {
@@ -1090,7 +1192,29 @@ const styles = StyleSheet.create({
   },
   activityIcon: { width: 46, height: 46, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   quizCard: { marginTop: 18, alignItems: 'center' },
+  practicePassage: {
+    width: '100%',
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    padding: 14,
+    marginTop: 14,
+  },
   optionsGrid: { gap: 10, marginTop: 16 },
+  matchPanel: { gap: 14, marginTop: 16 },
+  matchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  matchTile: {
+    width: '47%',
+    minHeight: 92,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    backgroundColor: c.paper,
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  speakPanel: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },

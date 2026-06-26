@@ -180,7 +180,7 @@ export function KidPill({
 export function KidAvatar({ label, size = 44, color = k.colors.lilac }: { label: string; size?: number; color?: string }) {
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
-      <LexText style={{ fontSize: Math.round(size * 0.48) }}>{label}</LexText>
+      <LexText style={{ fontSize: Math.round(size * 0.48), lineHeight: Math.round(size * 0.58) }}>{label}</LexText>
     </View>
   );
 }
@@ -213,7 +213,7 @@ export function CharacterBubble({ mood = 'happy', text }: { mood?: 'happy' | 'st
 
   return (
     <Animated.View style={[styles.character, style]}>
-      <LexText style={{ fontSize: 44 }}>{face}</LexText>
+      <LexText style={{ fontSize: 44, lineHeight: 54 }}>{face}</LexText>
       {text ? (
         <LexText variant="title" style={{ color: k.colors.ink, textAlign: 'center', marginTop: 4, fontSize: 13 }}>
           {text}
@@ -226,7 +226,7 @@ export function CharacterBubble({ mood = 'happy', text }: { mood?: 'happy' | 'st
 export function BadgeTile({ icon, title, locked, progress }: { icon: string; title: string; locked?: boolean; progress?: number }) {
   return (
     <KidCard animated={false} style={[styles.badgeTile, locked ? { opacity: 0.48 } : null]}>
-      <LexText style={{ fontSize: 34, textAlign: 'center' }}>{locked ? '🔒' : icon}</LexText>
+      <LexText style={{ fontSize: 34, lineHeight: 42, textAlign: 'center' }}>{locked ? '🔒' : icon}</LexText>
       <LexText variant="title" numberOfLines={2} style={{ color: k.colors.ink, fontSize: 13, textAlign: 'center', marginTop: 8 }}>
         {title}
       </LexText>
@@ -262,7 +262,7 @@ export function LessonCard({
     >
       <KidCard animated={false} style={styles.lessonCard}>
         <LinearGradient colors={[color, '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.lessonArt}>
-          <LexText style={{ fontSize: 42 }}>{locked ? '🔒' : icon}</LexText>
+          <LexText style={{ fontSize: 42, lineHeight: 52 }}>{locked ? '🔒' : icon}</LexText>
         </LinearGradient>
         <View style={{ flex: 1 }}>
           <LexText variant="title" style={{ color: k.colors.ink, fontSize: 18 }}>

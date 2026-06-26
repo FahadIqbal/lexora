@@ -1,4 +1,14 @@
-import { kidBadges, kidCourses, kidFriends, kidLeaderboard, kidLessons, kidMissions, kidProfiles } from '../data/kidContent';
+import {
+  kidBadges,
+  kidCourses,
+  kidFriends,
+  kidLeaderboard,
+  kidLessons,
+  kidMissions,
+  kidPracticeActivities,
+  kidProfiles,
+  type KidPracticeMode,
+} from '../data/kidContent';
 
 export type KidLessonRuntime = {
   lessonId: string;
@@ -149,6 +159,13 @@ export function getKidFriends(kid: KidRuntimeState) {
     ...friend,
     challenged: kid.friendChallengeCount > index,
   }));
+}
+
+export function getKidPracticeActivities(mode?: string) {
+  const requested = mode as KidPracticeMode | undefined;
+  const byMode = kidPracticeActivities.filter((activity) => activity.mode === requested);
+  if (byMode.length > 0) return byMode;
+  return kidPracticeActivities.filter((activity) => activity.mode === 'vocabulary');
 }
 
 export function completeKidLesson(

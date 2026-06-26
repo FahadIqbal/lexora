@@ -139,9 +139,27 @@ export const kidLessons = [
   },
 ] as const;
 
-export const kidQuizQuestions = [
+export type KidPracticeMode = 'vocabulary' | 'listening' | 'speaking' | 'reading' | 'grammar' | 'story';
+
+export type KidPracticeActivity = {
+  id: string;
+  mode: KidPracticeMode;
+  kind: 'choice' | 'match' | 'speak' | 'read' | 'build' | 'story';
+  prompt: string;
+  visual: string;
+  audioText: string;
+  options: string[];
+  answer: string;
+  hint: string;
+  passage?: string;
+  pairs?: { visual: string; word: string }[];
+};
+
+export const kidPracticeActivities: KidPracticeActivity[] = [
   {
-    id: 'q1',
+    id: 'vocab-picture-cat',
+    mode: 'vocabulary',
+    kind: 'choice',
     prompt: 'Which word matches this picture?',
     visual: '🐱',
     audioText: 'cat',
@@ -150,7 +168,26 @@ export const kidQuizQuestions = [
     hint: 'A cat says meow.',
   },
   {
-    id: 'q2',
+    id: 'vocab-match-animals',
+    mode: 'vocabulary',
+    kind: 'match',
+    prompt: 'Match the picture to the word.',
+    visual: '🐶',
+    audioText: 'dog cat bird fish',
+    options: ['Dog', 'Cat', 'Bird', 'Fish'],
+    answer: 'Dog',
+    hint: 'A dog says woof.',
+    pairs: [
+      { visual: '🐶', word: 'Dog' },
+      { visual: '🐱', word: 'Cat' },
+      { visual: '🐦', word: 'Bird' },
+      { visual: '🐟', word: 'Fish' },
+    ],
+  },
+  {
+    id: 'listen-yellow',
+    mode: 'listening',
+    kind: 'choice',
     prompt: 'Tap the color you hear.',
     visual: '🎧',
     audioText: 'yellow',
@@ -159,13 +196,72 @@ export const kidQuizQuestions = [
     hint: 'The sun is often yellow.',
   },
   {
-    id: 'q3',
+    id: 'listen-school',
+    mode: 'listening',
+    kind: 'choice',
+    prompt: 'Listen and choose the school word.',
+    visual: '🎒',
+    audioText: 'pencil',
+    options: ['Pencil', 'Apple', 'Dog', 'Bunny'],
+    answer: 'Pencil',
+    hint: 'A pencil helps you write.',
+  },
+  {
+    id: 'speak-apple',
+    mode: 'speaking',
+    kind: 'speak',
+    prompt: 'Listen, then say the word clearly.',
+    visual: '🍎',
+    audioText: 'apple',
+    options: ['I said apple', 'I need to try again'],
+    answer: 'I said apple',
+    hint: 'Open your mouth for the “a” sound: apple.',
+  },
+  {
+    id: 'speak-family',
+    mode: 'speaking',
+    kind: 'speak',
+    prompt: 'Say the family word.',
+    visual: '👩',
+    audioText: 'mother',
+    options: ['I said mother', 'I need to try again'],
+    answer: 'I said mother',
+    hint: 'Try slowly: mo-ther.',
+  },
+  {
+    id: 'read-bunny',
+    mode: 'reading',
+    kind: 'read',
+    prompt: 'Read the sentence. Where is the bunny?',
+    visual: '🐰',
+    audioText: 'The bunny is under the tree.',
+    options: ['Under the tree', 'In the sea', 'On the moon', 'In the box'],
+    answer: 'Under the tree',
+    hint: 'Look for the words “under the tree.”',
+    passage: 'The bunny is under the tree. It has a red ball. The bunny is happy.',
+  },
+  {
+    id: 'grammar-she-is',
+    mode: 'grammar',
+    kind: 'build',
     prompt: 'Choose the correct sentence.',
     visual: '🌱',
-    audioText: 'grammar',
+    audioText: 'She is happy.',
     options: ['She are happy.', 'She is happy.', 'She am happy.', 'She be happy.'],
     answer: 'She is happy.',
     hint: 'Use “is” with she, he, and it.',
+  },
+  {
+    id: 'story-rocket',
+    mode: 'story',
+    kind: 'story',
+    prompt: 'What does Rami find on the moon?',
+    visual: '🚀',
+    audioText: 'Rami flies to the moon. He finds a blue star.',
+    options: ['A blue star', 'A yellow fish', 'A red chair', 'A green apple'],
+    answer: 'A blue star',
+    hint: 'The story says he finds a blue star.',
+    passage: 'Rami puts on his helmet. The rocket goes zoom. On the moon, Rami finds a blue star and says, “Hello!”',
   },
 ];
 
