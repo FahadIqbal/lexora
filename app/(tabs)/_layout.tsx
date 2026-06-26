@@ -1,12 +1,12 @@
 import React from 'react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useAppStore } from '../../src/store/useAppStore';
-import { useShallow } from 'zustand/react/shallow';
 import { hapticSelection } from '../../src/utils/haptics';
 import { kidTheme } from '../../src/theme/kidTheme';
+import { getKidAdaptiveReviewSummary } from '../../src/services/kidAdaptiveLearningService';
 
 export default function TabsLayout() {
-  const dueCount = useAppStore(useShallow((s) => s.getDueWordIds())).length;
+  const dueCount = useAppStore((s) => getKidAdaptiveReviewSummary(s.kid).dueCount || s.getDueWordIds().length);
   const reviewBadge = dueCount > 99 ? '99+' : dueCount ? String(dueCount) : undefined;
   const c = kidTheme.colors;
 
@@ -51,7 +51,7 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="games" role="topRated">
         <NativeTabs.Trigger.Icon sf={{ default: 'gamecontroller', selected: 'gamecontroller.fill' }} md="stadia_controller" />
-        <NativeTabs.Trigger.Label>Games</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Play</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="social">
