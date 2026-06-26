@@ -72,6 +72,8 @@ Competitor-inspired loops are modeled as reusable content, not one-off screen co
 
 Course and progress screens also use `kidParentInsights` and `kidTeacherPipelines` from `src/data/kidContent.ts` so content remains structured and reusable.
 
+Practice sessions use `src/services/kidPracticeExperienceService.ts` for mode themes, mission steps, dictionary insight cards, coaching copy, and completion plans. New lesson types should extend that service first, then render through the shared practice stage, reward trail, feedback, and completion patterns.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
