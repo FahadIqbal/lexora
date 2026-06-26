@@ -63,7 +63,23 @@ Kid-facing screens should show a clear loop instead of isolated information:
 - Feedback: buddy explanation, progress fill, XP, stars, or recall timing.
 - Reward: badge cabinet, character reward, streak, or social challenge.
 
-Course and progress screens use `kidLearningTracks`, `kidReviewSchedule`, `kidParentInsights`, and `kidTeacherPipelines` from `src/data/kidContent.ts` so content remains structured and reusable.
+Competitor-inspired loops are modeled as reusable content, not one-off screen copy:
+
+- `kidOnboardingSlides`: swipe-first onboarding that introduces quest play, roleplay, spaced recall, and family safety.
+- `kidFeaturePowerUps`: roleplay, answer explanation, spaced review, and story studio surfaces used across Home and Games.
+- `kidLearningTracks`: skill worlds for vocabulary, phonics/listening, stories, and sentence practice.
+- `kidReviewSchedule`: visual spaced-repetition states for fresh words, recall checks, and long-term mastery.
+
+Course and progress screens also use `kidParentInsights` and `kidTeacherPipelines` from `src/data/kidContent.ts` so content remains structured and reusable.
+
+## 3D And Depth
+
+Kid-facing hero areas should feel like a toy-like learning world:
+
+- Use layered plates, soft highlights, floating tokens, and deep shadows for 3D-style depth.
+- Keep 3D effects lightweight with React Native/Reanimated transforms; avoid heavy rendering unless a real 3D scene is required.
+- Floating elements must support the user goal: XP, audio, review, roleplay, or story cues.
+- Do not let decorative art hide the CTA, progress, or next action.
 
 ## Animation Rules
 
@@ -72,6 +88,8 @@ Course and progress screens use `kidLearningTracks`, `kidReviewSchedule`, `kidPa
 - Progress bars animate from previous state.
 - Correct answers show success color and completion celebration.
 - Wrong answers shake gently and explain the hint.
+- Continuous motion should use subtle Reanimated transform loops on small elements only.
+- Separate entrance animations from continuous transform animations with wrapper views to avoid Reanimated transform conflicts.
 - Motion should feel delightful but never slow down the task.
 
 ## Screen Coverage
