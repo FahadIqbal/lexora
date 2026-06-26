@@ -114,4 +114,8 @@ The current kid-focused routes include:
 
 ## Content and Runtime State
 
-Curriculum seed content for profiles, courses, lessons, badges, friends, leaderboard, missions, and quiz questions lives in `src/data/kidContent.ts`. User-specific progress, parent session state, lesson completion, badge unlocks, missions, and friend challenges are persisted through `src/store/useAppStore.ts` and derived by `src/services/kidLearningService.ts`.
+Curriculum seed content for profiles, courses, lessons, badges, friends, leaderboard, missions, and quiz questions lives in `src/data/kidContent.ts`. Rich kid dictionary content lives in `src/data/kids-dictionary.json` and is accessed through `src/services/kidDictionaryService.ts`.
+
+Screens should not embed dictionary words, definitions, examples, pronunciation text, or lesson-linked word sets directly. They should ask the service for featured words, daily sets, category filters, lesson words, and generated practice activities. This keeps the UI ready for Supabase-backed content or licensed dictionary imports without rewriting screen code.
+
+User-specific progress, parent session state, lesson completion, badge unlocks, missions, and friend challenges are persisted through `src/store/useAppStore.ts` and derived by `src/services/kidLearningService.ts`.

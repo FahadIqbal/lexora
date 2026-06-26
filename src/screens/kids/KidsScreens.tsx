@@ -35,6 +35,7 @@ import {
   kidReviewSchedule,
   kidTeacherPipelines,
   type KidPracticeActivity,
+  type KidPracticeMode,
 } from '../../data/kidContent';
 import { hapticSelection } from '../../utils/haptics';
 import { useAppStore } from '../../store/useAppStore';
@@ -57,6 +58,17 @@ import {
   getRecommendedLessons,
   getTotalStars,
 } from '../../services/kidLearningService';
+import {
+  buildKidDictionaryActivity,
+  formatKidDictionaryCategory,
+  getDailyKidDictionarySet,
+  getDictionaryEntriesForLesson,
+  getKidDictionaryById,
+  getFeaturedKidWords,
+  getKidDictionaryCategories,
+  searchKidDictionary,
+  type KidDictionaryEntry,
+} from '../../services/kidDictionaryService';
 import missionPulse from '../../animations/mission-pulse.json';
 import wordQuestOrbit from '../../animations/word-quest-orbit.json';
 
@@ -72,6 +84,7 @@ export function KidsHomeScreen() {
   const leaderboard = getKidLeaderboard(kid, xpTotal);
   const dailyPath = getKidDailyPath(kid);
   const energy = getKidEnergy(kid);
+  const dailyWords = getDailyKidDictionarySet(kid, 4);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
 
@@ -126,6 +139,13 @@ export function KidsHomeScreen() {
           <MissionRow key={mission.id} {...mission} />
         ))}
       </View>
+
+      <SectionTitle title="Kids dictionary" action="Open" onPress={() => router.push('/kids-dictionary')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {dailyWords.map((entry, index) => (
+          <KidDictionaryMiniCard key={entry.id} entry={entry} index={index} />
+        ))}
+      </ScrollView>
 
       <SectionTitle title="Vocabulary worlds" action="All" onPress={() => router.push('/(tabs)/learn')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
@@ -442,6 +462,7 @@ export function KidsLearnScreen() {
   const allLessons = getKidLessons(kid);
   const lessons = active === 'all' ? allLessons : allLessons.filter((lesson) => lesson.courseId === active || lesson.type === active);
   const featuredTrack = kidLearningTracks[0];
+  const featuredWords = getFeaturedKidWords(kid, 5);
   const filteredTitle = active === 'all' ? 'Recommended next lessons' : 'Lessons in this path';
 
   return (
@@ -459,6 +480,24 @@ export function KidsLearnScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
         {kidLearningTracks.map((track) => (
           <TrackCard key={track.id} track={track} onPress={() => setActive(track.id === 'sentence-garden' ? 'grammar' : track.id === 'sound-lab' ? 'phonics' : 'all')} />
+        ))}
+      </ScrollView>
+
+      <SectionTitle title="Picture dictionary" action="Explore" onPress={() => router.push('/kids-dictionary')} />
+      <KidCard color={c.lilac} style={styles.dictionarySpotlight}>
+        <View style={{ flex: 1 }}>
+          <LexText variant="label" style={{ color: c.purple }}>
+            Dynamic word bank
+          </LexText>
+          <LexText variant="h3" style={{ color: c.ink, marginTop: 5 }}>
+            Learn words with audio, examples, rhymes, and mini activities
+          </LexText>
+        </View>
+        <KidButton title="Open" color={c.yellow} onPress={() => router.push('/kids-dictionary')} />
+      </KidCard>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {featuredWords.map((entry, index) => (
+          <KidDictionaryMiniCard key={entry.id} entry={entry} index={index} />
         ))}
       </ScrollView>
 
@@ -480,6 +519,105 @@ export function KidsLearnScreen() {
           onPress={() => router.push(`/lessons/${lesson.id}`)}
         />
       ))}
+    </KidScreen>
+  );
+}
+
+export function KidsDictionaryScreen() {
+  const { word } = useLocalSearchParams<{ word?: string }>();
+  const kid = useAppStore((s) => s.kid);
+  const child = getActiveKidProfile(kid);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const categories = getKidDictionaryCategories();
+  const maxLevel = child.age <= 6 ? 1 : child.age <= 8 ? 2 : 3;
+  const dailyWords = getDailyKidDictionarySet(kid, 4);
+  const selectedWord = getKidDictionaryById(word) ?? dailyWords[0];
+  const results = useMemo(
+    () => searchKidDictionary(query, { category, maxLevel }),
+    [category, maxLevel, query]
+  );
+
+  const speak = (entry: KidDictionaryEntry) => {
+    hapticSelection();
+    Speech.speak(entry.audioText, { rate: 0.86 });
+  };
+
+  return (
+    <KidScreen>
+      <KidHeader
+        eyebrow="Picture dictionary"
+        title="Words kids can touch, hear, and play"
+        subtitle={`${results.length} child-safe words with examples, sounds, rhymes, and mini activities.`}
+        avatar="📚"
+      />
+
+      <KidCard color={selectedWord.color} style={styles.kidDictionaryHero}>
+        <View style={{ flex: 1 }}>
+          <KidPill label={formatKidDictionaryCategory(selectedWord.category)} active color="rgba(255,255,255,0.22)" />
+          <LexText style={styles.kidDictionaryHeroEmoji}>{selectedWord.emoji}</LexText>
+          <LexText variant="h2" style={styles.kidDictionaryHeroWord}>
+            {selectedWord.word}
+          </LexText>
+          <LexText variant="muted" style={styles.kidDictionaryHeroDefinition}>
+            {selectedWord.kidDefinition}
+          </LexText>
+          <View style={styles.dictionaryMetaRail}>
+            <KidPill label={selectedWord.phonetic} active color="rgba(255,255,255,0.22)" />
+            <KidPill label={selectedWord.syllables.join('-')} active color={c.yellow} />
+          </View>
+        </View>
+        <View style={styles.dictionaryHeroActions}>
+          <KidButton title="Hear" color={c.yellow} icon="speaker.wave.2.fill" onPress={() => speak(selectedWord)} />
+          <KidButton
+            title="Practice"
+            color={c.sky}
+            onPress={() => {
+              const lessonId = selectedWord.lessonIds[0] ?? 'animals-1';
+              router.push(`/practice/vocabulary?lesson=${lessonId}`);
+            }}
+          />
+        </View>
+      </KidCard>
+
+      <View style={styles.kidDictionarySearch}>
+        <IconSymbol name="magnifyingglass" fallback="S" color={query ? c.purple : c.muted} size={17} />
+        <TextInput
+          accessibilityLabel="Search kids dictionary"
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search apple, cat, hello..."
+          placeholderTextColor={c.muted}
+          style={styles.kidDictionaryInput}
+        />
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <KidPill label="All words" active={!category} color={c.purple} onPress={() => setCategory(null)} />
+        {categories.map((item) => (
+          <KidPill
+            key={item.id}
+            label={`${item.icon} ${item.label}`}
+            active={category === item.id}
+            color={item.color}
+            onPress={() => setCategory(item.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <SectionTitle title="Today’s word set" action="Listen" onPress={() => dailyWords.forEach((entry) => Speech.speak(entry.audioText, { rate: 0.9 }))} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {dailyWords.map((entry, index) => (
+          <KidDictionaryMiniCard key={entry.id} entry={entry} index={index} />
+        ))}
+      </ScrollView>
+
+      <SectionTitle title={query || category ? 'Matching words' : 'All kid words'} />
+      <View style={{ gap: 12 }}>
+        {results.map((entry, index) => (
+          <KidDictionaryWordCard key={entry.id} entry={entry} index={index} onSpeak={() => speak(entry)} />
+        ))}
+      </View>
     </KidScreen>
   );
 }
@@ -640,7 +778,12 @@ export function KidsPracticeScreen() {
   const currentLesson = getKidLessons(kid).find((item) => item.id === lesson) ?? getKidLessons(kid)[0];
   const energy = getKidEnergy(kid);
   const selectedMode = String(mode ?? currentLesson.type);
-  const activities = getKidPracticeActivities(selectedMode);
+  const selectedPracticeMode = isKidPracticeMode(selectedMode) ? selectedMode : 'vocabulary';
+  const activities = useMemo(() => {
+    const base = getKidPracticeActivities(selectedPracticeMode);
+    const dictionaryActivities = getDictionaryEntriesForLesson(currentLesson.id).map((entry) => buildKidDictionaryActivity(entry, selectedPracticeMode));
+    return dictionaryActivities.length ? [...base, ...dictionaryActivities] : base;
+  }, [currentLesson.id, selectedPracticeMode]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
@@ -1571,6 +1714,90 @@ function FeaturePowerUpCard({ feature, index }: { feature: (typeof kidFeaturePow
   );
 }
 
+function KidDictionaryMiniCard({ entry, index }: { entry: KidDictionaryEntry; index: number }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${entry.word}. ${entry.kidDefinition}`}
+      onPress={() => router.push(`/kids-dictionary?word=${entry.id}`)}
+    >
+      <Animated.View entering={FadeInDown.delay(index * 60).duration(320).springify().damping(17)}>
+        <KidCard animated={false} color={`${entry.color}22`} style={styles.kidDictionaryMiniCard}>
+          <View style={[styles.kidDictionaryMiniIcon, { backgroundColor: entry.color }]}>
+            <LexText style={{ fontSize: 32, lineHeight: 40 }}>{entry.emoji}</LexText>
+          </View>
+          <LexText variant="title" style={{ color: c.ink, marginTop: 10 }}>
+            {entry.word}
+          </LexText>
+          <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 4 }}>
+            {entry.kidDefinition}
+          </LexText>
+          <View style={{ marginTop: 10 }}>
+            <KidPill label={entry.phonetic} active color={entry.color} />
+          </View>
+        </KidCard>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function KidDictionaryWordCard({
+  entry,
+  index,
+  onSpeak,
+}: {
+  entry: KidDictionaryEntry;
+  index: number;
+  onSpeak: () => void;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).duration(320).springify().damping(17)}>
+      <KidCard animated={false} style={styles.kidDictionaryWordCard}>
+        <View style={[styles.kidDictionaryWordIcon, { backgroundColor: `${entry.color}33` }]}>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{entry.emoji}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.kidDictionaryWordTop}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="h3" style={{ color: c.ink }}>
+                {entry.word}
+              </LexText>
+              <LexText variant="label" style={{ color: entry.color, marginTop: 2 }}>
+                {entry.partOfSpeech} · {entry.phonetic}
+              </LexText>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Hear ${entry.word}`} onPress={onSpeak} style={[styles.dictionaryAudioButton, { backgroundColor: entry.color }]}>
+              <IconSymbol name="speaker.wave.2.fill" fallback="A" color="white" size={16} />
+            </Pressable>
+          </View>
+          <LexText variant="muted" style={{ color: c.ink, marginTop: 6 }}>
+            {entry.kidDefinition}
+          </LexText>
+          <View style={styles.dictionaryExampleBox}>
+            <LexText variant="label" style={{ color: c.purple }}>
+              Example
+            </LexText>
+            <LexText variant="muted" style={{ color: c.ink, marginTop: 3 }}>
+              {entry.examples[0]}
+            </LexText>
+          </View>
+          <View style={styles.dictionaryWordExtras}>
+            {entry.rhymes.slice(0, 2).map((item) => (
+              <KidPill key={item} label={`Rhyme: ${item}`} active color={c.sky} />
+            ))}
+            {entry.synonyms.slice(0, 1).map((item) => (
+              <KidPill key={item} label={`Like: ${item}`} active color={c.mint} />
+            ))}
+          </View>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 8, fontSize: 12, lineHeight: 17 }}>
+            {entry.funFact}
+          </LexText>
+        </View>
+      </KidCard>
+    </Animated.View>
+  );
+}
+
 function FeedbackBurstIcon({ ok }: { ok: boolean }) {
   const scale = useSharedValue(0.82);
   const offset = useSharedValue(0);
@@ -1935,6 +2162,10 @@ function formatPracticeMode(mode: string) {
     .join(' ');
 }
 
+function isKidPracticeMode(mode: string): mode is KidPracticeMode {
+  return ['vocabulary', 'listening', 'speaking', 'reading', 'grammar', 'story'].includes(mode);
+}
+
 function CelebrationBurst() {
   const scale = useSharedValue(0.6);
   const spin = useSharedValue(0);
@@ -2212,6 +2443,70 @@ const styles = StyleSheet.create({
   featureMiniToken: { right: 36, top: 4, width: 34, height: 34, borderRadius: 14 },
   featurePowerTitle: { color: 'white', fontSize: 21, lineHeight: 26, marginTop: 2 },
   featurePowerSubtitle: { color: 'rgba(255,255,255,0.82)', fontSize: 12, lineHeight: 17, marginTop: 6 },
+  dictionarySpotlight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  kidDictionaryHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
+  kidDictionaryHeroEmoji: { fontSize: 70, lineHeight: 82, marginTop: 14 },
+  kidDictionaryHeroWord: { color: 'white', fontSize: 34, lineHeight: 40, marginTop: 2 },
+  kidDictionaryHeroDefinition: { color: 'rgba(255,255,255,0.86)', marginTop: 6, fontSize: 15, lineHeight: 22 },
+  dictionaryMetaRail: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  dictionaryHeroActions: { width: 104, gap: 10 },
+  kidDictionarySearch: {
+    minHeight: 54,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.paper,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  kidDictionaryInput: { flex: 1, minHeight: 52, padding: 0, color: c.ink, fontFamily: 'DMSans_600SemiBold', fontSize: 15 },
+  kidDictionaryMiniCard: { width: 150, minHeight: 188 },
+  kidDictionaryMiniIcon: {
+    width: 66,
+    height: 66,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 10px 0 rgba(34,35,74,0.10)',
+  },
+  kidDictionaryWordCard: { flexDirection: 'row', gap: 12 },
+  kidDictionaryWordIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kidDictionaryWordTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dictionaryAudioButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.78)',
+    boxShadow: '0 8px 0 rgba(34,35,74,0.10)',
+  },
+  dictionaryExampleBox: {
+    marginTop: 10,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    backgroundColor: c.appBg,
+    borderWidth: 1,
+    borderColor: c.line,
+    padding: 10,
+  },
+  dictionaryWordExtras: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
   categoryTile: { width: 112, minHeight: 116, alignItems: 'center', justifyContent: 'center' },
   friendBubble: { width: 88, alignItems: 'center', padding: 12 },
   missionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
