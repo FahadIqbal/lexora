@@ -9,6 +9,7 @@ import { sm2Update } from '../utils/srs';
 import {
   completeKidLesson,
   createInitialKidState,
+  recordKidPracticeAnswer,
   type KidRuntimeState,
 } from '../services/kidLearningService';
 
@@ -59,6 +60,7 @@ type AppState = {
   selectKidProfile: (profileId: string) => void;
   passKidParentGate: () => void;
   recordKidLessonCompletion: (input: { lessonId: string; xp: number; stars: number; correctCount: number; attemptCount: number }) => void;
+  recordKidPracticeAnswer: (correct: boolean) => void;
   recordKidFriendChallenge: () => void;
 
   // selectors/helpers
@@ -386,6 +388,11 @@ export const useAppStore = create<AppState>()(
             kid: completeKidLesson(s.kid, input),
           };
         }),
+
+      recordKidPracticeAnswer: (correct) =>
+        set((s) => ({
+          kid: recordKidPracticeAnswer(s.kid, correct),
+        })),
 
       recordKidFriendChallenge: () =>
         set((s) => ({

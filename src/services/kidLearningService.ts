@@ -34,6 +34,11 @@ export type KidRuntimeState = {
   unlockedBadgeIds: string[];
   completedMissionIds: string[];
   friendChallengeCount: number;
+  energy?: {
+    current: number;
+    max: number;
+    combo: number;
+  };
 };
 
 export function createInitialKidState(): KidRuntimeState {
@@ -45,7 +50,12 @@ export function createInitialKidState(): KidRuntimeState {
     unlockedBadgeIds: ['super-star', 'word-hero', 'listener'],
     completedMissionIds: [],
     friendChallengeCount: 0,
+    energy: { current: 25, max: 25, combo: 0 },
   };
+}
+
+export function getKidEnergy(kid: KidRuntimeState) {
+  return kid.energy ?? { current: 25, max: 25, combo: 0 };
 }
 
 export function getActiveKidProfile(kid: KidRuntimeState) {
@@ -100,6 +110,47 @@ export function getRecommendedLessons(kid: KidRuntimeState) {
     .filter((lesson) => !lesson.locked && lesson.progress < 1)
     .sort((a, b) => b.progress - a.progress)
     .slice(0, 3);
+}
+
+export function getKidDailyPath(kid: KidRuntimeState) {
+  const lessons = getKidLessons(kid);
+  const next = getContinueLesson(kid);
+  const review = lessons.find((lesson) => lesson.progress > 0 && lesson.progress < 1 && lesson.id !== next.id) ?? next;
+  const story = lessons.find((lesson) => !lesson.locked && (lesson.type === 'reading' || lesson.type === 'story')) ?? next;
+  const speaking = lessons.find((lesson) => !lesson.locked && lesson.type === 'speaking') ?? next;
+
+  return [
+    {
+      id: 'review',
+      title: 'Warm-up review',
+      subtitle: 'Remember words before they fade',
+      icon: '🔁',
+      color: review.color,
+      mode: review.type,
+      lessonId: review.id,
+      progress: Math.min(1, review.progress + 0.18),
+    },
+    {
+      id: 'next',
+      title: next.title,
+      subtitle: 'Your best next step',
+      icon: next.icon,
+      color: next.color,
+      mode: next.type,
+      lessonId: next.id,
+      progress: next.progress,
+    },
+    {
+      id: 'side-quest',
+      title: story.id === next.id ? speaking.title : story.title,
+      subtitle: story.id === next.id ? 'Practice speaking out loud' : 'Read a story side quest',
+      icon: story.id === next.id ? speaking.icon : story.icon,
+      color: story.id === next.id ? speaking.color : story.color,
+      mode: story.id === next.id ? speaking.type : story.type,
+      lessonId: story.id === next.id ? speaking.id : story.id,
+      progress: story.id === next.id ? speaking.progress : story.progress,
+    },
+  ];
 }
 
 export function getContinueLesson(kid: KidRuntimeState) {
@@ -166,6 +217,21 @@ export function getKidPracticeActivities(mode?: string) {
   const byMode = kidPracticeActivities.filter((activity) => activity.mode === requested);
   if (byMode.length > 0) return byMode;
   return kidPracticeActivities.filter((activity) => activity.mode === 'vocabulary');
+}
+
+export function recordKidPracticeAnswer(kid: KidRuntimeState, correct: boolean): KidRuntimeState {
+  const energy = getKidEnergy(kid);
+  const combo = correct ? energy.combo + 1 : 0;
+  const bonus = correct && combo > 0 && combo % 3 === 0 ? 1 : 0;
+  const current = Math.max(0, Math.min(energy.max, energy.current + bonus - (correct ? 0 : 1)));
+  return {
+    ...kid,
+    energy: {
+      ...energy,
+      current,
+      combo,
+    },
+  };
 }
 
 export function completeKidLesson(

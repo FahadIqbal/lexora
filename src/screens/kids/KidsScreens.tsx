@@ -38,6 +38,8 @@ import { upsertUserProfile } from '../../services/supabaseHelpers';
 import {
   getActiveKidProfile,
   getContinueLesson,
+  getKidDailyPath,
+  getKidEnergy,
   getKidBadges,
   getKidCourses,
   getKidFriends,
@@ -61,6 +63,8 @@ export function KidsHomeScreen() {
   const missions = getKidMissions(kid);
   const friends = getKidFriends(kid);
   const leaderboard = getKidLeaderboard(kid, xpTotal);
+  const dailyPath = getKidDailyPath(kid);
+  const energy = getKidEnergy(kid);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
 
@@ -71,7 +75,12 @@ export function KidsHomeScreen() {
         title="Let’s learn English!"
         subtitle="Small wins, fun games, and happy words."
         avatar={child.avatar}
-        right={<XpChip xp={totalXp} />}
+        right={
+          <View style={styles.headerChips}>
+            <EnergyChip current={energy.current} max={energy.max} />
+            <XpChip xp={totalXp} />
+          </View>
+        }
       />
 
       <KidCard color={c.purple} style={styles.heroCard}>
@@ -102,6 +111,13 @@ export function KidsHomeScreen() {
         <MiniStat icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="day streak" color={c.coralSoft} />
         <MiniStat icon="⭐" value={`Level ${child.level}`} label="word hero" color={c.yellowSoft} />
         <MiniStat icon="🏆" value={`#${selfRank}`} label="league" color={c.mintSoft} />
+      </View>
+
+      <SectionTitle title="Today’s adventure path" action="Start" onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)} />
+      <View style={{ gap: 10 }}>
+        {dailyPath.map((step, index) => (
+          <PathStep key={step.id} index={index + 1} {...step} />
+        ))}
       </View>
 
       <SectionTitle title="Daily missions" action="Rewards" onPress={() => router.push('/rewards')} />
@@ -480,7 +496,9 @@ export function KidsPracticeScreen() {
   const { mode, lesson } = useLocalSearchParams<{ mode?: string; lesson?: string }>();
   const kid = useAppStore((s) => s.kid);
   const recordKidLessonCompletion = useAppStore((s) => s.recordKidLessonCompletion);
+  const recordKidPracticeAnswer = useAppStore((s) => s.recordKidPracticeAnswer);
   const currentLesson = getKidLessons(kid).find((item) => item.id === lesson) ?? getKidLessons(kid)[0];
+  const energy = getKidEnergy(kid);
   const selectedMode = String(mode ?? currentLesson.type);
   const activities = getKidPracticeActivities(selectedMode);
   const [index, setIndex] = useState(0);
@@ -496,7 +514,9 @@ export function KidsPracticeScreen() {
     if (done) return;
     hapticSelection();
     setSelected(answer);
-    if (answer === activity.answer) setCorrectCount((value) => value + 1);
+    const correct = answer === activity.answer;
+    recordKidPracticeAnswer(correct);
+    if (correct) setCorrectCount((value) => value + 1);
   };
 
   if (complete) {
@@ -520,7 +540,17 @@ export function KidsPracticeScreen() {
   return (
     <KidScreen>
       <View style={{ paddingTop: 10 }}>
-        <KidHeader eyebrow={formatPracticeMode(selectedMode)} title={currentLesson.title} avatar={currentLesson.icon} right={<TimerPill />} />
+        <KidHeader
+          eyebrow={formatPracticeMode(selectedMode)}
+          title={currentLesson.title}
+          avatar={currentLesson.icon}
+          right={
+            <View style={styles.headerChips}>
+              <EnergyChip current={energy.current} max={energy.max} />
+              <TimerPill />
+            </View>
+          }
+        />
         <View style={{ marginTop: 18 }}>
           <KidProgressBar progress={(index + 1) / activities.length} color={currentLesson.color} />
         </View>
@@ -553,6 +583,14 @@ export function KidsPracticeScreen() {
             <LexText variant="title" style={{ color: c.ink }}>
               {ok ? 'Great job! 🎉' : `Good try. ${activity.hint}`}
             </LexText>
+            <View style={styles.explainBox}>
+              <LexText variant="label" style={{ color: c.purple }}>
+                Why?
+              </LexText>
+              <LexText variant="muted" style={{ color: c.ink, marginTop: 4 }}>
+                {activity.explanation}
+              </LexText>
+            </View>
           </KidCard>
         ) : null}
 
@@ -1074,12 +1112,69 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
   );
 }
 
+function PathStep({
+  index,
+  title,
+  subtitle,
+  icon,
+  color,
+  mode,
+  lessonId,
+  progress,
+}: {
+  index: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+  color: string;
+  mode: string;
+  lessonId: string;
+  progress: number;
+}) {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push(`/practice/${mode}?lesson=${lessonId}`)}>
+      <KidCard animated={false} style={styles.pathStep}>
+        <View style={[styles.pathNumber, { backgroundColor: color }]}>
+          <LexText variant="label" style={{ color: 'white' }}>
+            {index}
+          </LexText>
+        </View>
+        <LexText style={{ fontSize: 28, lineHeight: 36 }}>{icon}</LexText>
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" style={{ color: c.ink }}>
+            {title}
+          </LexText>
+          <LexText variant="muted" style={{ color: c.muted, fontSize: 13, marginTop: 2 }}>
+            {subtitle}
+          </LexText>
+          <View style={{ marginTop: 8 }}>
+            <KidProgressBar progress={progress} color={color} />
+          </View>
+        </View>
+        <LexText variant="title" style={{ color: c.purple }}>→</LexText>
+      </KidCard>
+    </Pressable>
+  );
+}
+
 function XpChip({ xp }: { xp: number }) {
   return (
     <View style={styles.xpChip}>
       <LexText style={{ fontSize: 16 }}>⭐</LexText>
       <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
         {xp}
+      </LexText>
+    </View>
+  );
+}
+
+function EnergyChip({ current, max }: { current: number; max: number }) {
+  const low = current <= Math.ceil(max * 0.24);
+  return (
+    <View style={[styles.energyChip, { backgroundColor: low ? c.coralSoft : c.mintSoft }]}>
+      <LexText style={{ fontSize: 15, lineHeight: 20 }}>{low ? '💛' : '⚡'}</LexText>
+      <LexText variant="title" style={{ color: c.ink, fontSize: 13 }}>
+        {current}
       </LexText>
     </View>
   );
@@ -1162,12 +1257,15 @@ const styles = StyleSheet.create({
   authHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
   authToggle: { flexDirection: 'row', gap: 10, marginTop: 18, marginBottom: 12 },
   authHintRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  headerChips: { alignItems: 'flex-end', gap: 8 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   miniStat: { flex: 1, minHeight: 112, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
   categoryTile: { width: 112, minHeight: 116, alignItems: 'center', justifyContent: 'center' },
   friendBubble: { width: 88, alignItems: 'center', padding: 12 },
   missionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pathStep: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pathNumber: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   xpChip: {
     minHeight: 38,
     borderRadius: 999,
@@ -1176,6 +1274,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: c.yellowSoft,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  energyChip: {
+    minHeight: 34,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     borderWidth: 1,
     borderColor: c.line,
   },
@@ -1215,6 +1323,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   speakPanel: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
+  explainBox: {
+    borderTopWidth: 1,
+    borderTopColor: c.line,
+    marginTop: 12,
+    paddingTop: 10,
+  },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },

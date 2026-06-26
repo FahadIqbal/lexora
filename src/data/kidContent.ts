@@ -151,6 +151,7 @@ export type KidPracticeActivity = {
   options: string[];
   answer: string;
   hint: string;
+  explanation: string;
   passage?: string;
   pairs?: { visual: string; word: string }[];
 };
@@ -166,6 +167,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['Cat', 'Dog', 'Fish', 'Bird'],
     answer: 'Cat',
     hint: 'A cat says meow.',
+    explanation: 'The picture is a cat, and “cat” is the English word for this animal.',
   },
   {
     id: 'vocab-match-animals',
@@ -177,6 +179,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['Dog', 'Cat', 'Bird', 'Fish'],
     answer: 'Dog',
     hint: 'A dog says woof.',
+    explanation: 'The first picture is a dog. Matching the picture to “Dog” builds visual vocabulary.',
     pairs: [
       { visual: '🐶', word: 'Dog' },
       { visual: '🐱', word: 'Cat' },
@@ -194,6 +197,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['Blue', 'Yellow', 'Green', 'Red'],
     answer: 'Yellow',
     hint: 'The sun is often yellow.',
+    explanation: 'The audio says “yellow.” Listening first and then choosing the word trains sound recognition.',
   },
   {
     id: 'listen-school',
@@ -205,6 +209,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['Pencil', 'Apple', 'Dog', 'Bunny'],
     answer: 'Pencil',
     hint: 'A pencil helps you write.',
+    explanation: 'The audio says “pencil,” which is a school object used for writing.',
   },
   {
     id: 'speak-apple',
@@ -216,6 +221,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['I said apple', 'I need to try again'],
     answer: 'I said apple',
     hint: 'Open your mouth for the “a” sound: apple.',
+    explanation: 'Self-check speaking keeps practice gentle for kids while still encouraging clear pronunciation.',
   },
   {
     id: 'speak-family',
@@ -227,6 +233,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['I said mother', 'I need to try again'],
     answer: 'I said mother',
     hint: 'Try slowly: mo-ther.',
+    explanation: 'Breaking the word into small sounds makes pronunciation easier to repeat.',
   },
   {
     id: 'read-bunny',
@@ -238,6 +245,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['Under the tree', 'In the sea', 'On the moon', 'In the box'],
     answer: 'Under the tree',
     hint: 'Look for the words “under the tree.”',
+    explanation: 'The sentence says, “The bunny is under the tree,” so that is the correct answer.',
     passage: 'The bunny is under the tree. It has a red ball. The bunny is happy.',
   },
   {
@@ -250,6 +258,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['She are happy.', 'She is happy.', 'She am happy.', 'She be happy.'],
     answer: 'She is happy.',
     hint: 'Use “is” with she, he, and it.',
+    explanation: 'In English, “she” uses “is.” The correct sentence is “She is happy.”',
   },
   {
     id: 'story-rocket',
@@ -261,6 +270,7 @@ export const kidPracticeActivities: KidPracticeActivity[] = [
     options: ['A blue star', 'A yellow fish', 'A red chair', 'A green apple'],
     answer: 'A blue star',
     hint: 'The story says he finds a blue star.',
+    explanation: 'The story says Rami finds a blue star on the moon.',
     passage: 'Rami puts on his helmet. The rocket goes zoom. On the moon, Rami finds a blue star and says, “Hello!”',
   },
 ];
