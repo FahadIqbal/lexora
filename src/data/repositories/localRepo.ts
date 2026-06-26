@@ -16,7 +16,7 @@ export const localPlacementRepo: PlacementRepository = {
 
 export const localWordsRepo: WordsRepository = {
   async getWordOfTheDay() {
-    // deterministic rotation (today index) without hardcoding a specific word
+    // deterministic rotation by day so the recommendation changes offline
     const day = Math.floor(Date.now() / 86_400_000);
     return seed.words[day % seed.words.length];
   },

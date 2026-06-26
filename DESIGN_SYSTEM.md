@@ -83,6 +83,6 @@ The current kid-focused routes include:
 - Parent dashboard: `/parent`.
 - Admin/teacher content management: `/admin`.
 
-## Content Data
+## Content and Runtime State
 
-Mock content for profiles, courses, lessons, badges, friends, leaderboard, missions, and quiz questions lives in `src/data/kidsMock.ts`. Replace this gradually with backend data without changing the presentation components.
+Curriculum seed content for profiles, courses, lessons, badges, friends, leaderboard, missions, and quiz questions lives in `src/data/kidContent.ts`. User-specific progress, parent session state, lesson completion, badge unlocks, missions, and friend challenges are persisted through `src/store/useAppStore.ts` and derived by `src/services/kidLearningService.ts`.

@@ -6,6 +6,11 @@ import { isoDate, isYesterday } from '../utils/date';
 import type { DailyStat, WordProgress } from '../domain/schema';
 import { DailyStatSchema, WordProgressSchema } from '../domain/schema';
 import { sm2Update } from '../utils/srs';
+import {
+  completeKidLesson,
+  createInitialKidState,
+  type KidRuntimeState,
+} from '../services/kidLearningService';
 
 type UserProfile = {
   id?: string;
@@ -30,6 +35,7 @@ type AppState = {
 
   wordProgress: Record<string, WordProgress>; // keyed by wordId
   dailyStats: Record<string, DailyStat>; // keyed by yyyy-MM-dd
+  kid: KidRuntimeState;
 
   setOnboardingCompleted: (v: boolean) => void;
   setSelectedCategories: (slugs: string[]) => void;
@@ -48,6 +54,12 @@ type AppState = {
   addToStudyList: (wordId: string) => void;
   recordLearned: (wordId: string) => void;
   recordReview: (wordId: string, quality: 0 | 1 | 2 | 3 | 4 | 5) => void;
+  signInKidParent: (input: { email: string; name: string; provider: 'supabase' | 'local'; userId?: string }) => void;
+  signOutKidParent: () => void;
+  selectKidProfile: (profileId: string) => void;
+  passKidParentGate: () => void;
+  recordKidLessonCompletion: (input: { lessonId: string; xp: number; stars: number; correctCount: number; attemptCount: number }) => void;
+  recordKidFriendChallenge: () => void;
 
   // selectors/helpers
   getDueWordIds: (today?: string) => string[];
@@ -101,6 +113,7 @@ export const useAppStore = create<AppState>()(
       lastActiveDate: undefined,
       wordProgress: {},
       dailyStats: {},
+      kid: createInitialKidState(),
 
       setOnboardingCompleted: (v) => set({ onboardingCompleted: v }),
       setSelectedCategories: (slugs) => set({ selectedCategories: slugs }),
@@ -306,6 +319,82 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
+      signInKidParent: ({ email, name, provider, userId }) =>
+        set((s) => ({
+          user: { ...s.user, id: userId ?? s.user.id ?? `local-parent:${email.toLowerCase()}`, displayName: name },
+          kid: {
+            ...s.kid,
+            parentSession: {
+              email,
+              name,
+              provider,
+              signedInAt: Date.now(),
+            },
+          },
+        })),
+
+      signOutKidParent: () =>
+        set((s) => ({
+          user: { ...s.user, id: undefined },
+          kid: {
+            ...s.kid,
+            parentSession: undefined,
+            parentGatePassedAt: undefined,
+          },
+        })),
+
+      selectKidProfile: (profileId) =>
+        set((s) => ({
+          onboardingCompleted: true,
+          kid: { ...s.kid, activeProfileId: profileId },
+        })),
+
+      passKidParentGate: () =>
+        set((s) => ({
+          kid: { ...s.kid, parentGatePassedAt: Date.now() },
+        })),
+
+      recordKidLessonCompletion: (input) =>
+        set((s) => {
+          const today = isoDate();
+          const prevStat = s.dailyStats[today] ? DailyStatSchema.parse(s.dailyStats[today]) : DailyStatSchema.parse({ date: today });
+          let streakCurrent = s.streakCurrent;
+          let streakLongest = s.streakLongest;
+          if (s.lastActiveDate !== today) {
+            if (s.lastActiveDate && isYesterday(s.lastActiveDate, today)) streakCurrent = s.streakCurrent + 1;
+            else streakCurrent = 1;
+            streakLongest = Math.max(streakLongest, streakCurrent);
+          }
+
+          return {
+            lastActiveDate: today,
+            streakCurrent,
+            streakLongest,
+            xpToday: s.xpToday + input.xp,
+            xpTotal: s.xpTotal + input.xp,
+            dailyStats: {
+              ...s.dailyStats,
+              [today]: {
+                ...prevStat,
+                wordsLearned: prevStat.wordsLearned + 1,
+                sessionsCount: prevStat.sessionsCount + 1,
+                xpEarned: prevStat.xpEarned + input.xp,
+                accuracyCorrect: prevStat.accuracyCorrect + input.correctCount,
+                accuracyTotal: prevStat.accuracyTotal + input.attemptCount,
+              },
+            },
+            kid: completeKidLesson(s.kid, input),
+          };
+        }),
+
+      recordKidFriendChallenge: () =>
+        set((s) => ({
+          kid: {
+            ...s.kid,
+            friendChallengeCount: s.kid.friendChallengeCount + 1,
+          },
+        })),
+
       getDueWordIds: (todayArg) => {
         const today = todayArg ?? isoDate();
         const wordProgress = get().wordProgress ?? {};
@@ -379,6 +468,7 @@ export const useAppStore = create<AppState>()(
         xpTotal: s.xpTotal,
         wordProgress: s.wordProgress,
         dailyStats: s.dailyStats,
+        kid: s.kid,
       }),
     }
   )
