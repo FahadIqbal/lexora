@@ -173,7 +173,7 @@ export const kidFeaturePowerUps = [
     icon: '🎭',
     color: '#8174F2',
     accent: '#FFD93D',
-    route: '/practice/speaking?lesson=daily-hello',
+    route: '/kids-roleplay?scenario=snack-shop',
     cta: 'Talk',
     tag: 'AI-style',
   },

@@ -76,6 +76,8 @@ Practice sessions use `src/services/kidPracticeExperienceService.ts` for mode th
 
 Adaptive memory review lives in `src/services/kidAdaptiveLearningService.ts`. Lesson completion should pass word-level results into the store so words move through new, learning, review, strong, and mastered states with due timing. Home, Review, and Practice should read the adaptive queue instead of hardcoded review cards.
 
+Buddy Roleplay lives in `src/services/kidRoleplayService.ts` and `/kids-roleplay`. It is the kid-safe implementation of the competitor pattern: real-world scenario practice, character-guided conversation, immediate response coaching, "Explain my answer" feedback, XP reward, and word-level review scheduling.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
@@ -108,6 +110,7 @@ The current kid-focused routes include:
 - Course/category selection and lesson list: `/(tabs)/learn`.
 - Lesson detail: `/lessons/[id]`.
 - Interactive vocabulary/listening/speaking/reading/grammar/story practice: `/practice/[mode]`.
+- Buddy Roleplay: `/kids-roleplay`.
 - Review: `/(tabs)/review`.
 - Games/daily challenge: `/(tabs)/games`.
 - Rewards/badges: `/rewards`.

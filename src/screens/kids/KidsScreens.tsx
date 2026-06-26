@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -87,6 +87,12 @@ import {
   isKidParentGateOpen,
   verifyKidParentGateAnswer,
 } from '../../services/kidParentSafetyService';
+import {
+  getKidRoleplayScenario,
+  getKidRoleplayScenarios,
+  type KidRoleplayChoice,
+  type KidRoleplayScenario,
+} from '../../services/kidRoleplayService';
 import missionPulse from '../../animations/mission-pulse.json';
 import wordQuestOrbit from '../../animations/word-quest-orbit.json';
 
@@ -1301,6 +1307,243 @@ function PracticeInteraction({
         />
       ))}
     </View>
+  );
+}
+
+export function KidsRoleplayScreen() {
+  const { scenario: scenarioParam } = useLocalSearchParams<{ scenario?: string }>();
+  const kid = useAppStore((s) => s.kid);
+  const recordKidLessonCompletion = useAppStore((s) => s.recordKidLessonCompletion);
+  const scenarios = getKidRoleplayScenarios(kid);
+  const scenario = getKidRoleplayScenario(kid, String(scenarioParam ?? scenarios[0]?.id));
+  const [turnIndex, setTurnIndex] = useState(0);
+  const [selectedChoice, setSelectedChoice] = useState<KidRoleplayChoice | null>(null);
+  const [answers, setAnswers] = useState<KidReviewResult[]>([]);
+  const [complete, setComplete] = useState(false);
+  const turn = scenario.turns[turnIndex];
+  const progress = (turnIndex + (selectedChoice ? 1 : 0)) / scenario.turns.length;
+  const correctCount = answers.filter((answer) => answer.correct).length + (selectedChoice?.correct ? 1 : 0);
+  const stars = Math.max(1, Math.min(3, Math.ceil((correctCount / scenario.turns.length) * 3)));
+
+  useEffect(() => {
+    setTurnIndex(0);
+    setSelectedChoice(null);
+    setAnswers([]);
+    setComplete(false);
+  }, [scenario.id]);
+
+  const choose = (choice: KidRoleplayChoice) => {
+    if (selectedChoice) return;
+    hapticSelection();
+    setSelectedChoice(choice);
+    if (choice.spokenText !== '...') Speech.speak(choice.spokenText);
+  };
+
+  const continueRoleplay = () => {
+    if (!selectedChoice) return;
+    const nextAnswers = selectedChoice.entryId
+      ? [...answers, { entryId: selectedChoice.entryId, correct: selectedChoice.correct, mode: selectedChoice.skill }]
+      : answers;
+
+    if (turnIndex >= scenario.turns.length - 1) {
+      setAnswers(nextAnswers);
+      recordKidLessonCompletion({
+        lessonId: `roleplay-${scenario.id}`,
+        xp: scenario.rewardXp,
+        stars,
+        correctCount,
+        attemptCount: scenario.turns.length,
+        wordResults: nextAnswers,
+      });
+      setComplete(true);
+      return;
+    }
+
+    setAnswers(nextAnswers);
+    setTurnIndex((value) => value + 1);
+    setSelectedChoice(null);
+  };
+
+  if (complete) {
+    return (
+      <KidScreen>
+        <KidHeader eyebrow="Roleplay complete" title="Conversation unlocked" subtitle={scenario.objective} avatar="🎭" />
+        <KidCard color={scenario.color} style={styles.roleplayCompleteHero}>
+          <CelebrationBurst />
+          <LexText variant="h2" style={{ color: 'white', textAlign: 'center' }}>
+            +{scenario.rewardXp} XP
+          </LexText>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{'⭐'.repeat(stars)}</LexText>
+          <KidPill label="Words added to review" active color={scenario.accent} />
+        </KidCard>
+        <SectionTitle title="Conversation recap" />
+        {scenario.turns.map((item, index) => (
+          <KidCard key={item.id} animated={false} style={styles.roleplayRecapRow}>
+            <View style={[styles.roleplayMiniIcon, { backgroundColor: `${scenario.color}22` }]}>
+              <LexText style={{ fontSize: 21, lineHeight: 29 }}>{item.sceneIcon}</LexText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: scenario.color }}>
+                Turn {index + 1}
+              </LexText>
+              <LexText variant="muted" style={{ color: c.ink, marginTop: 3 }}>
+                {item.prompt}
+              </LexText>
+            </View>
+          </KidCard>
+        ))}
+        <KidButton title="Try another roleplay" onPress={() => router.replace('/kids-roleplay')} />
+        <KidButton title="Back home" color={c.mint} onPress={() => router.replace('/(tabs)/home')} />
+      </KidScreen>
+    );
+  }
+
+  return (
+    <KidScreen>
+      <KidHeader
+        eyebrow="Buddy Roleplay"
+        title={scenario.title}
+        subtitle={scenario.subtitle}
+        avatar={scenario.icon}
+        right={<KidPill label={`${turnIndex + 1}/${scenario.turns.length}`} active color={scenario.accent} />}
+      />
+
+      <RoleplayScenarioRail scenarios={scenarios} activeId={scenario.id} />
+
+      <KidCard color={scenario.color} style={styles.roleplayStage}>
+        <Floating3DToken icon={scenario.icon} color={scenario.accent} style={styles.roleplayFloatOne} />
+        <Floating3DToken icon={turn.sceneIcon} color="rgba(255,255,255,0.88)" delay={280} style={styles.roleplayFloatTwo} />
+        <View style={styles.roleplayStageTop}>
+          <KidPill label={scenario.location} active color="rgba(255,255,255,0.22)" />
+          <KidPill label={`${scenario.rewardXp} XP`} active color={scenario.accent} />
+        </View>
+        <View style={styles.roleplayCharacterStage}>
+          <KidAvatar label={kidCharacters.buddy} size={72} color="white" />
+          <View style={styles.roleplaySpeechBubble}>
+            <LexText variant="title" style={{ color: c.ink, lineHeight: 23 }}>
+              {turn.buddyLine}
+            </LexText>
+          </View>
+        </View>
+        <KidProgressBar progress={progress} color={scenario.accent} />
+        <LexText variant="h2" style={styles.roleplayPrompt}>
+          {turn.prompt}
+        </LexText>
+        <Pressable accessibilityRole="button" onPress={() => Speech.speak(turn.buddyLine)} style={styles.roleplayAudioButton}>
+          <IconSymbol name="speaker.wave.2.fill" fallback="A" color={c.ink} size={18} />
+          <LexText variant="title" style={{ color: c.ink, fontSize: 13 }}>
+            Hear Buddy
+          </LexText>
+        </Pressable>
+      </KidCard>
+
+      <View style={styles.roleplayChoices}>
+        {turn.choices.map((choice) => (
+          <RoleplayChoiceCard key={choice.id} choice={choice} selected={selectedChoice?.id === choice.id} done={Boolean(selectedChoice)} onPress={() => choose(choice)} />
+        ))}
+      </View>
+
+      {selectedChoice ? <RoleplayFeedback choice={selectedChoice} scenario={scenario} /> : <RoleplayFocusWords scenario={scenario} />}
+
+      <View style={{ marginTop: 16 }}>
+        <KidButton title={turnIndex >= scenario.turns.length - 1 ? 'Finish roleplay' : 'Continue'} disabled={!selectedChoice} onPress={continueRoleplay} />
+      </View>
+    </KidScreen>
+  );
+}
+
+function RoleplayScenarioRail({ scenarios, activeId }: { scenarios: KidRoleplayScenario[]; activeId: string }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.roleplayScenarioRail}>
+      {scenarios.map((scenario) => {
+        const active = scenario.id === activeId;
+        return (
+          <Pressable key={scenario.id} accessibilityRole="button" onPress={() => router.replace(`/kids-roleplay?scenario=${scenario.id}`)}>
+            <View style={[styles.roleplayScenarioPill, { backgroundColor: active ? scenario.color : c.paper, borderColor: active ? scenario.color : c.line }]}>
+              <LexText style={{ fontSize: 18, lineHeight: 24 }}>{scenario.icon}</LexText>
+              <LexText variant="label" style={{ color: active ? 'white' : c.muted, fontSize: 10 }}>
+                {scenario.title}
+              </LexText>
+            </View>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function RoleplayChoiceCard({
+  choice,
+  selected,
+  done,
+  onPress,
+}: {
+  choice: KidRoleplayChoice;
+  selected: boolean;
+  done: boolean;
+  onPress: () => void;
+}) {
+  const bg = !done ? c.paper : choice.correct ? c.mintSoft : selected ? c.coralSoft : c.paper;
+  const border = !done ? c.line : choice.correct ? c.success : selected ? c.danger : c.line;
+  return (
+    <Pressable accessibilityRole="button" disabled={done} onPress={onPress} style={[styles.roleplayChoice, { backgroundColor: bg, borderColor: border }]}>
+      <View style={[styles.roleplayChoiceIcon, { backgroundColor: choice.correct && done ? c.mint : c.lilac }]}>
+        <LexText style={{ fontSize: 18, lineHeight: 24 }}>{choice.correct && done ? '✓' : '💬'}</LexText>
+      </View>
+      <View style={{ flex: 1 }}>
+        <LexText variant="title" style={{ color: c.ink }}>
+          {choice.label}
+        </LexText>
+        <LexText variant="muted" style={{ color: c.muted, marginTop: 3, fontSize: 12 }}>
+          {choice.skill}
+        </LexText>
+      </View>
+    </Pressable>
+  );
+}
+
+function RoleplayFeedback({ choice, scenario }: { choice: KidRoleplayChoice; scenario: KidRoleplayScenario }) {
+  return (
+    <KidCard color={choice.correct ? c.mintSoft : c.coralSoft} style={styles.roleplayFeedback}>
+      <View style={styles.feedbackHeader}>
+        <FeedbackBurstIcon ok={choice.correct} />
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" style={{ color: c.ink }}>
+            {choice.correct ? 'Great conversation move' : 'Good try'}
+          </LexText>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 2 }}>
+            {choice.response}
+          </LexText>
+        </View>
+        <KidPill label="Explain" active color={scenario.accent} />
+      </View>
+      <View style={styles.explainBox}>
+        <LexText variant="label" style={{ color: scenario.color }}>
+          Explain my answer
+        </LexText>
+        <LexText variant="muted" style={{ color: c.ink, marginTop: 4, lineHeight: 20 }}>
+          {choice.explanation}
+        </LexText>
+      </View>
+    </KidCard>
+  );
+}
+
+function RoleplayFocusWords({ scenario }: { scenario: KidRoleplayScenario }) {
+  return (
+    <KidCard animated={false} color={c.lilac} style={styles.roleplayFocusCard}>
+      <KidAvatar label={kidCharacters.buddy} size={46} color="white" />
+      <View style={{ flex: 1 }}>
+        <LexText variant="label" style={{ color: scenario.color }}>
+          Today’s speaking words
+        </LexText>
+        <View style={styles.roleplayWordRow}>
+          {scenario.focusWords.slice(0, 4).map((entry) => (
+            <KidPill key={entry.id} label={`${entry.emoji} ${entry.word}`} active color={entry.color} />
+          ))}
+        </View>
+      </View>
+    </KidCard>
   );
 }
 
@@ -3305,6 +3548,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  roleplayScenarioRail: { gap: 8, paddingVertical: 12 },
+  roleplayScenarioPill: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  roleplayStage: { gap: 14, overflow: 'hidden' },
+  roleplayStageTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  roleplayFloatOne: { position: 'absolute', top: 78, right: 22 },
+  roleplayFloatTwo: { position: 'absolute', bottom: 108, left: 22 },
+  roleplayCharacterStage: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  roleplaySpeechBubble: {
+    flex: 1,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.48)',
+    boxShadow: '0 10px 0 rgba(34,35,74,0.12)',
+  },
+  roleplayPrompt: { color: 'white', textAlign: 'center', fontSize: 27, lineHeight: 34 },
+  roleplayAudioButton: {
+    minHeight: 50,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.74)',
+  },
+  roleplayChoices: { gap: 10, marginTop: 14 },
+  roleplayChoice: {
+    minHeight: 72,
+    borderRadius: 25,
+    borderCurve: 'continuous',
+    borderWidth: 2,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  roleplayChoiceIcon: { width: 44, height: 44, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  roleplayFeedback: { marginTop: 12 },
+  roleplayFocusCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+  roleplayWordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
+  roleplayCompleteHero: { alignItems: 'center', gap: 12, overflow: 'hidden' },
+  roleplayRecapRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  roleplayMiniIcon: { width: 46, height: 46, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   quizCard: { marginTop: 12, alignItems: 'center', paddingVertical: 14 },
   practicePrompt: { color: 'white', marginTop: 14, textAlign: 'center', fontSize: 32, lineHeight: 38 },
   practiceVisual: { fontSize: 58, lineHeight: 68, textAlign: 'center', marginTop: 8 },
