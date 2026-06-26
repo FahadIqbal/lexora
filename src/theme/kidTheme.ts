@@ -1,6 +1,6 @@
 export const kidTheme = {
   colors: {
-    appBg: '#FFF8EC',
+    appBg: '#F7FBFF',
     paper: '#FFFFFF',
     ink: '#22234A',
     muted: '#6F7392',

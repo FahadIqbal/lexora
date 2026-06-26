@@ -25,8 +25,12 @@ import {
   kidBadges,
   kidCategories,
   kidCourses,
+  kidLearningTracks,
+  kidParentInsights,
   kidProfiles,
   kidPracticeActivities,
+  kidReviewSchedule,
+  kidTeacherPipelines,
   type KidPracticeActivity,
 } from '../../data/kidContent';
 import { hapticSelection } from '../../utils/haptics';
@@ -453,10 +457,13 @@ export function KidsLearnScreen() {
   const courses = getKidCourses(kid);
   const allLessons = getKidLessons(kid);
   const lessons = active === 'all' ? allLessons : allLessons.filter((lesson) => lesson.courseId === active || lesson.type === active);
+  const featuredTrack = kidLearningTracks[0];
+  const filteredTitle = active === 'all' ? 'Recommended next lessons' : 'Lessons in this path';
 
   return (
     <KidScreen>
-      <KidHeader eyebrow="Choose your course" title="Learning worlds" subtitle="Pick a colorful path and keep collecting stars." avatar="🌈" />
+      <KidHeader eyebrow="Choose your course" title="Learning worlds" subtitle="Play through English skills, stories, and review loops." avatar="🌈" />
+      <TrackSpotlight track={featuredTrack} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 16 }}>
         <KidPill label="All" active={active === 'all'} onPress={() => setActive('all')} />
         {courses.map((course) => (
@@ -464,28 +471,19 @@ export function KidsLearnScreen() {
         ))}
       </ScrollView>
 
-      {courses.map((course) => (
-        <Pressable key={course.id} accessibilityRole="button" onPress={() => setActive(course.id)}>
-          <KidCard color={course.color} style={styles.courseCard}>
-            <View style={{ flex: 1 }}>
-              <LexText style={{ fontSize: 38, lineHeight: 48 }}>{course.icon}</LexText>
-              <LexText variant="h3" style={{ color: 'white', marginTop: 8 }}>
-                {course.title}
-              </LexText>
-              <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.78)', marginTop: 4 }}>
-                {course.subtitle}
-              </LexText>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                <KidPill label={`${course.minutes} min`} active color="rgba(255,255,255,0.24)" />
-                <KidPill label={course.level} active color="rgba(255,255,255,0.24)" />
-              </View>
-            </View>
-            <KidProgressBar progress={course.progress} color={c.yellow} />
-          </KidCard>
-        </Pressable>
+      <SectionTitle title="Skill tracks" action="Review" onPress={() => router.push('/(tabs)/review')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {kidLearningTracks.map((track) => (
+          <TrackCard key={track.id} track={track} onPress={() => setActive(track.id === 'sentence-garden' ? 'grammar' : track.id === 'sound-lab' ? 'phonics' : 'all')} />
+        ))}
+      </ScrollView>
+
+      <SectionTitle title="Course worlds" />
+      {courses.map((course, index) => (
+        <WorldCourseCard key={course.id} course={course} index={index} active={active === course.id} onPress={() => setActive(course.id)} />
       ))}
 
-      <SectionTitle title="English lesson list" />
+      <SectionTitle title={filteredTitle} />
       {lessons.map((lesson) => (
         <LessonCard
           key={lesson.id}
@@ -993,25 +991,61 @@ export function KidsRewardsScreen() {
   const streakCurrent = useAppStore((s) => s.streakCurrent);
   const badges = getKidBadges(kid);
   const totalStars = getTotalStars(kid);
+  const unlockedCount = badges.filter((badge) => badge.unlocked).length;
 
   return (
     <KidScreen>
       <KidHeader eyebrow="Rewards" title="Badges & stars" subtitle="Celebrate wins and unlock new adventures." avatar="🏆" />
-      <KidCard color={c.yellow}>
-        <LexText variant="h2" style={{ color: c.ink }}>
-          You have {Math.max(1, streakCurrent)} streak day{Math.max(1, streakCurrent) === 1 ? '' : 's'}!
-        </LexText>
-        <LexText variant="muted" style={{ color: c.ink, marginTop: 6 }}>
-          {totalStars} stars collected across English worlds.
-        </LexText>
-        <KidProgressBar progress={Math.min(1, totalStars / 12)} color={c.purple} />
+      <KidCard color={c.yellow} style={styles.rewardHero}>
+        <View style={{ flex: 1 }}>
+          <KidPill label="Treasure room" active color="rgba(255,255,255,0.42)" />
+          <LexText variant="h2" style={{ color: c.ink, marginTop: 10 }}>
+            {Math.max(1, streakCurrent)} day streak is powering the next badge
+          </LexText>
+          <LexText variant="muted" style={{ color: c.ink, marginTop: 6 }}>
+            {totalStars} stars collected across English worlds.
+          </LexText>
+        </View>
+        <View style={styles.rewardChest}>
+          <LexoraLottie source={missionPulse} size={112} speed={0.9} />
+          <LexText style={styles.rewardChestIcon}>🏆</LexText>
+        </View>
       </KidCard>
-      <SectionTitle title="My badges" />
+      <View style={styles.statsRow}>
+        <MiniStat icon="⭐" value={`${totalStars}`} label="stars" color={c.yellowSoft} />
+        <MiniStat icon="🏅" value={`${unlockedCount}/${badges.length}`} label="badges" color={c.mintSoft} />
+        <MiniStat icon="🔥" value={`${Math.max(1, streakCurrent)}`} label="streak" color={c.coralSoft} />
+      </View>
+      <KidCard>
+        <SectionMini title="Next unlock" />
+        <KidProgressBar progress={Math.min(1, totalStars / 12)} color={c.purple} />
+        <LexText variant="muted" style={{ color: c.muted, marginTop: 10 }}>
+          Earn {Math.max(0, 12 - totalStars)} more stars to unlock a new character reward.
+        </LexText>
+      </KidCard>
+      <SectionTitle title="Badge cabinet" />
       <View style={styles.badgeGrid}>
         {badges.map((badge) => (
           <BadgeTile key={badge.id} icon={badge.icon} title={badge.title} locked={!badge.unlocked} progress={badge.progress} />
         ))}
       </View>
+      <SectionTitle title="Character rewards" />
+      {kidLearningTracks.map((track) => (
+        <KidCard key={track.id} style={styles.characterRewardRow}>
+          <View style={[styles.rewardCharacter, { backgroundColor: `${track.color}22` }]}>
+            <LexText style={{ fontSize: 28, lineHeight: 36 }}>{track.icon}</LexText>
+          </View>
+          <View style={{ flex: 1 }}>
+            <LexText variant="title" style={{ color: c.ink }}>
+              {track.title} buddy
+            </LexText>
+            <LexText variant="muted" style={{ color: c.muted, marginTop: 3 }}>
+              {track.promise}
+            </LexText>
+          </View>
+          <KidPill label={track.mastery > 0.5 ? 'Unlocked' : 'Locked'} active color={track.mastery > 0.5 ? c.mint : c.lilac} />
+        </KidCard>
+      ))}
     </KidScreen>
   );
 }
@@ -1022,10 +1056,32 @@ export function KidsSocialScreen() {
   const xpTotal = useAppStore((s) => s.xpTotal);
   const recordKidFriendChallenge = useAppStore((s) => s.recordKidFriendChallenge);
   const rows = tab === 'world' ? getKidLeaderboard(kid, xpTotal) : getKidFriends(kid).map((item, index) => ({ ...item, rank: index + 1 }));
+  const podiumRows = getKidLeaderboard(kid, xpTotal).slice(0, 3);
 
   return (
     <KidScreen>
       <KidHeader eyebrow="Leaderboard" title="My ranking" subtitle="Friendly challenges only. No ads, no pressure." avatar="🏅" />
+      <KidCard color={c.purple} style={styles.socialHero}>
+        <View style={{ flex: 1 }}>
+          <KidPill label="Weekly league" active color="rgba(255,255,255,0.24)" />
+          <LexText variant="h2" style={{ color: 'white', marginTop: 10 }}>
+            Friendly races, not pressure
+          </LexText>
+          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
+            Kids can challenge friends with short practice rounds and no open chat.
+          </LexText>
+        </View>
+        <View style={styles.podiumWrap}>
+          {podiumRows.map((row, index) => (
+            <View key={row.name} style={[styles.podiumStep, index === 0 ? styles.podiumStepWinner : null]}>
+              <KidAvatar label={row.avatar} size={index === 0 ? 52 : 44} color="white" />
+              <LexText variant="label" style={{ color: index === 0 ? c.yellow : 'rgba(255,255,255,0.78)', marginTop: 5 }}>
+                #{row.rank}
+              </LexText>
+            </View>
+          ))}
+        </View>
+      </KidCard>
       <View style={{ flexDirection: 'row', gap: 10, marginVertical: 16 }}>
         <KidPill label="World" active={tab === 'world'} onPress={() => setTab('world')} />
         <KidPill label="Friends" active={tab === 'friends'} color={c.mint} onPress={() => setTab('friends')} />
@@ -1075,10 +1131,23 @@ export function KidsProgressScreen() {
   const totalStars = getTotalStars(kid);
   const badges = getKidBadges(kid);
   const weeklyWords = getWeeklyWordsLearned();
+  const nextLevelXp = Math.max(0, 900 - child.xp - xpTotal);
 
   return (
     <KidScreen>
       <KidHeader eyebrow="Profile" title={`${child.name}’s progress`} subtitle="Parent-friendly learning snapshot." avatar={child.avatar} right={<KidButton title="Parent" onPress={() => router.push('/parent')} />} />
+      <KidCard color={c.purple} style={styles.profileHeroCard}>
+        <KidAvatar label={child.avatar} size={86} color="white" />
+        <View style={{ flex: 1 }}>
+          <KidPill label={`Level ${child.level}`} active color={c.yellow} />
+          <LexText variant="h2" style={{ color: 'white', marginTop: 10 }}>
+            {nextLevelXp} XP to the next island
+          </LexText>
+          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
+            Keep the daily quest short, playful, and consistent.
+          </LexText>
+        </View>
+      </KidCard>
       <View style={styles.statsRow}>
         <MiniStat icon="⭐" value={`${child.xp + xpTotal}`} label="XP" color={c.yellowSoft} />
         <MiniStat icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="streak" color={c.coralSoft} />
@@ -1088,9 +1157,15 @@ export function KidsProgressScreen() {
         <SectionMini title="Level progress" />
         <KidProgressBar progress={Math.min(1, (child.xp + xpTotal) / 900)} color={c.purple} />
         <LexText variant="muted" style={{ color: c.muted, marginTop: 10 }}>
-          {Math.max(0, 900 - child.xp - xpTotal)} XP to Level {child.level + 1}
+          {nextLevelXp} XP to Level {child.level + 1}
         </LexText>
       </KidCard>
+      <SectionTitle title="Skill mastery" />
+      <View style={{ gap: 10 }}>
+        {kidLearningTracks.map((track) => (
+          <TrackMasteryRow key={track.id} track={track} />
+        ))}
+      </View>
       <SectionTitle title="Weekly learning" />
       <View style={styles.weekRow}>
         {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
@@ -1157,6 +1232,27 @@ export function KidsParentDashboardScreen() {
         <MiniStat icon="✅" value={`${accuracy}%`} label="accuracy" color={c.mintSoft} />
         <MiniStat icon="📥" value={`${lessons.length}`} label="offline" color={c.yellowSoft} />
       </View>
+      <SectionTitle title="Parent insights" />
+      <View style={{ gap: 10 }}>
+        {kidParentInsights.map((insight) => (
+          <KidCard key={insight.id} animated={false} style={styles.parentInsightRow}>
+            <View style={[styles.parentInsightIcon, { backgroundColor: `${insight.color}22` }]}>
+              <LexText style={{ fontSize: 24, lineHeight: 32 }}>{insight.icon}</LexText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: insight.color }}>
+                {insight.title}
+              </LexText>
+              <LexText variant="title" style={{ color: c.ink, marginTop: 2 }}>
+                {insight.value}
+              </LexText>
+              <LexText variant="muted" style={{ color: c.muted, marginTop: 2 }}>
+                {insight.detail}
+              </LexText>
+            </View>
+          </KidCard>
+        ))}
+      </View>
       <KidCard>
         <SectionMini title={`${child.name}'s learning controls`} />
         {[
@@ -1201,6 +1297,23 @@ export function KidsAdminTeacherScreen() {
           <KidButton title="Categories" color={c.sky} onPress={() => router.push('/admin/categories')} />
         </View>
       </KidCard>
+      <SectionTitle title="Publishing pipeline" />
+      <View style={styles.pipelineGrid}>
+        {kidTeacherPipelines.map((item) => (
+          <KidCard key={item.id} animated={false} style={styles.pipelineCard}>
+            <View style={[styles.pipelineDot, { backgroundColor: item.color }]} />
+            <LexText variant="h2" style={{ color: c.ink }}>
+              {item.count}
+            </LexText>
+            <LexText variant="title" style={{ color: c.ink }}>
+              {item.title}
+            </LexText>
+            <LexText variant="muted" style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 3 }}>
+              {item.detail}
+            </LexText>
+          </KidCard>
+        ))}
+      </View>
       <KidCard>
         <SectionMini title="Search content" />
         <TextInput
@@ -1249,6 +1362,29 @@ export function KidsReviewScreen() {
           <KidButton title="Start review" onPress={() => router.push('/practice/vocabulary?lesson=animals-1')} />
         </View>
       </KidCard>
+      <SectionTitle title="Memory timing" />
+      <View style={{ gap: 10 }}>
+        {kidReviewSchedule.map((item) => (
+          <KidCard key={item.id} animated={false} style={styles.reviewTimingRow}>
+            <View style={[styles.reviewTimingIcon, { backgroundColor: `${item.color}22` }]}>
+              <LexText style={{ fontSize: 24, lineHeight: 32 }}>{item.icon}</LexText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={styles.masteryHeader}>
+                <LexText variant="title" style={{ color: c.ink }}>
+                  {item.title}
+                </LexText>
+                <KidPill label={item.label} active color={item.color} />
+              </View>
+              <LexText variant="muted" style={{ color: c.muted, marginVertical: 6 }}>
+                {item.subtitle}
+              </LexText>
+              <KidProgressBar progress={item.progress} color={item.color} />
+            </View>
+          </KidCard>
+        ))}
+      </View>
+      <SectionTitle title="Due cards" />
       {reviewActivities.map((q) => (
         <KidCard key={q.id} style={styles.reviewPreview}>
           <LexText style={{ fontSize: 34, lineHeight: 42 }}>{q.visual}</LexText>
@@ -1301,17 +1437,19 @@ export function KidsGamesScreen() {
         <CharacterBubble mood="star" />
       </KidCard>
       <SectionTitle title="Game modes" />
-      {gameModes.map(({ title, subtitle, icon, mode, lessonId, progress }) => (
-        <LessonCard
-          key={mode}
-          title={title}
-          subtitle={subtitle}
-          icon={icon}
-          color={mode === 'grammar' ? c.mint : mode === 'speaking' ? c.coral : c.purple}
-          progress={progress}
-          onPress={() => router.push(`/practice/${mode}?lesson=${lessonId}`)}
-        />
-      ))}
+      <View style={styles.gameModeGrid}>
+        {gameModes.map(({ title, subtitle, icon, mode, lessonId, progress }) => (
+          <GameModeCard
+            key={mode}
+            title={title}
+            subtitle={subtitle}
+            icon={icon}
+            color={mode === 'grammar' ? c.mint : mode === 'speaking' ? c.coral : mode === 'listening' ? c.blue : c.purple}
+            progress={progress}
+            onPress={() => router.push(`/practice/${mode}?lesson=${lessonId}`)}
+          />
+        ))}
+      </View>
     </KidScreen>
   );
 }
@@ -1338,6 +1476,157 @@ function SectionMini({ title }: { title: string }) {
     <LexText variant="title" style={{ color: c.ink, fontSize: 18, marginBottom: 12 }}>
       {title}
     </LexText>
+  );
+}
+
+function TrackSpotlight({ track }: { track: (typeof kidLearningTracks)[number] }) {
+  return (
+    <KidCard color={track.color} style={styles.trackSpotlight}>
+      <View style={{ flex: 1 }}>
+        <KidPill label="Featured path" active color="rgba(255,255,255,0.24)" />
+        <LexText variant="h2" style={styles.trackSpotlightTitle}>
+          {track.title}
+        </LexText>
+        <LexText variant="muted" style={styles.trackSpotlightText}>
+          {track.promise}
+        </LexText>
+        <View style={styles.trackSpotlightMeta}>
+          <KidPill label={`${Math.round(track.mastery * 100)}% mastery`} active color={c.yellow} />
+          <KidPill label="Spaced review" active color="rgba(255,255,255,0.24)" />
+        </View>
+      </View>
+      <View style={styles.trackSpotlightArt}>
+        <LexoraLottie source={wordQuestOrbit} size={112} speed={0.78} />
+        <LexText style={styles.trackSpotlightIcon}>{track.icon}</LexText>
+      </View>
+    </KidCard>
+  );
+}
+
+function TrackCard({ track, onPress }: { track: (typeof kidLearningTracks)[number]; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${track.title}. ${track.subtitle}`} onPress={onPress} style={styles.trackCardPressable}>
+      <KidCard animated={false} style={styles.trackCard}>
+        <LinearGradient colors={[track.color, '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.trackIcon}>
+          <LexText style={{ fontSize: 32, lineHeight: 40 }}>{track.icon}</LexText>
+        </LinearGradient>
+        <LexText variant="title" style={{ color: c.ink, marginTop: 10 }}>
+          {track.title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 3 }}>
+          {track.next}
+        </LexText>
+        <View style={{ marginTop: 10 }}>
+          <KidProgressBar progress={track.mastery} color={track.color} />
+        </View>
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function WorldCourseCard({
+  course,
+  index,
+  active,
+  onPress,
+}: {
+  course: ReturnType<typeof getKidCourses>[number];
+  index: number;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress}>
+      <KidCard color={course.color} style={styles.worldCourseCard}>
+        <View style={styles.worldCourseTop}>
+          <View style={styles.worldCourseBadge}>
+            <LexText variant="label" style={{ color: c.ink }}>
+              World {index + 1}
+            </LexText>
+          </View>
+          <KidPill label={`${course.minutes} min`} active color="rgba(255,255,255,0.24)" />
+        </View>
+        <View style={styles.worldCourseBody}>
+          <View style={{ flex: 1 }}>
+            <LexText style={styles.worldCourseIcon}>{course.icon}</LexText>
+            <LexText variant="h3" style={{ color: 'white', marginTop: 8 }}>
+              {course.title}
+            </LexText>
+            <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.78)', marginTop: 4 }}>
+              {course.subtitle}
+            </LexText>
+          </View>
+          <View style={styles.worldCourseProgress}>
+            <LexText variant="h3" style={{ color: c.ink }}>
+              {Math.round(course.progress * 100)}%
+            </LexText>
+            <LexText variant="label" style={{ color: c.muted, fontSize: 9 }}>
+              complete
+            </LexText>
+          </View>
+        </View>
+        <KidProgressBar progress={course.progress} color={c.yellow} />
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function TrackMasteryRow({ track }: { track: (typeof kidLearningTracks)[number] }) {
+  return (
+    <KidCard animated={false} style={styles.trackMasteryRow}>
+      <View style={[styles.masteryIcon, { backgroundColor: `${track.color}22` }]}>
+        <LexText style={{ fontSize: 24, lineHeight: 32 }}>{track.icon}</LexText>
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.masteryHeader}>
+          <LexText variant="title" style={{ color: c.ink }}>
+            {track.title}
+          </LexText>
+          <LexText variant="label" style={{ color: track.color }}>
+            {Math.round(track.mastery * 100)}%
+          </LexText>
+        </View>
+        <LexText variant="muted" numberOfLines={1} style={{ color: c.muted, marginBottom: 8 }}>
+          {track.next}
+        </LexText>
+        <KidProgressBar progress={track.mastery} color={track.color} />
+      </View>
+    </KidCard>
+  );
+}
+
+function GameModeCard({
+  title,
+  subtitle,
+  icon,
+  color,
+  progress,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  color: string;
+  progress: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={styles.gameModePressable}>
+      <KidCard animated={false} style={styles.gameModeCard}>
+        <LinearGradient colors={[`${color}DD`, '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gameModeArt}>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{icon}</LexText>
+        </LinearGradient>
+        <LexText variant="title" style={{ color: c.ink, marginTop: 10 }}>
+          {title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 3 }}>
+          {subtitle}
+        </LexText>
+        <View style={{ marginTop: 10 }}>
+          <KidProgressBar progress={progress} color={color} />
+        </View>
+      </KidCard>
+    </Pressable>
   );
 }
 
@@ -1675,6 +1964,44 @@ const styles = StyleSheet.create({
     borderColor: c.line,
   },
   courseCard: { marginBottom: 14, minHeight: 176, gap: 16 },
+  trackSpotlight: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  trackSpotlightTitle: { color: 'white', marginTop: 10, fontSize: 30, lineHeight: 35 },
+  trackSpotlightText: { color: 'rgba(255,255,255,0.82)', marginTop: 6 },
+  trackSpotlightMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  trackSpotlightArt: {
+    width: 120,
+    minHeight: 136,
+    borderRadius: 34,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackSpotlightIcon: { position: 'absolute', fontSize: 44, lineHeight: 54 },
+  trackCardPressable: { width: 166 },
+  trackCard: { minHeight: 188 },
+  trackIcon: { width: 62, height: 62, borderRadius: 23, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  worldCourseCard: { marginBottom: 14, gap: 16, overflow: 'hidden' },
+  worldCourseTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  worldCourseBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  worldCourseBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  worldCourseIcon: { fontSize: 42, lineHeight: 50 },
+  worldCourseProgress: {
+    width: 82,
+    height: 82,
+    borderRadius: 30,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   detailHero: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 18 },
   detailHeroV2: { marginTop: 18, gap: 16 },
   detailHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -1712,6 +2039,46 @@ const styles = StyleSheet.create({
   },
   activityArrow: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   buddyTipCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rewardHero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rewardChest: {
+    width: 112,
+    minHeight: 126,
+    borderRadius: 34,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardChestIcon: { position: 'absolute', fontSize: 42, lineHeight: 52 },
+  characterRewardRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  rewardCharacter: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  socialHero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  podiumWrap: { width: 126, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
+  podiumStep: {
+    width: 36,
+    minHeight: 98,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
+  },
+  podiumStepWinner: { width: 44, minHeight: 124, backgroundColor: 'rgba(255,217,61,0.28)' },
+  profileHeroCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 },
+  trackMasteryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  masteryIcon: { width: 52, height: 52, borderRadius: 20, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  masteryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  parentInsightRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  parentInsightIcon: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  pipelineGrid: { flexDirection: 'row', gap: 10 },
+  pipelineCard: { flex: 1, minHeight: 154 },
+  pipelineDot: { width: 28, height: 8, borderRadius: 999, marginBottom: 10 },
+  reviewTimingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  reviewTimingIcon: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  gameModeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gameModePressable: { width: '47%' },
+  gameModeCard: { minHeight: 190 },
+  gameModeArt: { width: 68, height: 68, borderRadius: 25, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   activityRow: {
     minHeight: 62,
     flexDirection: 'row',

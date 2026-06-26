@@ -13,7 +13,7 @@ Primary tokens live in `src/theme/kidTheme.ts`.
 - Yellow `#FFD93D`: XP, rewards, primary CTAs, stars.
 - Coral `#FF7A7A`: speaking, challenges, gentle correction.
 - Mint `#51D9A8`: success, review, completion, safety.
-- White and warm cream backgrounds keep screens child-friendly and readable.
+- White and soft blue backgrounds keep screens child-friendly, readable, and less dashboard-like.
 
 Avoid dark corporate surfaces for kid-facing screens.
 
@@ -53,6 +53,17 @@ Reusable kid UI lives in `src/components/kids/KidKit.tsx`.
 - `BadgeTile`: rewards and locked badge states.
 
 Centralized kid visual assets live in `src/assets/kidAssets.ts`. Screens should pull character, route, category, and native icon references from that file instead of scattering visual constants through feature code.
+
+## Product Loops
+
+Kid-facing screens should show a clear loop instead of isolated information:
+
+- Goal: a quest, world, mission, or next unlock.
+- Action: one obvious practice, review, story, or game CTA.
+- Feedback: buddy explanation, progress fill, XP, stars, or recall timing.
+- Reward: badge cabinet, character reward, streak, or social challenge.
+
+Course and progress screens use `kidLearningTracks`, `kidReviewSchedule`, `kidParentInsights`, and `kidTeacherPipelines` from `src/data/kidContent.ts` so content remains structured and reusable.
 
 ## Animation Rules
 
