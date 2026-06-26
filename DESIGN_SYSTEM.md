@@ -78,6 +78,8 @@ Adaptive memory review lives in `src/services/kidAdaptiveLearningService.ts`. Le
 
 Buddy Roleplay lives in `src/services/kidRoleplayService.ts` and `/kids-roleplay`. It is the kid-safe implementation of the competitor pattern: real-world scenario practice, character-guided conversation, immediate response coaching, "Explain my answer" feedback, XP reward, and word-level review scheduling.
 
+Daily Quest orchestration lives in `src/services/kidDailyQuestService.ts`. Home, Games, and Progress should render quest state from this service so the daily path, next action, XP reward, play step, focus words, and parent summary stay consistent instead of being manually assembled per screen.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:

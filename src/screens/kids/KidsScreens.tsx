@@ -44,8 +44,6 @@ import { getSupabase } from '../../services/supabase';
 import { upsertUserProfile } from '../../services/supabaseHelpers';
 import {
   getActiveKidProfile,
-  getContinueLesson,
-  getKidDailyPath,
   getKidEnergy,
   getKidBadges,
   getKidCourses,
@@ -82,6 +80,7 @@ import {
   getKidAdaptiveReviewSummary,
   type KidReviewResult,
 } from '../../services/kidAdaptiveLearningService';
+import { getKidDailyQuest, type KidDailyQuest, type KidDailyQuestStep } from '../../services/kidDailyQuestService';
 import {
   getKidParentGateChallenge,
   isKidParentGateOpen,
@@ -101,20 +100,10 @@ export function KidsHomeScreen() {
   const xpTotal = useAppStore((s) => s.xpTotal);
   const streakCurrent = useAppStore((s) => s.streakCurrent);
   const child = getActiveKidProfile(kid);
-  const continueLesson = getContinueLesson(kid);
   const recommended = getRecommendedLessons(kid);
-  const missions = getKidMissions(kid);
-  const friends = getKidFriends(kid);
   const leaderboard = getKidLeaderboard(kid, xpTotal);
-  const dailyPath = getKidDailyPath(kid);
   const energy = getKidEnergy(kid);
-  const dailyWords = getDailyKidDictionarySet(kid, 4);
-  const reviewSummary = getKidAdaptiveReviewSummary(kid);
-  const reviewQueue = getKidAdaptiveReviewQueue(kid, 3);
-  const primaryReview = reviewQueue[0];
-  const primaryMission = missions[0];
-  const primaryWord = dailyWords[0];
-  const featuredFriend = friends[0];
+  const dailyQuest = getKidDailyQuest(kid);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
 
@@ -122,14 +111,7 @@ export function KidsHomeScreen() {
     <KidScreen>
       <HomeCompactHeader childName={child.name} avatar={child.avatar} energy={energy.current} energyMax={energy.max} xp={totalXp} />
 
-      <QuestIslandHero
-        lessonTitle={continueLesson.title}
-        lessonSubtitle={continueLesson.subtitle}
-        lessonProgress={continueLesson.progress}
-        lessonXp={continueLesson.xp}
-        lessonId={continueLesson.id}
-        path={dailyPath}
-      />
+      <QuestIslandHero quest={dailyQuest} />
 
       <View style={styles.homeStatsCompactRow}>
         <HomeMetricChip icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="streak" color={c.coralSoft} />
@@ -152,42 +134,20 @@ export function KidsHomeScreen() {
         <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
       </View>
 
-      <SectionTitle title="Today" action="Start" onPress={() => router.push(`/practice/${reviewSummary.recommendedMode}?lesson=adaptive-review`)} />
+      <SectionTitle title="Daily quest plan" action="Continue" onPress={() => router.push(dailyQuest.nextStep.route as never)} />
       <View style={styles.homeTodayGrid}>
-        <HomeTodayCard
-          icon={primaryReview?.entry.emoji ?? '🔁'}
-          title={`${reviewSummary.dueCount || reviewSummary.newCount} due`}
-          subtitle={primaryReview?.entry.word ?? reviewSummary.focusTitle}
-          badge={reviewSummary.nextReviewLabel}
-          color={primaryReview?.entry.color ?? c.purple}
-          progress={reviewSummary.progress.recall || 0.18}
-          onPress={() => router.push(`/practice/${reviewSummary.recommendedMode}?lesson=adaptive-review`)}
-        />
-        <HomeTodayCard
-          icon={primaryMission.icon}
-          title="Mission"
-          subtitle={primaryMission.title}
-          badge={primaryMission.reward}
-          color={c.yellow}
-          progress={primaryMission.progress}
-          onPress={() => router.push('/rewards')}
-        />
-        <HomeTodayCard
-          icon={primaryWord.emoji}
-          title="Word"
-          subtitle={primaryWord.word}
-          badge={primaryWord.phonetic}
-          color={primaryWord.color}
-          onPress={() => router.push(`/kids-dictionary?word=${primaryWord.id}`)}
-        />
-        <HomeTodayCard
-          icon={featuredFriend.avatar}
-          title="Friend"
-          subtitle={`Challenge ${featuredFriend.name}`}
-          badge={`${featuredFriend.streak}🔥`}
-          color={c.mint}
-          onPress={() => router.push('/(tabs)/social')}
-        />
+        {dailyQuest.steps.map((step) => (
+          <HomeTodayCard
+            key={step.id}
+            icon={step.icon}
+            title={step.label}
+            subtitle={step.title}
+            badge={step.state === 'complete' ? 'Done' : `+${step.rewardXp} XP`}
+            color={step.color}
+            progress={step.progress}
+            onPress={() => router.push(step.route as never)}
+          />
+        ))}
       </View>
 
       <SectionTitle title="Next lessons" action="See all" onPress={() => router.push('/(tabs)/learn')} />
@@ -1731,6 +1691,7 @@ export function KidsProgressScreen() {
   const badges = getKidBadges(kid);
   const weeklyWords = getWeeklyWordsLearned();
   const nextLevelXp = Math.max(0, 900 - child.xp - xpTotal);
+  const dailyQuest = getKidDailyQuest(kid);
 
   return (
     <KidScreen>
@@ -1752,6 +1713,20 @@ export function KidsProgressScreen() {
         <MiniStat icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="streak" color={c.coralSoft} />
         <MiniStat icon="📚" value={`${totalStars}`} label="stars" color={c.mintSoft} />
       </View>
+      <KidCard color={c.lilac} style={styles.questHealthCard}>
+        <View style={{ flex: 1 }}>
+          <LexText variant="label" style={{ color: dailyQuest.color }}>
+            Daily quest health
+          </LexText>
+          <LexText variant="h3" style={{ color: c.ink, marginTop: 5 }}>
+            {Math.round(dailyQuest.completion * 100)}% through {dailyQuest.title}
+          </LexText>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 5 }}>
+            {dailyQuest.parentSummary}
+          </LexText>
+        </View>
+        <QuestProgressRing progress={dailyQuest.completion} color={dailyQuest.color} icon={dailyQuest.themeIcon} />
+      </KidCard>
       <KidCard>
         <SectionMini title="Level progress" />
         <KidProgressBar progress={Math.min(1, (child.xp + xpTotal) / 900)} color={c.purple} />
@@ -2045,6 +2020,7 @@ export function KidsReviewScreen() {
 export function KidsGamesScreen() {
   const kid = useAppStore((s) => s.kid);
   const lessons = getKidLessons(kid);
+  const dailyQuest = getKidDailyQuest(kid);
   const gameModes = [
     { title: 'Listening Pop', subtitle: 'Hear a word and tap the picture', icon: '🎧', mode: 'listening' },
     { title: 'Speaking Star', subtitle: 'Say the answer out loud', icon: '🎤', mode: 'speaking' },
@@ -2054,28 +2030,27 @@ export function KidsGamesScreen() {
     const lessonForMode = lessons.find((lessonItem) => lessonItem.type === item.mode) ?? lessons.find((lessonItem) => !lessonItem.locked) ?? lessons[0];
     return { ...item, lessonId: lessonForMode.id, progress: lessonForMode.progress };
   });
-  const dailyGame = gameModes[0];
-
   return (
     <KidScreen>
       <KidHeader eyebrow="Play" title="Daily challenge" subtitle="Games that make English practice feel alive." avatar="🎮" />
-      <KidCard color={c.coral} style={styles.heroCard}>
+      <KidCard color={dailyQuest.playStep.color} style={styles.heroCard}>
         <View style={{ flex: 1 }}>
           <LexText variant="label" style={{ color: c.yellow }}>
-            Today’s game
+            Today’s play quest
           </LexText>
           <LexText variant="h2" style={{ color: 'white', marginTop: 6 }}>
-            {dailyGame.title}
+            {dailyQuest.playStep.title}
           </LexText>
           <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
-            {dailyGame.subtitle}
+            {dailyQuest.playStep.subtitle}
           </LexText>
           <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
-            <KidButton title="Play now" onPress={() => router.push(`/practice/${dailyGame.mode}?lesson=${dailyGame.lessonId}`)} />
+            <KidButton title={dailyQuest.playStep.kind === 'roleplay' ? 'Talk now' : 'Play now'} onPress={() => router.push(dailyQuest.playStep.route as never)} />
           </View>
         </View>
         <CharacterBubble mood="star" />
       </KidCard>
+      <DailyQuestMiniPanel quest={dailyQuest} />
       <SectionTitle title="Premium play systems" action="Review" onPress={() => router.push('/(tabs)/review')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
         {kidFeaturePowerUps.map((feature, index) => (
@@ -2667,40 +2642,26 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
   );
 }
 
-function QuestIslandHero({
-  lessonTitle,
-  lessonSubtitle,
-  lessonProgress,
-  lessonXp,
-  lessonId,
-  path,
-}: {
-  lessonTitle: string;
-  lessonSubtitle: string;
-  lessonProgress: number;
-  lessonXp: number;
-  lessonId: string;
-  path: ReturnType<typeof getKidDailyPath>;
-}) {
+function QuestIslandHero({ quest }: { quest: KidDailyQuest }) {
   return (
-    <KidCard color={c.purple} style={styles.questHero}>
+    <KidCard color={quest.color} style={styles.questHero}>
       <View style={styles.questHeroTop}>
         <View style={{ flex: 1 }}>
           <KidPill label="Today’s quest" active color="rgba(255,255,255,0.22)" />
           <LexText variant="h2" numberOfLines={2} style={styles.questTitle}>
-            Unlock the next island
+            {quest.title}
           </LexText>
-          <LexText variant="muted" numberOfLines={1} style={styles.questSubtitle}>
-            {lessonTitle} · {lessonSubtitle}
+          <LexText variant="muted" numberOfLines={2} style={styles.questSubtitle}>
+            {quest.companionLine}
           </LexText>
         </View>
-        <QuestPortal3D xp={lessonXp} />
+        <QuestPortal3D xp={quest.rewardXp} />
       </View>
 
       <View style={styles.questMap}>
         <View pointerEvents="none" style={styles.questPathBeam} />
-        {path.map((step, index) => {
-          const active = index === 1;
+        {quest.steps.map((step, index) => {
+          const active = step.state === 'active';
           return (
             <Animated.View
               key={step.id}
@@ -2710,14 +2671,14 @@ function QuestIslandHero({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${step.title}, ${step.subtitle}`}
-                onPress={() => router.push(`/practice/${step.mode}?lesson=${step.lessonId}`)}
+                onPress={() => router.push(step.route as never)}
                 style={[styles.questNodePressable, active ? styles.questNodeActive : null]}
               >
                 <View style={[styles.questNodeIcon, { backgroundColor: step.color, borderColor: active ? c.yellow : 'rgba(255,255,255,0.58)' }]}>
-                  <LexText style={{ fontSize: 25, lineHeight: 33 }}>{step.icon}</LexText>
+                  <LexText style={{ fontSize: 24, lineHeight: 32 }}>{step.state === 'complete' ? '✓' : step.icon}</LexText>
                 </View>
                 <LexText variant="label" style={[styles.questNodeLabel, { color: active ? c.yellow : 'rgba(255,255,255,0.78)' }]}>
-                  {index === 0 ? 'Review' : index === 1 ? 'Now' : 'Story'}
+                  {step.label}
                 </LexText>
               </Pressable>
             </Animated.View>
@@ -2727,28 +2688,77 @@ function QuestIslandHero({
 
       <View style={styles.questProgressRow}>
         <View style={{ flex: 1 }}>
-          <KidProgressBar progress={lessonProgress} color={c.yellow} />
+          <KidProgressBar progress={quest.completion} color={quest.accent} />
         </View>
         <LexText variant="label" style={{ color: 'rgba(255,255,255,0.82)' }}>
-          {Math.round(lessonProgress * 100)}%
+          {Math.round(quest.completion * 100)}%
         </LexText>
       </View>
 
       <View style={styles.questActions}>
-        <KidButton title="Start quest" onPress={() => router.push(`/lessons/${lessonId}`)} style={{ flex: 1, minHeight: 48 }} />
+        <KidButton title={quest.nextStep.state === 'complete' ? 'Claim reward' : `Start ${quest.nextStep.label}`} onPress={() => router.push(quest.nextStep.route as never)} style={{ flex: 1, minHeight: 48 }} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Practice path"
-          onPress={() => router.push(`/practice/${path[0].mode}?lesson=${path[0].lessonId}`)}
+          accessibilityLabel="Open rewards"
+          onPress={() => router.push('/rewards')}
           style={styles.questSecondaryAction}
         >
           <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
-            Path
+            {quest.estimatedMinutes}m
           </LexText>
-          <LexText style={{ fontSize: 18, lineHeight: 24 }}>→</LexText>
+          <LexText style={{ fontSize: 18, lineHeight: 24 }}>⭐</LexText>
         </Pressable>
       </View>
     </KidCard>
+  );
+}
+
+function DailyQuestMiniPanel({ quest }: { quest: KidDailyQuest }) {
+  return (
+    <KidCard color={c.lilac} style={styles.dailyQuestMiniPanel}>
+      <View style={styles.dailyQuestMiniTop}>
+        <View style={[styles.dailyQuestMiniIcon, { backgroundColor: quest.color }]}>
+          <LexText style={{ fontSize: 24, lineHeight: 32 }}>{quest.themeIcon}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <LexText variant="label" style={{ color: quest.color }}>
+            {quest.streakLabel}
+          </LexText>
+          <LexText variant="title" style={{ color: c.ink, marginTop: 2 }}>
+            {quest.nextStep.title}
+          </LexText>
+        </View>
+        <KidPill label={`${Math.round(quest.completion * 100)}%`} active color={quest.color} />
+      </View>
+      <KidProgressBar progress={quest.completion} color={quest.color} />
+      <View style={styles.dailyQuestStepRail}>
+        {quest.steps.map((step) => (
+          <QuestMiniStep key={step.id} step={step} />
+        ))}
+      </View>
+    </KidCard>
+  );
+}
+
+function QuestMiniStep({ step }: { step: KidDailyQuestStep }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push(step.route as never)} style={styles.questMiniStep}>
+      <View style={[styles.questMiniStepIcon, { backgroundColor: step.state === 'complete' ? c.mint : `${step.color}22` }]}>
+        <LexText style={{ fontSize: 17, lineHeight: 23 }}>{step.state === 'complete' ? '✓' : step.icon}</LexText>
+      </View>
+      <LexText variant="label" numberOfLines={1} style={{ color: step.state === 'active' ? step.color : c.muted, fontSize: 9 }}>
+        {step.label}
+      </LexText>
+    </Pressable>
+  );
+}
+
+function QuestProgressRing({ progress, color, icon }: { progress: number; color: string; icon: string }) {
+  return (
+    <View style={[styles.questProgressRing, { borderColor: `${color}33` }]}>
+      <View style={[styles.questProgressRingFill, { height: `${Math.max(10, Math.round(progress * 100))}%`, backgroundColor: color }]} />
+      <LexText style={{ fontSize: 28, lineHeight: 36 }}>{icon}</LexText>
+    </View>
   );
 }
 
@@ -2943,6 +2953,40 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 2,
     borderColor: 'rgba(34,35,74,0.08)',
+  },
+  dailyQuestMiniPanel: { marginTop: 14, gap: 12 },
+  dailyQuestMiniTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dailyQuestMiniIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 10px 0 rgba(34,35,74,0.10)',
+  },
+  dailyQuestStepRail: { flexDirection: 'row', gap: 8 },
+  questMiniStep: {
+    flex: 1,
+    minHeight: 72,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(34,35,74,0.08)',
+  },
+  questMiniStepIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   onboardingRoot: { flex: 1, gap: 12 },
   onboardingPager: { flexGrow: 0 },
@@ -3159,6 +3203,25 @@ const styles = StyleSheet.create({
   },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   miniStat: { flex: 1, minHeight: 112, alignItems: 'center', justifyContent: 'center' },
+  questHealthCard: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  questProgressRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 27,
+    borderCurve: 'continuous',
+    borderWidth: 3,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  questProgressRingFill: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.24,
+  },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
   featurePowerUpCard: {
     width: 222,
