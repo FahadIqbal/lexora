@@ -85,26 +85,17 @@ export function KidsHomeScreen() {
   const dailyPath = getKidDailyPath(kid);
   const energy = getKidEnergy(kid);
   const dailyWords = getDailyKidDictionarySet(kid, 4);
+  const primaryMission = missions[0];
+  const primaryWord = dailyWords[0];
+  const featuredFriend = friends[0];
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
 
   return (
     <KidScreen>
-      <KidHeader
-        eyebrow={`Hi, ${child.name}`}
-        title="Let’s learn English!"
-        subtitle="Small wins, fun games, and happy words."
-        avatar={child.avatar}
-        right={
-          <View style={styles.headerChips}>
-            <EnergyChip current={energy.current} max={energy.max} />
-            <XpChip xp={totalXp} />
-          </View>
-        }
-      />
+      <HomeCompactHeader childName={child.name} avatar={child.avatar} energy={energy.current} energyMax={energy.max} xp={totalXp} />
 
       <QuestIslandHero
-        childName={child.name}
         lessonTitle={continueLesson.title}
         lessonSubtitle={continueLesson.subtitle}
         lessonProgress={continueLesson.progress}
@@ -113,79 +104,85 @@ export function KidsHomeScreen() {
         path={dailyPath}
       />
 
-      <SectionTitle title="Smart power-ups" action="Play" onPress={() => router.push(kidFeaturePowerUps[0].route)} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-        {kidFeaturePowerUps.map((feature, index) => (
-          <FeaturePowerUpCard key={feature.id} feature={feature} index={index} />
-        ))}
-      </ScrollView>
-
-      <View style={styles.statsRow}>
-        <MiniStat icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="day streak" color={c.coralSoft} />
-        <MiniStat icon="⭐" value={`Level ${child.level}`} label="word hero" color={c.yellowSoft} />
-        <MiniStat icon="🏆" value={`#${selfRank}`} label="league" color={c.mintSoft} />
+      <View style={styles.homeStatsCompactRow}>
+        <HomeMetricChip icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="streak" color={c.coralSoft} />
+        <HomeMetricChip icon="⭐" value={`Lv ${child.level}`} label="level" color={c.yellowSoft} />
+        <HomeMetricChip icon="🏆" value={`#${selfRank}`} label="league" color={c.mintSoft} />
       </View>
 
-      <SectionTitle title="Today’s adventure path" action="Start" onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)} />
-      <View style={{ gap: 10 }}>
-        {dailyPath.map((step, index) => (
-          <PathStep key={step.id} index={index + 1} {...step} />
+      <SectionTitle title="Quick actions" action="Games" onPress={() => router.push('/(tabs)/games')} />
+      <View style={styles.homeQuickGrid}>
+        {kidFeaturePowerUps.slice(0, 3).map((feature) => (
+          <HomeQuickAction
+            key={feature.id}
+            icon={feature.icon}
+            title={formatHomePowerUpTitle(feature.title)}
+            subtitle={feature.tag}
+            color={feature.color}
+            onPress={() => router.push(feature.route)}
+          />
         ))}
+        <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
       </View>
 
-      <SectionTitle title="Daily missions" action="Rewards" onPress={() => router.push('/rewards')} />
-      <View style={{ gap: 10 }}>
-        {missions.map((mission) => (
-          <MissionRow key={mission.id} {...mission} />
-        ))}
-      </View>
-
-      <SectionTitle title="Kids dictionary" action="Open" onPress={() => router.push('/kids-dictionary')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-        {dailyWords.map((entry, index) => (
-          <KidDictionaryMiniCard key={entry.id} entry={entry} index={index} />
-        ))}
-      </ScrollView>
-
-      <SectionTitle title="Vocabulary worlds" action="All" onPress={() => router.push('/(tabs)/learn')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        {kidCategories.map((cat) => (
-          <Pressable key={cat.id} accessibilityRole="button" onPress={() => router.push('/(tabs)/learn')}>
-            <KidCard animated={false} style={[styles.categoryTile, { backgroundColor: `${cat.color}22` }]}>
-              <LexText style={{ fontSize: 32, lineHeight: 40 }}>{cat.icon}</LexText>
-              <LexText variant="title" style={{ color: c.ink, fontSize: 13, marginTop: 8 }}>
-                {cat.label}
-              </LexText>
-            </KidCard>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <SectionTitle title="Recommended lessons" action="See all" onPress={() => router.push('/(tabs)/learn')} />
-      {recommended.map((lesson) => (
-        <LessonCard
-          key={lesson.id}
-          title={lesson.title}
-          subtitle={lesson.subtitle}
-          icon={lesson.icon}
-          color={lesson.color}
-          progress={lesson.progress}
-          locked={lesson.locked}
-          onPress={() => router.push(`/lessons/${lesson.id}`)}
+      <SectionTitle title="Today" action="Start" onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)} />
+      <View style={styles.homeTodayGrid}>
+        <HomeTodayCard
+          icon={dailyPath[0].icon}
+          title="Review"
+          subtitle={dailyPath[0].title}
+          color={dailyPath[0].color}
+          progress={dailyPath[0].progress}
+          onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)}
         />
-      ))}
+        <HomeTodayCard
+          icon={primaryMission.icon}
+          title="Mission"
+          subtitle={primaryMission.title}
+          badge={primaryMission.reward}
+          color={c.yellow}
+          progress={primaryMission.progress}
+          onPress={() => router.push('/rewards')}
+        />
+        <HomeTodayCard
+          icon={primaryWord.emoji}
+          title="Word"
+          subtitle={primaryWord.word}
+          badge={primaryWord.phonetic}
+          color={primaryWord.color}
+          onPress={() => router.push(`/kids-dictionary?word=${primaryWord.id}`)}
+        />
+        <HomeTodayCard
+          icon={featuredFriend.avatar}
+          title="Friend"
+          subtitle={`Challenge ${featuredFriend.name}`}
+          badge={`${featuredFriend.streak}🔥`}
+          color={c.mint}
+          onPress={() => router.push('/(tabs)/social')}
+        />
+      </View>
 
-      <SectionTitle title="Friends" action="Challenge" onPress={() => router.push('/(tabs)/social')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-        {friends.map((friend) => (
-          <KidCard key={friend.id} animated={false} style={styles.friendBubble}>
-            <KidAvatar label={friend.avatar} />
-            <LexText variant="title" style={{ color: c.ink, fontSize: 13, marginTop: 8 }}>
-              {friend.name}
-            </LexText>
-          </KidCard>
+      <SectionTitle title="Next lessons" action="See all" onPress={() => router.push('/(tabs)/learn')} />
+      <View style={{ gap: 10 }}>
+        {recommended.slice(0, 2).map((lesson) => (
+          <HomeLessonCompact
+            key={lesson.id}
+            title={lesson.title}
+            subtitle={lesson.subtitle}
+            icon={lesson.icon}
+            color={lesson.color}
+            progress={lesson.progress}
+            onPress={() => router.push(`/lessons/${lesson.id}`)}
+          />
         ))}
-      </ScrollView>
+      </View>
+
+      <SectionTitle title="Explore" action="Learn" onPress={() => router.push('/(tabs)/learn')} />
+      <View style={styles.homeExploreGrid}>
+        {kidCategories.slice(0, 6).map((cat) => (
+          <HomeExplorePill key={cat.id} icon={cat.icon} label={cat.label} color={cat.color} onPress={() => router.push('/(tabs)/learn')} />
+        ))}
+      </View>
     </KidScreen>
   );
 }
@@ -1612,6 +1609,181 @@ function SectionMini({ title }: { title: string }) {
   );
 }
 
+function HomeCompactHeader({
+  childName,
+  avatar,
+  energy,
+  energyMax,
+  xp,
+}: {
+  childName: string;
+  avatar: string;
+  energy: number;
+  energyMax: number;
+  xp: number;
+}) {
+  return (
+    <View style={styles.homeHeaderCompact}>
+      <KidAvatar label={avatar} size={50} />
+      <View style={{ flex: 1 }}>
+        <LexText variant="label" style={{ color: c.purple }}>
+          Hi, {childName}
+        </LexText>
+        <LexText variant="h2" style={styles.homeHeaderTitle}>
+          Today’s quest
+        </LexText>
+      </View>
+      <View style={styles.homeHeaderChips}>
+        <EnergyChip current={energy} max={energyMax} />
+        <XpChip xp={xp} />
+      </View>
+    </View>
+  );
+}
+
+function HomeMetricChip({ icon, value, label, color }: { icon: string; value: string; label: string; color: string }) {
+  return (
+    <KidCard animated={false} color={color} style={styles.homeMetricChip}>
+      <LexText style={{ fontSize: 20, lineHeight: 26 }}>{icon}</LexText>
+      <View>
+        <LexText variant="title" style={{ color: c.ink, fontSize: 15, lineHeight: 19 }}>
+          {value}
+        </LexText>
+        <LexText variant="label" style={{ color: c.muted, fontSize: 9 }}>
+          {label}
+        </LexText>
+      </View>
+    </KidCard>
+  );
+}
+
+function HomeQuickAction({
+  icon,
+  title,
+  subtitle,
+  color,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={styles.homeQuickPressable}>
+      <KidCard animated={false} style={styles.homeQuickCard}>
+        <View style={[styles.homeQuickIcon, { backgroundColor: `${color}24` }]}>
+          <LexText style={{ fontSize: 23, lineHeight: 31 }}>{icon}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" numberOfLines={1} style={{ color: c.ink, fontSize: 14, lineHeight: 18 }}>
+            {title}
+          </LexText>
+          <LexText variant="label" numberOfLines={1} style={{ color, fontSize: 9, marginTop: 2 }}>
+            {subtitle}
+          </LexText>
+        </View>
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function HomeTodayCard({
+  icon,
+  title,
+  subtitle,
+  badge,
+  color,
+  progress,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  color: string;
+  progress?: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={styles.homeTodayPressable}>
+      <KidCard animated={false} style={styles.homeTodayCard}>
+        <View style={styles.homeTodayTop}>
+          <View style={[styles.homeTodayIcon, { backgroundColor: `${color}28` }]}>
+            <LexText style={{ fontSize: 24, lineHeight: 32 }}>{icon}</LexText>
+          </View>
+          {badge ? <KidPill label={badge} active color={`${color}33`} /> : null}
+        </View>
+        <LexText variant="title" numberOfLines={1} style={{ color: c.ink, marginTop: 8, fontSize: 15 }}>
+          {title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 16, marginTop: 3 }}>
+          {subtitle}
+        </LexText>
+        {typeof progress === 'number' ? (
+          <View style={{ marginTop: 10 }}>
+            <KidProgressBar progress={progress} color={color} />
+          </View>
+        ) : null}
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function HomeLessonCompact({
+  title,
+  subtitle,
+  icon,
+  color,
+  progress,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  color: string;
+  progress: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress}>
+      <KidCard animated={false} style={styles.homeLessonCompact}>
+        <View style={[styles.homeLessonIcon, { backgroundColor: `${color}28` }]}>
+          <LexText style={{ fontSize: 24, lineHeight: 32 }}>{icon}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" style={{ color: c.ink, fontSize: 15 }}>
+            {title}
+          </LexText>
+          <LexText variant="muted" numberOfLines={1} style={{ color: c.muted, fontSize: 12, marginTop: 2 }}>
+            {subtitle}
+          </LexText>
+          <View style={{ marginTop: 8 }}>
+            <KidProgressBar progress={progress} color={color} />
+          </View>
+        </View>
+        <LexText variant="title" style={{ color: c.purple }}>
+          →
+        </LexText>
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function HomeExplorePill({ icon, label, color, onPress }: { icon: string; label: string; color: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.homeExplorePillPressable}>
+      <View style={[styles.homeExplorePill, { backgroundColor: `${color}20`, borderColor: `${color}55` }]}>
+        <LexText style={{ fontSize: 19, lineHeight: 25 }}>{icon}</LexText>
+        <LexText variant="label" numberOfLines={1} style={{ color: c.ink, fontSize: 10 }}>
+          {label}
+        </LexText>
+      </View>
+    </Pressable>
+  );
+}
+
 function Floating3DToken({
   icon,
   color,
@@ -1664,7 +1836,7 @@ function QuestPortal3D({ xp }: { xp: number }) {
     <View style={styles.questPortal3D}>
       <View style={styles.questPortalBackPlate} />
       <View style={styles.questPortalFloor} />
-      <LexoraLottie source={missionPulse} size={112} speed={0.82} />
+      <LexoraLottie source={missionPulse} size={70} speed={0.82} />
       <Floating3DToken icon="⭐" color={c.yellow} delay={140} style={styles.questTokenStar} />
       <Floating3DToken icon="🔊" color={c.blue} delay={420} style={styles.questTokenAudio} />
       <View style={styles.questXpPlate}>
@@ -1980,7 +2152,6 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
 }
 
 function QuestIslandHero({
-  childName,
   lessonTitle,
   lessonSubtitle,
   lessonProgress,
@@ -1988,7 +2159,6 @@ function QuestIslandHero({
   lessonId,
   path,
 }: {
-  childName: string;
   lessonTitle: string;
   lessonSubtitle: string;
   lessonProgress: number;
@@ -2001,10 +2171,10 @@ function QuestIslandHero({
       <View style={styles.questHeroTop}>
         <View style={{ flex: 1 }}>
           <KidPill label="Today’s quest" active color="rgba(255,255,255,0.22)" />
-          <LexText variant="h2" style={styles.questTitle}>
-            Help {childName} unlock the next island
+          <LexText variant="h2" numberOfLines={2} style={styles.questTitle}>
+            Unlock the next island
           </LexText>
-          <LexText variant="muted" style={styles.questSubtitle}>
+          <LexText variant="muted" numberOfLines={1} style={styles.questSubtitle}>
             {lessonTitle} · {lessonSubtitle}
           </LexText>
         </View>
@@ -2049,13 +2219,18 @@ function QuestIslandHero({
       </View>
 
       <View style={styles.questActions}>
-        <KidButton title="Start quest" onPress={() => router.push(`/lessons/${lessonId}`)} style={{ flex: 1 }} />
-        <KidButton
-          title="Practice path"
-          color={c.sky}
+        <KidButton title="Start quest" onPress={() => router.push(`/lessons/${lessonId}`)} style={{ flex: 1, minHeight: 48 }} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Practice path"
           onPress={() => router.push(`/practice/${path[0].mode}?lesson=${path[0].lessonId}`)}
-          style={{ flex: 1 }}
-        />
+          style={styles.questSecondaryAction}
+        >
+          <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
+            Path
+          </LexText>
+          <LexText style={{ fontSize: 18, lineHeight: 24 }}>→</LexText>
+        </Pressable>
       </View>
     </KidCard>
   );
@@ -2162,6 +2337,12 @@ function formatPracticeMode(mode: string) {
     .join(' ');
 }
 
+function formatHomePowerUpTitle(title: string) {
+  if (title === 'Buddy Roleplay') return 'Roleplay';
+  if (title === 'Explain My Answer') return 'Explain';
+  return title;
+}
+
 function isKidPracticeMode(mode: string): mode is KidPracticeMode {
   return ['vocabulary', 'listening', 'speaking', 'reading', 'grammar', 'story'].includes(mode);
 }
@@ -2183,10 +2364,10 @@ function CelebrationBurst() {
 
 const styles = StyleSheet.create({
   heroCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  questHero: { marginTop: 18, gap: 16, overflow: 'hidden' },
+  questHero: { marginTop: 10, gap: 10, overflow: 'hidden' },
   questHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  questTitle: { color: 'white', marginTop: 10, fontSize: 27, lineHeight: 32 },
-  questSubtitle: { color: 'rgba(255,255,255,0.78)', marginTop: 6 },
+  questTitle: { color: 'white', marginTop: 6, fontSize: 20, lineHeight: 25 },
+  questSubtitle: { color: 'rgba(255,255,255,0.78)', marginTop: 4, fontSize: 12, lineHeight: 17 },
   questLottie: {
     width: 124,
     minHeight: 144,
@@ -2198,34 +2379,34 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   questMap: {
-    minHeight: 112,
-    borderRadius: 30,
+    minHeight: 72,
+    borderRadius: 24,
     borderCurve: 'continuous',
     backgroundColor: 'rgba(255,255,255,0.14)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
+    padding: 10,
     overflow: 'hidden',
   },
   questPathBeam: {
     position: 'absolute',
     left: 34,
     right: 34,
-    top: 55,
-    height: 14,
+    top: 36,
+    height: 10,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.26)',
   },
-  questNode: { flex: 1, minHeight: 82, alignItems: 'center', justifyContent: 'center', gap: 7 },
-  questNodePressable: { minHeight: 82, alignItems: 'center', justifyContent: 'center', gap: 7 },
+  questNode: { flex: 1, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  questNodePressable: { minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 4 },
   questNodeActive: { transform: [{ scale: 1.08 }] },
   questNodeIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 17,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2235,6 +2416,18 @@ const styles = StyleSheet.create({
   questNodeLabel: { textAlign: 'center', fontSize: 10 },
   questProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   questActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  questSecondaryAction: {
+    minHeight: 48,
+    borderRadius: 999,
+    backgroundColor: c.sky,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(34,35,74,0.08)',
+  },
   onboardingRoot: { flex: 1, gap: 12 },
   onboardingPager: { flexGrow: 0 },
   onboardingHeroV2: { marginTop: 16, marginBottom: 14, gap: 12, overflow: 'hidden' },
@@ -2340,9 +2533,9 @@ const styles = StyleSheet.create({
   onboardingTokenTwo: { right: 38, top: 56 },
   onboardingTokenThree: { right: 82, bottom: 12 },
   questPortal3D: {
-    width: 132,
-    minHeight: 154,
-    borderRadius: 36,
+    width: 92,
+    minHeight: 104,
+    borderRadius: 26,
     borderCurve: 'continuous',
     backgroundColor: 'rgba(255,255,255,0.94)',
     alignItems: 'center',
@@ -2355,9 +2548,9 @@ const styles = StyleSheet.create({
   },
   questPortalBackPlate: {
     position: 'absolute',
-    width: 96,
-    height: 118,
-    borderRadius: 30,
+    width: 66,
+    height: 78,
+    borderRadius: 21,
     borderCurve: 'continuous',
     backgroundColor: c.yellow,
     opacity: 0.7,
@@ -2365,14 +2558,14 @@ const styles = StyleSheet.create({
   },
   questPortalFloor: {
     position: 'absolute',
-    width: 106,
-    height: 26,
+    width: 74,
+    height: 18,
     borderRadius: 999,
     bottom: 16,
     backgroundColor: 'rgba(34,35,74,0.12)',
   },
-  questTokenStar: { right: -8, top: 10 },
-  questTokenAudio: { left: -10, bottom: 30 },
+  questTokenStar: { right: -8, top: 8, width: 32, height: 32, borderRadius: 14 },
+  questTokenAudio: { left: -8, bottom: 24, width: 32, height: 32, borderRadius: 14 },
   questXpPlate: {
     minHeight: 30,
     borderRadius: 999,
@@ -2401,6 +2594,53 @@ const styles = StyleSheet.create({
   authToggle: { flexDirection: 'row', gap: 10, marginTop: 18, marginBottom: 12 },
   authHintRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   headerChips: { alignItems: 'flex-end', gap: 8 },
+  homeHeaderCompact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 2 },
+  homeHeaderTitle: { color: c.ink, fontSize: 24, lineHeight: 29 },
+  homeHeaderChips: { alignItems: 'flex-end', gap: 6 },
+  homeStatsCompactRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  homeMetricChip: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 9,
+  },
+  homeQuickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  homeQuickPressable: { width: '48.5%' },
+  homeQuickCard: {
+    minHeight: 76,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 11,
+  },
+  homeQuickIcon: { width: 42, height: 42, borderRadius: 17, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  homeTodayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  homeTodayPressable: { width: '48.5%' },
+  homeTodayCard: { minHeight: 142, borderRadius: 24, borderCurve: 'continuous', padding: 12 },
+  homeTodayTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  homeTodayIcon: { width: 46, height: 46, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  homeLessonCompact: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
+  homeLessonIcon: { width: 48, height: 48, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  homeExploreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 4 },
+  homeExplorePillPressable: { width: '31.8%' },
+  homeExplorePill: {
+    minHeight: 54,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+  },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   miniStat: { flex: 1, minHeight: 112, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
