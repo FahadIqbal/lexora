@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -83,29 +83,15 @@ export function KidsHomeScreen() {
         }
       />
 
-      <KidCard color={c.purple} style={styles.heroCard}>
-        <View style={{ flex: 1 }}>
-          <LexText variant="label" style={{ color: c.yellow }}>
-            Continue learning
-          </LexText>
-          <LexText variant="h2" style={{ color: 'white', marginTop: 6, fontSize: 28 }}>
-            {continueLesson.title}
-          </LexText>
-          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.78)', marginTop: 5 }}>
-            {continueLesson.subtitle}
-          </LexText>
-          <View style={{ marginTop: 16 }}>
-            <KidProgressBar progress={continueLesson.progress} color={c.yellow} />
-          </View>
-          <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
-            <KidButton title="Let’s go!" onPress={() => router.push(`/lessons/${continueLesson.id}`)} />
-          </View>
-        </View>
-        <View style={styles.homeRewardArt}>
-          <LexoraLottie source={missionPulse} size={118} speed={0.82} />
-          <KidPill label={`+${continueLesson.xp} XP`} active color={c.yellow} />
-        </View>
-      </KidCard>
+      <QuestIslandHero
+        childName={child.name}
+        lessonTitle={continueLesson.title}
+        lessonSubtitle={continueLesson.subtitle}
+        lessonProgress={continueLesson.progress}
+        lessonXp={continueLesson.xp}
+        lessonId={continueLesson.id}
+        path={dailyPath}
+      />
 
       <View style={styles.statsRow}>
         <MiniStat icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="day streak" color={c.coralSoft} />
@@ -171,61 +157,143 @@ export function KidsHomeScreen() {
 }
 
 export function KidsOnboardingScreen() {
+  const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
   const [step, setStep] = useState(0);
+  const setSelectedCategories = useAppStore((s) => s.setSelectedCategories);
+  const selectedCategories = useAppStore((s) => s.selectedCategories);
+  const slideWidth = Math.max(300, width - 36);
+  const heroHeight = Math.min(500, Math.max(420, width * 1.04));
   const slides = [
     {
-      title: 'Let’s learn with lots of fun!',
-      subtitle: 'English lessons with games, stories, songs, and stars.',
+      eyebrow: 'Lexora Kids',
+      title: 'A magical English quest every day',
+      subtitle: 'Stories, games, speaking, listening, and rewards in one playful path.',
       icon: kidRouteArt.adventure,
       color: c.purple,
+      accent: c.yellow,
+      chips: ['Daily quest', 'Stars', 'Stories'],
     },
     {
-      title: 'Choose a learning buddy',
-      subtitle: 'Kids tap, listen, speak, and read with a friendly guide.',
+      eyebrow: 'Smart practice',
+      title: 'A buddy explains mistakes kindly',
+      subtitle: 'Kids get simple “why” feedback after each answer and review just before words fade.',
       icon: kidCharacters.buddy,
       color: c.coral,
+      accent: c.mint,
+      chips: ['Explain why', 'Gentle review', 'Voice play'],
     },
     {
+      eyebrow: 'Safe for families',
       title: 'Parents stay in control',
-      subtitle: 'Safe progress, no ads, and calm parent tools.',
+      subtitle: 'No ads, parent gates, progress snapshots, and teacher-ready tools.',
       icon: kidRouteArt.parent,
       color: c.mint,
+      accent: c.purple,
+      chips: ['No ads', 'Parent gate', 'Progress'],
     },
   ];
   const slide = slides[step];
+  const focusChips = [
+    { id: 'speaking', label: 'Speaking', icon: '🎤' },
+    { id: 'stories', label: 'Stories', icon: '📚' },
+    { id: 'vocabulary', label: 'Words', icon: '🌈' },
+  ];
+  const toggleFocus = (id: string) => {
+    const next = selectedCategories.includes(id)
+      ? selectedCategories.filter((item) => item !== id)
+      : [...selectedCategories, id];
+    setSelectedCategories(next);
+  };
+  const goToStep = (nextStep: number) => {
+    const clamped = Math.max(0, Math.min(slides.length - 1, nextStep));
+    scrollRef.current?.scrollTo({ x: clamped * slideWidth, animated: true });
+    setStep(clamped);
+  };
 
   return (
     <KidScreen scroll={false}>
-      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-        <KidCard color={slide.color} style={styles.onboardingHero}>
-          <LexText variant="h1" style={{ color: 'white', fontSize: 42, lineHeight: 48 }}>
-            {slide.title}
-          </LexText>
-          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 12, fontSize: 17, lineHeight: 25 }}>
-            {slide.subtitle}
-          </LexText>
-          <View style={styles.onboardingArt}>
-            <LexoraLottie source={wordQuestOrbit} size={188} speed={0.9} />
-            <View style={styles.onboardingIconBadge}>
-              <LexText style={{ fontSize: 38, lineHeight: 48 }}>{slide.icon}</LexText>
+      <View style={styles.onboardingRoot}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.onboardingPager}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          onMomentumScrollEnd={(event) => {
+            const nextStep = Math.round(event.nativeEvent.contentOffset.x / slideWidth);
+            setStep(Math.max(0, Math.min(slides.length - 1, nextStep)));
+          }}
+        >
+          {slides.map((item, index) => (
+            <View key={item.title} style={{ width: slideWidth }}>
+              <KidCard color={item.color} style={[styles.onboardingHeroV2, { height: heroHeight }]}>
+                <View style={styles.onboardingTopRow}>
+                  <KidPill label={item.eyebrow} active color="rgba(255,255,255,0.22)" />
+                  <KidPill label={`${index + 1}/${slides.length}`} active color={item.accent} />
+                </View>
+                <LexText variant="h1" style={styles.onboardingTitleV2}>
+                  {item.title}
+                </LexText>
+                <LexText variant="muted" style={styles.onboardingSubtitleV2}>
+                  {item.subtitle}
+                </LexText>
+                <View style={styles.onboardingArtV2}>
+                  <LexoraLottie source={wordQuestOrbit} size={Math.min(210, heroHeight * 0.42)} speed={0.9} />
+                  <View style={[styles.onboardingIconBadgeV2, { backgroundColor: item.accent }]}>
+                    <LexText style={{ fontSize: 48, lineHeight: 58 }}>{item.icon}</LexText>
+                  </View>
+                  <View style={styles.onboardingOrbitOne} />
+                  <View style={styles.onboardingOrbitTwo} />
+                </View>
+                <View style={styles.onboardingChipRow}>
+                  {item.chips.map((chip) => (
+                    <KidPill key={chip} label={chip} active color="rgba(255,255,255,0.20)" />
+                  ))}
+                </View>
+              </KidCard>
             </View>
-          </View>
-        </KidCard>
+          ))}
+        </ScrollView>
+
         <View>
           <View style={styles.dots}>
             {slides.map((_, index) => (
-              <View key={index} style={[styles.dot, { backgroundColor: index === step ? c.purple : c.line }]} />
+              <Pressable key={index} accessibilityRole="button" onPress={() => goToStep(index)}>
+                <View style={[styles.dot, { width: index === step ? 28 : 12, backgroundColor: index === step ? slide.color : c.line }]} />
+              </Pressable>
             ))}
           </View>
+          {step === slides.length - 1 ? (
+            <View style={styles.focusPicker}>
+              {focusChips.map((item) => {
+                const active = selectedCategories.includes(item.id);
+                return (
+                  <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => toggleFocus(item.id)}>
+                    <View style={[styles.focusChip, { borderColor: active ? c.purple : c.line, backgroundColor: active ? c.lilac : c.paper }]}>
+                      <LexText style={{ fontSize: 20, lineHeight: 26 }}>{item.icon}</LexText>
+                      <LexText variant="label" style={{ color: active ? c.purple : c.muted }}>
+                        {item.label}
+                      </LexText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
           <KidButton
             title={step === slides.length - 1 ? 'Create profile' : 'Next'}
             onPress={() => {
               if (step === slides.length - 1) router.replace('/child-profiles');
-              else setStep((value) => value + 1);
+              else goToStep(step + 1);
             }}
           />
-          <View style={{ height: 10 }} />
-          <KidButton title="Parent sign in" color={c.sky} onPress={() => router.push('/auth')} />
+          <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={styles.onboardingParentLink}>
+            <LexText variant="label" style={{ color: c.purple }}>
+              Parent sign in
+            </LexText>
+          </Pressable>
         </View>
       </View>
     </KidScreen>
@@ -1112,6 +1180,85 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
   );
 }
 
+function QuestIslandHero({
+  childName,
+  lessonTitle,
+  lessonSubtitle,
+  lessonProgress,
+  lessonXp,
+  lessonId,
+  path,
+}: {
+  childName: string;
+  lessonTitle: string;
+  lessonSubtitle: string;
+  lessonProgress: number;
+  lessonXp: number;
+  lessonId: string;
+  path: ReturnType<typeof getKidDailyPath>;
+}) {
+  return (
+    <KidCard color={c.purple} style={styles.questHero}>
+      <View style={styles.questHeroTop}>
+        <View style={{ flex: 1 }}>
+          <KidPill label="Today’s quest" active color="rgba(255,255,255,0.22)" />
+          <LexText variant="h2" style={styles.questTitle}>
+            Help {childName} unlock the next island
+          </LexText>
+          <LexText variant="muted" style={styles.questSubtitle}>
+            {lessonTitle} · {lessonSubtitle}
+          </LexText>
+        </View>
+        <View style={styles.questLottie}>
+          <LexoraLottie source={missionPulse} size={116} speed={0.82} />
+          <KidPill label={`+${lessonXp} XP`} active color={c.yellow} />
+        </View>
+      </View>
+
+      <View style={styles.questMap}>
+        {path.map((step, index) => {
+          const active = index === 1;
+          return (
+            <Pressable
+              key={step.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${step.title}, ${step.subtitle}`}
+              onPress={() => router.push(`/practice/${step.mode}?lesson=${step.lessonId}`)}
+              style={[styles.questNode, active ? styles.questNodeActive : null]}
+            >
+              <View style={[styles.questNodeIcon, { backgroundColor: step.color, borderColor: active ? c.yellow : 'rgba(255,255,255,0.58)' }]}>
+                <LexText style={{ fontSize: 25, lineHeight: 33 }}>{step.icon}</LexText>
+              </View>
+              <LexText variant="label" style={[styles.questNodeLabel, { color: active ? c.yellow : 'rgba(255,255,255,0.78)' }]}>
+                {index === 0 ? 'Review' : index === 1 ? 'Now' : 'Story'}
+              </LexText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.questProgressRow}>
+        <View style={{ flex: 1 }}>
+          <KidProgressBar progress={lessonProgress} color={c.yellow} />
+        </View>
+        <LexText variant="label" style={{ color: 'rgba(255,255,255,0.82)' }}>
+          {Math.round(lessonProgress * 100)}%
+        </LexText>
+      </View>
+
+      <View style={styles.questActions}>
+        <KidButton title="Start quest" onPress={() => router.push(`/lessons/${lessonId}`)} style={{ flex: 1 }} />
+        <KidButton
+          title="Practice path"
+          color={c.sky}
+          onPress={() => router.push(`/practice/${path[0].mode}?lesson=${path[0].lessonId}`)}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </KidCard>
+  );
+}
+
 function PathStep({
   index,
   title,
@@ -1230,28 +1377,93 @@ function CelebrationBurst() {
 
 const styles = StyleSheet.create({
   heroCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  homeRewardArt: {
-    width: 126,
-    minHeight: 138,
+  questHero: { marginTop: 18, gap: 16, overflow: 'hidden' },
+  questHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  questTitle: { color: 'white', marginTop: 10, fontSize: 27, lineHeight: 32 },
+  questSubtitle: { color: 'rgba(255,255,255,0.78)', marginTop: 6 },
+  questLottie: {
+    width: 124,
+    minHeight: 144,
     borderRadius: 34,
     borderCurve: 'continuous',
     backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
   },
-  onboardingHero: { flex: 1, marginTop: 16, marginBottom: 18 },
-  onboardingArt: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  onboardingIconBadge: {
-    position: 'absolute',
-    width: 74,
-    height: 74,
-    borderRadius: 28,
+  questMap: {
+    minHeight: 112,
+    borderRadius: 30,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  questNode: { flex: 1, minHeight: 82, alignItems: 'center', justifyContent: 'center', gap: 7 },
+  questNodeActive: { transform: [{ scale: 1.08 }] },
+  questNodeIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+  },
+  questNodeLabel: { textAlign: 'center', fontSize: 10 },
+  questProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  questActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  onboardingRoot: { flex: 1, gap: 12 },
+  onboardingPager: { flexGrow: 0 },
+  onboardingHeroV2: { marginTop: 16, marginBottom: 14, gap: 12, overflow: 'hidden' },
+  onboardingTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  onboardingTitleV2: { color: 'white', fontSize: 39, lineHeight: 45, marginTop: 8 },
+  onboardingSubtitleV2: { color: 'rgba(255,255,255,0.84)', fontSize: 16, lineHeight: 24 },
+  onboardingArtV2: { flex: 1, minHeight: 220, alignItems: 'center', justifyContent: 'center' },
+  onboardingIconBadgeV2: {
+    position: 'absolute',
+    width: 98,
+    height: 98,
+    borderRadius: 36,
+    borderCurve: 'continuous',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  onboardingOrbitOne: {
+    position: 'absolute',
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(255,255,255,0.24)',
+    left: 28,
+    top: 34,
+  },
+  onboardingOrbitTwo: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    right: 34,
+    bottom: 36,
+  },
+  onboardingChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  focusPicker: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
+  focusChip: {
+    width: 104,
+    minHeight: 62,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  onboardingParentLink: { minHeight: 42, alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
   dot: { width: 12, height: 12, borderRadius: 6 },
   authHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
