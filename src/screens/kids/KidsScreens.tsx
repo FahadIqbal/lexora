@@ -507,47 +507,97 @@ export function KidsLessonDetailScreen() {
   const kid = useAppStore((s) => s.kid);
   const lesson = getKidLessons(kid).find((item) => item.id === id) ?? getKidLessons(kid)[0];
   const course = kidCourses.find((item) => item.id === lesson.courseId) ?? kidCourses[0];
+  const lessonActivities = [
+    { title: 'Vocabulary', subtitle: 'Match pictures to words', mode: 'vocabulary', icon: '🧩', color: c.mint },
+    { title: 'Listening', subtitle: 'Tap what you hear', mode: 'listening', icon: '🎧', color: c.sky },
+    { title: 'Speaking', subtitle: 'Say the answer out loud', mode: 'speaking', icon: '🎤', color: c.coral },
+    { title: 'Reading', subtitle: 'Read and choose the meaning', mode: 'reading', icon: '📚', color: c.purple },
+    { title: 'Grammar Quiz', subtitle: 'Build the best sentence', mode: 'grammar', icon: '🌱', color: c.mint },
+    { title: 'Story Mode', subtitle: 'Play through a tiny story', mode: 'story', icon: '🏝️', color: c.yellow },
+  ] as const;
 
   return (
     <KidScreen>
       <KidHeader eyebrow={course.title} title={lesson.title} subtitle={lesson.subtitle} avatar={lesson.icon} />
-      <KidCard color={lesson.color} style={styles.detailHero}>
-        <CharacterBubble mood={lesson.type === 'listening' ? 'listen' : lesson.type === 'reading' ? 'read' : 'star'} text={`${lesson.xp} XP`} />
-        <View style={{ flex: 1 }}>
-          <LexText variant="h2" style={{ color: 'white', fontSize: 30 }}>
-            Ready for a fun lesson?
-          </LexText>
-          <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 8 }}>
-            Big cards, audio, speaking, reading, and friendly feedback.
-          </LexText>
+      <LessonMissionHero lesson={lesson} course={course} />
+
+      <KidCard style={styles.lessonPlanCard}>
+        <View style={styles.lessonPlanTop}>
+          <View style={{ flex: 1 }}>
+            <LexText variant="label" style={{ color: c.purple }}>
+              Today’s mission plan
+            </LexText>
+            <LexText variant="h3" style={{ color: c.ink, marginTop: 3 }}>
+              Practice, explain, then celebrate
+            </LexText>
+          </View>
+          <KidPill label={`${lesson.xp} XP`} active color={c.yellow} />
+        </View>
+        <View style={styles.lessonPlanSteps}>
+          {[
+            { icon: '👂', title: 'Hear it', body: 'Audio-first prompts help kids connect sound to meaning.' },
+            { icon: '🧠', title: 'Explain it', body: 'Every mistake gets a kind “why” moment.' },
+            { icon: '🏅', title: 'Win it', body: 'Stars, XP, and badges close the lesson loop.' },
+          ].map((step, index) => (
+            <View key={step.title} style={styles.lessonPlanStep}>
+              <View style={[styles.lessonPlanIcon, { backgroundColor: index === 0 ? c.sky : index === 1 ? c.lilac : c.yellowSoft }]}>
+                <LexText style={{ fontSize: 21, lineHeight: 29 }}>{step.icon}</LexText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <LexText variant="title" style={{ color: c.ink, fontSize: 15 }}>
+                  {step.title}
+                </LexText>
+                <LexText variant="muted" style={{ color: c.muted, fontSize: 12, lineHeight: 17 }}>
+                  {step.body}
+                </LexText>
+              </View>
+            </View>
+          ))}
         </View>
       </KidCard>
 
       <KidCard>
         <SectionMini title="Lesson activities" />
-        {[
-          ['Vocabulary', 'Match pictures to words', 'vocabulary'],
-          ['Listening', 'Tap what you hear', 'listening'],
-          ['Speaking', 'Say the answer out loud', 'speaking'],
-          ['Reading', 'Read and choose the meaning', 'reading'],
-          ['Grammar Quiz', 'Build the best sentence', 'grammar'],
-          ['Story Mode', 'Play through a tiny story', 'story'],
-        ].map(([title, subtitle, mode]) => (
-          <Pressable key={mode} accessibilityRole="button" onPress={() => router.push(`/practice/${mode}?lesson=${lesson.id}`)} style={styles.activityRow}>
-            <View style={[styles.activityIcon, { backgroundColor: `${lesson.color}22` }]}>
-              <LexText style={{ fontSize: 22, lineHeight: 30 }}>{mode === 'speaking' ? '🎤' : mode === 'listening' ? '🎧' : mode === 'story' ? '📖' : '⭐'}</LexText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <LexText variant="title" style={{ color: c.ink }}>
-                {title}
-              </LexText>
-              <LexText variant="muted" style={{ color: c.muted, fontSize: 13 }}>
-                {subtitle}
-              </LexText>
-            </View>
-            <LexText variant="title" style={{ color: c.purple }}>→</LexText>
-          </Pressable>
-        ))}
+        <View style={styles.activityQuestGrid}>
+          {lessonActivities.map(({ title, subtitle, mode, icon, color }) => (
+            <Pressable
+              key={mode}
+              accessibilityRole="button"
+              accessibilityLabel={`${title}. ${subtitle}`}
+              onPress={() => router.push(`/practice/${mode}?lesson=${lesson.id}`)}
+              style={styles.activityQuestCard}
+            >
+              <View style={[styles.activityIcon, { backgroundColor: `${color}33` }]}>
+                <LexText style={{ fontSize: 22, lineHeight: 30 }}>{icon}</LexText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <LexText variant="title" style={{ color: c.ink, fontSize: 15 }}>
+                  {title}
+                </LexText>
+                <LexText variant="muted" style={{ color: c.muted, fontSize: 12, lineHeight: 17 }}>
+                  {subtitle}
+                </LexText>
+              </View>
+              <View style={[styles.activityArrow, { backgroundColor: mode === lesson.type ? c.yellow : c.lilac }]}>
+                <LexText variant="title" style={{ color: c.ink }}>
+                  →
+                </LexText>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </KidCard>
+
+      <KidCard color={c.lilac} style={styles.buddyTipCard}>
+        <KidAvatar label={kidCharacters.buddy} size={50} color="white" />
+        <View style={{ flex: 1 }}>
+          <LexText variant="title" style={{ color: c.ink }}>
+            Buddy tip
+          </LexText>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 3 }}>
+            Start with the highlighted activity, then review the same idea in another mode before words fade.
+          </LexText>
+        </View>
       </KidCard>
 
       <KidButton
@@ -557,6 +607,46 @@ export function KidsLessonDetailScreen() {
         onPress={() => router.push(`/practice/${lesson.type}?lesson=${lesson.id}`)}
       />
     </KidScreen>
+  );
+}
+
+function LessonMissionHero({
+  lesson,
+  course,
+}: {
+  lesson: ReturnType<typeof getKidLessons>[number];
+  course: (typeof kidCourses)[number];
+}) {
+  return (
+    <KidCard color={lesson.color} style={styles.detailHeroV2}>
+      <View style={styles.detailHeroTop}>
+        <View style={{ flex: 1 }}>
+          <KidPill label={course.level} active color="rgba(255,255,255,0.24)" />
+          <LexText variant="h2" style={styles.detailHeroTitle}>
+            Ready for today’s quest?
+          </LexText>
+          <LexText variant="muted" style={styles.detailHeroSubtitle}>
+            Finish a short round, get instant feedback, and keep your streak alive.
+          </LexText>
+        </View>
+        <CharacterBubble mood={lesson.type === 'listening' ? 'listen' : lesson.type === 'reading' ? 'read' : 'star'} text={`${lesson.xp} XP`} />
+      </View>
+      <View style={styles.detailRewardRail}>
+        {[
+          { icon: '⭐', label: `${lesson.stars}/3 stars` },
+          { icon: '🔥', label: 'Streak boost' },
+          { icon: '🔁', label: 'Review ready' },
+        ].map((item) => (
+          <View key={item.label} style={styles.detailRewardPill}>
+            <LexText style={{ fontSize: 18, lineHeight: 24 }}>{item.icon}</LexText>
+            <LexText variant="label" style={{ color: 'white', fontSize: 10 }}>
+              {item.label}
+            </LexText>
+          </View>
+        ))}
+      </View>
+      <KidProgressBar progress={lesson.progress} color={c.yellow} />
+    </KidCard>
   );
 }
 
@@ -576,6 +666,7 @@ export function KidsPracticeScreen() {
   const activity = activities[index % activities.length];
   const done = Boolean(selected);
   const ok = selected === activity.answer;
+  const progress = (index + (done ? 1 : 0)) / activities.length;
 
   const stars = Math.max(1, Math.min(3, correctCount + (ok ? 1 : 0)));
   const choose = (answer: string) => {
@@ -591,13 +682,29 @@ export function KidsPracticeScreen() {
     return (
       <KidScreen>
         <KidHeader eyebrow="Lesson complete" title="Amazing work!" subtitle="You earned stars, XP, and a new badge." avatar="🎉" />
-        <KidCard color={c.purple} style={{ alignItems: 'center', gap: 14 }}>
+        <KidCard color={c.purple} style={styles.completionHero}>
           <CelebrationBurst />
           <LexText variant="h2" style={{ color: 'white' }}>
             +{currentLesson.xp} XP
           </LexText>
           <LexText style={{ fontSize: 34, lineHeight: 42 }}>{'⭐'.repeat(stars)}</LexText>
           <KidPill label="Badge unlocked" active color={c.yellow} />
+        </KidCard>
+        <View style={styles.statsRow}>
+          <MiniStat icon="✅" value={`${correctCount}`} label="correct" color={c.mintSoft} />
+          <MiniStat icon="🎯" value={`${Math.round((correctCount / activities.length) * 100)}%`} label="accuracy" color={c.yellowSoft} />
+          <MiniStat icon="⚡" value={`${energy.current}`} label="energy" color={c.sky} />
+        </View>
+        <KidCard color={c.lilac} style={styles.buddyTipCard}>
+          <KidAvatar label={kidCharacters.buddy} size={50} color="white" />
+          <View style={{ flex: 1 }}>
+            <LexText variant="title" style={{ color: c.ink }}>
+              Review unlocked
+            </LexText>
+            <LexText variant="muted" style={{ color: c.muted, marginTop: 3 }}>
+              This lesson now appears in warm-up review so the new words come back at the right time.
+            </LexText>
+          </View>
         </KidCard>
         <KidButton title="Next lesson" onPress={() => router.push('/(tabs)/learn')} />
         <KidButton title="Back home" color={c.mint} onPress={() => router.push('/(tabs)/home')} />
@@ -620,11 +727,13 @@ export function KidsPracticeScreen() {
           }
         />
         <View style={{ marginTop: 18 }}>
-          <KidProgressBar progress={(index + 1) / activities.length} color={currentLesson.color} />
+          <KidProgressBar progress={progress} color={currentLesson.color} />
         </View>
+        <PracticeHud index={index} total={activities.length} correctCount={correctCount} color={currentLesson.color} />
+        <PracticeCoachStrip activity={activity} done={done} ok={ok} />
         <KidCard color={currentLesson.color} style={styles.quizCard}>
           <KidPill label={formatPracticeMode(activity.kind)} active color="rgba(255,255,255,0.24)" />
-          <LexText variant="h2" style={{ color: 'white', marginTop: 18, textAlign: 'center' }}>
+          <LexText variant="h2" style={styles.practicePrompt}>
             {activity.prompt}
           </LexText>
           {activity.passage ? (
@@ -634,8 +743,8 @@ export function KidsPracticeScreen() {
               </LexText>
             </View>
           ) : null}
-          <LexText style={{ fontSize: 68, lineHeight: 82, textAlign: 'center', marginTop: 12 }}>{activity.visual}</LexText>
-          <View style={{ marginTop: 12, alignSelf: 'center' }}>
+          <LexText style={styles.practiceVisual}>{activity.visual}</LexText>
+          <View style={{ marginTop: 8, alignSelf: 'center' }}>
             <KidButton
               title={activity.kind === 'speak' ? 'Hear model' : 'Play audio'}
               icon="speaker.wave.2.fill"
@@ -647,13 +756,22 @@ export function KidsPracticeScreen() {
         <PracticeInteraction activity={activity} selected={selected} done={done} ok={ok} onChoose={choose} />
 
         {done ? (
-          <KidCard color={ok ? c.mintSoft : c.coralSoft} style={{ marginTop: 12 }}>
-            <LexText variant="title" style={{ color: c.ink }}>
-              {ok ? 'Great job! 🎉' : `Good try. ${activity.hint}`}
-            </LexText>
+          <KidCard color={ok ? c.mintSoft : c.coralSoft} style={styles.feedbackCard}>
+            <View style={styles.feedbackHeader}>
+              <LexText style={{ fontSize: 28, lineHeight: 36 }}>{ok ? '🎉' : '💡'}</LexText>
+              <View style={{ flex: 1 }}>
+                <LexText variant="title" style={{ color: c.ink }}>
+                  {ok ? 'Great job!' : 'Good try'}
+                </LexText>
+                <LexText variant="muted" style={{ color: c.muted, marginTop: 2 }}>
+                  {ok ? 'You chose the best answer.' : activity.hint}
+                </LexText>
+              </View>
+              <KidPill label={ok ? '+10 XP' : 'Try again'} active color={ok ? c.yellow : c.coral} />
+            </View>
             <View style={styles.explainBox}>
               <LexText variant="label" style={{ color: c.purple }}>
-                Why?
+                Buddy explains
               </LexText>
               <LexText variant="muted" style={{ color: c.ink, marginTop: 4 }}>
                 {activity.explanation}
@@ -686,6 +804,63 @@ export function KidsPracticeScreen() {
         </View>
       </View>
     </KidScreen>
+  );
+}
+
+function PracticeHud({ index, total, correctCount, color }: { index: number; total: number; correctCount: number; color: string }) {
+  return (
+    <View style={styles.practiceHud}>
+      <View style={[styles.practiceHudPill, { backgroundColor: `${color}22` }]}>
+        <LexText variant="label" style={{ color: c.ink }}>
+          {index + 1}/{total}
+        </LexText>
+        <LexText variant="muted" style={{ color: c.muted, fontSize: 11 }}>
+          question
+        </LexText>
+      </View>
+      <View style={[styles.practiceHudPill, { backgroundColor: c.yellowSoft }]}>
+        <LexText variant="label" style={{ color: c.ink }}>
+          {correctCount}
+        </LexText>
+        <LexText variant="muted" style={{ color: c.muted, fontSize: 11 }}>
+          correct
+        </LexText>
+      </View>
+      <View style={[styles.practiceHudPill, { backgroundColor: c.mintSoft }]}>
+        <LexText variant="label" style={{ color: c.ink }}>
+          +XP
+        </LexText>
+        <LexText variant="muted" style={{ color: c.muted, fontSize: 11 }}>
+          reward
+        </LexText>
+      </View>
+    </View>
+  );
+}
+
+function PracticeCoachStrip({ activity, done, ok }: { activity: KidPracticeActivity; done: boolean; ok: boolean }) {
+  const message = done
+    ? ok
+      ? 'Nice. Tap Next while the idea is fresh.'
+      : 'No stress. Read the hint, then keep going.'
+    : activity.kind === 'speak'
+      ? 'Listen first, say it out loud, then self-check.'
+      : activity.kind === 'match'
+        ? 'Look at the picture clue before choosing.'
+        : 'Take one careful tap. I will explain after.';
+
+  return (
+    <KidCard animated={false} color={c.lilac} style={styles.practiceCoachStrip}>
+      <KidAvatar label={kidCharacters.buddy} size={42} color="white" />
+      <View style={{ flex: 1 }}>
+        <LexText variant="label" style={{ color: c.purple }}>
+          Buddy coach
+        </LexText>
+        <LexText variant="muted" style={{ color: c.ink, marginTop: 2 }}>
+          {message}
+        </LexText>
+      </View>
+    </KidCard>
   );
 }
 
@@ -1501,6 +1676,42 @@ const styles = StyleSheet.create({
   },
   courseCard: { marginBottom: 14, minHeight: 176, gap: 16 },
   detailHero: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 18 },
+  detailHeroV2: { marginTop: 18, gap: 16 },
+  detailHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  detailHeroTitle: { color: 'white', fontSize: 30, lineHeight: 35, marginTop: 8 },
+  detailHeroSubtitle: { color: 'rgba(255,255,255,0.82)', marginTop: 8 },
+  detailRewardRail: { flexDirection: 'row', gap: 8 },
+  detailRewardPill: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    padding: 6,
+  },
+  lessonPlanCard: { gap: 14 },
+  lessonPlanTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lessonPlanSteps: { gap: 10 },
+  lessonPlanStep: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  lessonPlanIcon: { width: 42, height: 42, borderRadius: 17, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  activityQuestGrid: { gap: 10 },
+  activityQuestCard: {
+    minHeight: 76,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    backgroundColor: c.appBg,
+    borderWidth: 1,
+    borderColor: c.line,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  activityArrow: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  buddyTipCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activityRow: {
     minHeight: 62,
     flexDirection: 'row',
@@ -1511,7 +1722,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   activityIcon: { width: 46, height: 46, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  quizCard: { marginTop: 18, alignItems: 'center' },
+  quizCard: { marginTop: 12, alignItems: 'center', paddingVertical: 14 },
+  practicePrompt: { color: 'white', marginTop: 14, textAlign: 'center', fontSize: 32, lineHeight: 38 },
+  practiceVisual: { fontSize: 58, lineHeight: 68, textAlign: 'center', marginTop: 8 },
+  practiceHud: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  practiceHudPill: {
+    flex: 1,
+    minHeight: 54,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  practiceCoachStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   practicePassage: {
     width: '100%',
     borderRadius: 24,
@@ -1541,6 +1766,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
   },
+  feedbackCard: { marginTop: 12 },
+  feedbackHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  completionHero: { alignItems: 'center', gap: 14 },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
