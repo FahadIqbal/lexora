@@ -36,6 +36,8 @@ export type KidDailyQuestStep = {
 
 export type KidDailyQuest = {
   id: string;
+  claimId: string;
+  dayLabel: string;
   title: string;
   subtitle: string;
   companionLine: string;
@@ -90,7 +92,9 @@ const questThemes = [
 
 export function getKidDailyQuest(kid: KidRuntimeState, now = Date.now()): KidDailyQuest {
   const child = getActiveKidProfile(kid);
-  const theme = questThemes[Math.floor(now / 86_400_000) % questThemes.length];
+  const dayIndex = Math.floor(now / 86_400_000);
+  const dayLabel = new Date(now).toISOString().slice(0, 10);
+  const theme = questThemes[dayIndex % questThemes.length];
   const reviewSummary = getKidAdaptiveReviewSummary(kid, now);
   const reviewQueue = getKidAdaptiveReviewQueue(kid, 6, now);
   const dailyWords = getDailyKidDictionarySet(kid, 5);
@@ -181,7 +185,9 @@ export function getKidDailyQuest(kid: KidRuntimeState, now = Date.now()): KidDai
   const friendLine = friend ? `${friend.name} is waiting for a friendly challenge.` : 'A friend challenge is ready.';
 
   return {
-    id: theme.id,
+    id: `${theme.id}-${dayLabel}`,
+    claimId: `daily-quest-${child.id}-${dayLabel}`,
+    dayLabel,
     title: theme.title,
     subtitle: theme.subtitle,
     companionLine:

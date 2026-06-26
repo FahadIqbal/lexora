@@ -68,6 +68,7 @@ type AppState = {
     attemptCount: number;
     wordResults?: KidReviewResult[];
   }) => void;
+  claimKidDailyQuest: (input: { questId: string; xp: number; wordResults?: KidReviewResult[] }) => void;
   recordKidPracticeAnswer: (correct: boolean) => void;
   recordKidFriendChallenge: () => void;
 
@@ -394,6 +395,47 @@ export const useAppStore = create<AppState>()(
               },
             },
             kid: applyKidReviewResults(completeKidLesson(s.kid, input), input.wordResults, input.lessonId),
+          };
+        }),
+
+      claimKidDailyQuest: (input) =>
+        set((s) => {
+          const claimedDailyQuestIds = s.kid.claimedDailyQuestIds ?? [];
+          if (claimedDailyQuestIds.includes(input.questId)) return {};
+
+          const today = isoDate();
+          const prevStat = s.dailyStats[today] ? DailyStatSchema.parse(s.dailyStats[today]) : DailyStatSchema.parse({ date: today });
+          let streakCurrent = s.streakCurrent;
+          let streakLongest = s.streakLongest;
+          if (s.lastActiveDate !== today) {
+            if (s.lastActiveDate && isYesterday(s.lastActiveDate, today)) streakCurrent = s.streakCurrent + 1;
+            else streakCurrent = 1;
+            streakLongest = Math.max(streakLongest, streakCurrent);
+          }
+
+          const kidWithClaim = {
+            ...s.kid,
+            claimedDailyQuestIds: [...claimedDailyQuestIds, input.questId],
+          };
+
+          return {
+            lastActiveDate: today,
+            streakCurrent,
+            streakLongest,
+            xpToday: s.xpToday + input.xp,
+            xpTotal: s.xpTotal + input.xp,
+            dailyStats: {
+              ...s.dailyStats,
+              [today]: {
+                ...prevStat,
+                wordsLearned: prevStat.wordsLearned + Math.min(3, input.wordResults?.length ?? 0),
+                sessionsCount: prevStat.sessionsCount + 1,
+                xpEarned: prevStat.xpEarned + input.xp,
+                accuracyCorrect: prevStat.accuracyCorrect + (input.wordResults?.filter((item) => item.correct).length ?? 0),
+                accuracyTotal: prevStat.accuracyTotal + (input.wordResults?.length ?? 0),
+              },
+            },
+            kid: applyKidReviewResults(kidWithClaim, input.wordResults, input.questId),
           };
         }),
 

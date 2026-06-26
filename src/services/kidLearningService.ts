@@ -34,6 +34,7 @@ export type KidRuntimeState = {
   lessonProgress: Record<string, KidLessonRuntime>;
   unlockedBadgeIds: string[];
   completedMissionIds: string[];
+  claimedDailyQuestIds?: string[];
   friendChallengeCount: number;
   wordMastery?: Record<string, KidWordMastery>;
   energy?: {
@@ -51,6 +52,7 @@ export function createInitialKidState(): KidRuntimeState {
     lessonProgress: {},
     unlockedBadgeIds: ['super-star', 'word-hero', 'listener'],
     completedMissionIds: [],
+    claimedDailyQuestIds: [],
     friendChallengeCount: 0,
     wordMastery: {},
     energy: { current: 25, max: 25, combo: 0 },

@@ -1551,6 +1551,8 @@ export function KidsRewardsScreen() {
   const badges = getKidBadges(kid);
   const totalStars = getTotalStars(kid);
   const unlockedCount = badges.filter((badge) => badge.unlocked).length;
+  const dailyQuest = getKidDailyQuest(kid);
+  const dailyQuestClaimed = Boolean(kid.claimedDailyQuestIds?.includes(dailyQuest.claimId));
 
   return (
     <KidScreen>
@@ -1570,6 +1572,7 @@ export function KidsRewardsScreen() {
           <LexText style={styles.rewardChestIcon}>🏆</LexText>
         </View>
       </KidCard>
+      <DailyRewardChestPreview quest={dailyQuest} claimed={dailyQuestClaimed} />
       <View style={styles.statsRow}>
         <MiniStat icon="⭐" value={`${totalStars}`} label="stars" color={c.yellowSoft} />
         <MiniStat icon="🏅" value={`${unlockedCount}/${badges.length}`} label="badges" color={c.mintSoft} />
@@ -1605,6 +1608,73 @@ export function KidsRewardsScreen() {
           <KidPill label={track.mastery > 0.5 ? 'Unlocked' : 'Locked'} active color={track.mastery > 0.5 ? c.mint : c.lilac} />
         </KidCard>
       ))}
+    </KidScreen>
+  );
+}
+
+export function KidsQuestRewardScreen() {
+  const kid = useAppStore((s) => s.kid);
+  const claimKidDailyQuest = useAppStore((s) => s.claimKidDailyQuest);
+  const quest = getKidDailyQuest(kid);
+  const claimed = Boolean(kid.claimedDailyQuestIds?.includes(quest.claimId));
+  const complete = quest.completion >= 0.98;
+  const claimXp = Math.max(35, Math.round(quest.rewardXp * 0.34));
+  const focusResults: KidReviewResult[] = quest.focusWords.slice(0, 3).map((entry) => ({ entryId: entry.id, correct: true, mode: 'vocabulary' }));
+
+  const claim = () => {
+    if (!complete || claimed) return;
+    hapticSelection();
+    claimKidDailyQuest({ questId: quest.claimId, xp: claimXp, wordResults: focusResults });
+  };
+
+  return (
+    <KidScreen>
+      <KidHeader
+        eyebrow="Daily reward"
+        title={complete ? 'Open your quest chest' : 'Finish today’s quest'}
+        subtitle={complete ? 'Claim once, then keep your streak warm.' : quest.companionLine}
+        avatar="🎁"
+      />
+      <KidCard color={quest.color} style={styles.questRewardHero}>
+        <Floating3DToken icon={quest.themeIcon} color={quest.accent} style={styles.questRewardTokenOne} />
+        <Floating3DToken icon="⭐" color="rgba(255,255,255,0.92)" delay={260} style={styles.questRewardTokenTwo} />
+        <View style={styles.questRewardChestStage}>
+          <LexoraLottie source={missionPulse} size={126} speed={claimed ? 0.65 : 1} />
+          <LexText style={styles.questRewardChestIcon}>{claimed ? '🏆' : complete ? '🎁' : '🔒'}</LexText>
+        </View>
+        <LexText variant="h2" style={{ color: 'white', textAlign: 'center' }}>
+          {claimed ? 'Reward collected' : complete ? `+${claimXp} bonus XP` : `${Math.round(quest.completion * 100)}% complete`}
+        </LexText>
+        <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.84)', textAlign: 'center' }}>
+          {claimed ? 'Your focus words were added to Memory Boost.' : complete ? 'Buddy saved your words and packed a streak bonus.' : quest.nextStep.reason}
+        </LexText>
+        <View style={{ width: '100%' }}>
+          <KidProgressBar progress={quest.completion} color={quest.accent} />
+        </View>
+      </KidCard>
+
+      <SectionTitle title="Quest steps" action={complete ? 'Home' : 'Continue'} onPress={() => router.push(complete ? '/(tabs)/home' : (quest.nextStep.route as never))} />
+      <View style={{ gap: 10 }}>
+        {quest.steps.map((step) => (
+          <QuestRewardStepRow key={step.id} step={step} />
+        ))}
+      </View>
+
+      <SectionTitle title="Focus words saved" action="Dictionary" onPress={() => router.push('/kids-dictionary')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+        {quest.focusWords.slice(0, 5).map((entry) => (
+          <QuestRewardWord key={entry.id} entry={entry} />
+        ))}
+      </ScrollView>
+
+      <View style={{ marginTop: 18, gap: 10 }}>
+        <KidButton
+          title={claimed ? 'Back to rewards' : complete ? 'Claim chest' : `Continue ${quest.nextStep.label}`}
+          color={claimed ? c.mint : complete ? c.yellow : quest.accent}
+          onPress={claimed ? () => router.replace('/rewards') : complete ? claim : () => router.push(quest.nextStep.route as never)}
+        />
+        <KidButton title="Back home" color={c.lilac} onPress={() => router.replace('/(tabs)/home')} />
+      </View>
     </KidScreen>
   );
 }
@@ -2643,6 +2713,9 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
 }
 
 function QuestIslandHero({ quest }: { quest: KidDailyQuest }) {
+  const complete = quest.completion >= 0.98;
+  const primaryRoute = complete ? '/kids-quest-reward' : quest.nextStep.route;
+
   return (
     <KidCard color={quest.color} style={styles.questHero}>
       <View style={styles.questHeroTop}>
@@ -2696,20 +2769,45 @@ function QuestIslandHero({ quest }: { quest: KidDailyQuest }) {
       </View>
 
       <View style={styles.questActions}>
-        <KidButton title={quest.nextStep.state === 'complete' ? 'Claim reward' : `Start ${quest.nextStep.label}`} onPress={() => router.push(quest.nextStep.route as never)} style={{ flex: 1, minHeight: 48 }} />
+        <KidButton title={complete ? 'Open chest' : `Start ${quest.nextStep.label}`} onPress={() => router.push(primaryRoute as never)} style={{ flex: 1, minHeight: 48 }} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Open rewards"
-          onPress={() => router.push('/rewards')}
+          accessibilityLabel="Open quest reward"
+          onPress={() => router.push('/kids-quest-reward')}
           style={styles.questSecondaryAction}
         >
           <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
-            {quest.estimatedMinutes}m
+            {complete ? 'Chest' : `${quest.estimatedMinutes}m`}
           </LexText>
           <LexText style={{ fontSize: 18, lineHeight: 24 }}>⭐</LexText>
         </Pressable>
       </View>
     </KidCard>
+  );
+}
+
+function DailyRewardChestPreview({ quest, claimed }: { quest: KidDailyQuest; claimed: boolean }) {
+  const complete = quest.completion >= 0.98;
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push('/kids-quest-reward')}>
+      <KidCard color={complete ? quest.color : c.lilac} style={styles.dailyRewardPreview}>
+        <View style={[styles.dailyRewardPreviewIcon, { backgroundColor: complete ? quest.accent : 'white' }]}>
+          <LexText style={{ fontSize: 28, lineHeight: 36 }}>{claimed ? '🏆' : complete ? '🎁' : '🔒'}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <LexText variant="label" style={{ color: complete ? 'rgba(255,255,255,0.84)' : quest.color }}>
+            Today’s quest chest
+          </LexText>
+          <LexText variant="title" style={{ color: complete ? 'white' : c.ink, marginTop: 3 }}>
+            {claimed ? 'Collected for today' : complete ? `Ready to claim ${quest.rewardXp} XP` : `${Math.round(quest.completion * 100)}% ready`}
+          </LexText>
+          <View style={{ marginTop: 8 }}>
+            <KidProgressBar progress={quest.completion} color={complete ? quest.accent : quest.color} />
+          </View>
+        </View>
+        <LexText variant="title" style={{ color: complete ? 'white' : c.purple }}>→</LexText>
+      </KidCard>
+    </Pressable>
   );
 }
 
@@ -2749,6 +2847,55 @@ function QuestMiniStep({ step }: { step: KidDailyQuestStep }) {
       <LexText variant="label" numberOfLines={1} style={{ color: step.state === 'active' ? step.color : c.muted, fontSize: 9 }}>
         {step.label}
       </LexText>
+    </Pressable>
+  );
+}
+
+function QuestRewardStepRow({ step }: { step: KidDailyQuestStep }) {
+  const done = step.state === 'complete';
+  const active = step.state === 'active';
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push(step.route as never)}>
+      <KidCard animated={false} style={[styles.questRewardStepRow, active ? { borderColor: step.color, borderWidth: 2 } : null]}>
+        <View style={[styles.questRewardStepIcon, { backgroundColor: done ? c.mint : `${step.color}22` }]}>
+          <LexText style={{ fontSize: 22, lineHeight: 30 }}>{done ? '✓' : step.icon}</LexText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.questRewardStepTop}>
+            <LexText variant="label" style={{ color: step.color }}>
+              {step.label}
+            </LexText>
+            <KidPill label={done ? 'Done' : `+${step.rewardXp} XP`} active color={done ? c.mint : step.accent} />
+          </View>
+          <LexText variant="title" style={{ color: c.ink, marginTop: 2 }}>
+            {step.title}
+          </LexText>
+          <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, marginTop: 3 }}>
+            {step.reason}
+          </LexText>
+          <View style={{ marginTop: 9 }}>
+            <KidProgressBar progress={step.progress} color={step.color} />
+          </View>
+        </View>
+      </KidCard>
+    </Pressable>
+  );
+}
+
+function QuestRewardWord({ entry }: { entry: KidDictionaryEntry }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push(`/kids-dictionary?word=${entry.id}`)}>
+      <KidCard animated={false} style={styles.questRewardWordCard}>
+        <View style={[styles.questRewardWordIcon, { backgroundColor: `${entry.color}24` }]}>
+          <LexText style={{ fontSize: 28, lineHeight: 36 }}>{entry.emoji}</LexText>
+        </View>
+        <LexText variant="title" numberOfLines={1} style={{ color: c.ink, marginTop: 9 }}>
+          {entry.word}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 3 }}>
+          {entry.kidDefinition}
+        </LexText>
+      </KidCard>
     </Pressable>
   );
 }
@@ -2954,6 +3101,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(34,35,74,0.08)',
   },
+  dailyRewardPreview: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dailyRewardPreviewIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 10px 0 rgba(34,35,74,0.10)',
+  },
   dailyQuestMiniPanel: { marginTop: 14, gap: 12 },
   dailyQuestMiniTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dailyQuestMiniIcon: {
@@ -2984,6 +3143,41 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 14,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questRewardHero: { marginTop: 16, alignItems: 'center', gap: 12, overflow: 'hidden' },
+  questRewardChestStage: {
+    width: 154,
+    height: 146,
+    borderRadius: 44,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.68)',
+    boxShadow: '0 20px 0 rgba(34,35,74,0.13)',
+  },
+  questRewardChestIcon: { position: 'absolute', fontSize: 54, lineHeight: 64, textAlign: 'center' },
+  questRewardTokenOne: { position: 'absolute', left: 22, top: 52 },
+  questRewardTokenTwo: { position: 'absolute', right: 26, top: 36 },
+  questRewardStepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  questRewardStepTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  questRewardStepIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 21,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questRewardWordCard: { width: 148, minHeight: 168 },
+  questRewardWordIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',

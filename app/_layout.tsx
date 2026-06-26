@@ -110,6 +110,7 @@ export default function RootLayout() {
           <Stack.Screen name="rewards" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="kids-dictionary" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="kids-roleplay" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="kids-quest-reward" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="parent" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.82, 1], sheetGrabberVisible: true }} />
           <Stack.Screen name="dictionary" options={{ animation: 'ios_from_right' }} />
           <Stack.Screen name="dictionary/[id]" options={{ animation: 'ios_from_right' }} />

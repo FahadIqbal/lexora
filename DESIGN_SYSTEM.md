@@ -80,6 +80,8 @@ Buddy Roleplay lives in `src/services/kidRoleplayService.ts` and `/kids-roleplay
 
 Daily Quest orchestration lives in `src/services/kidDailyQuestService.ts`. Home, Games, and Progress should render quest state from this service so the daily path, next action, XP reward, play step, focus words, and parent summary stay consistent instead of being manually assembled per screen.
 
+Daily Quest reward claiming lives at `/kids-quest-reward`. The claim id is date-specific and stored in kid runtime state so the chest can award XP once, add focus words back into Memory Boost, then become a collected reward instead of an infinite XP tap target.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
@@ -113,6 +115,7 @@ The current kid-focused routes include:
 - Lesson detail: `/lessons/[id]`.
 - Interactive vocabulary/listening/speaking/reading/grammar/story practice: `/practice/[mode]`.
 - Buddy Roleplay: `/kids-roleplay`.
+- Daily Quest reward chest: `/kids-quest-reward`.
 - Review: `/(tabs)/review`.
 - Games/daily challenge: `/(tabs)/games`.
 - Rewards/badges: `/rewards`.
