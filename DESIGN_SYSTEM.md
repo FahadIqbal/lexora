@@ -74,6 +74,8 @@ Course and progress screens also use `kidParentInsights` and `kidTeacherPipeline
 
 Practice sessions use `src/services/kidPracticeExperienceService.ts` for mode themes, mission steps, dictionary insight cards, coaching copy, and completion plans. New lesson types should extend that service first, then render through the shared practice stage, reward trail, feedback, and completion patterns.
 
+Adaptive memory review lives in `src/services/kidAdaptiveLearningService.ts`. Lesson completion should pass word-level results into the store so words move through new, learning, review, strong, and mastered states with due timing. Home, Review, and Practice should read the adaptive queue instead of hardcoded review cards.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
@@ -120,4 +122,6 @@ Curriculum seed content for profiles, courses, lessons, badges, friends, leaderb
 
 Screens should not embed dictionary words, definitions, examples, pronunciation text, or lesson-linked word sets directly. They should ask the service for featured words, daily sets, category filters, lesson words, and generated practice activities. This keeps the UI ready for Supabase-backed content or licensed dictionary imports without rewriting screen code.
 
-User-specific progress, parent session state, lesson completion, badge unlocks, missions, and friend challenges are persisted through `src/store/useAppStore.ts` and derived by `src/services/kidLearningService.ts`.
+User-specific progress, parent session state, lesson completion, badge unlocks, missions, word mastery, and friend challenges are persisted through `src/store/useAppStore.ts` and derived by `src/services/kidLearningService.ts`.
+
+Parent gates use `src/services/kidParentSafetyService.ts` for rotating challenge prompts and short-lived unlock checks. Do not put fixed gate answers directly in screens.

@@ -12,6 +12,7 @@ import {
   recordKidPracticeAnswer,
   type KidRuntimeState,
 } from '../services/kidLearningService';
+import { applyKidReviewResults, type KidReviewResult } from '../services/kidAdaptiveLearningService';
 
 type UserProfile = {
   id?: string;
@@ -59,7 +60,14 @@ type AppState = {
   signOutKidParent: () => void;
   selectKidProfile: (profileId: string) => void;
   passKidParentGate: () => void;
-  recordKidLessonCompletion: (input: { lessonId: string; xp: number; stars: number; correctCount: number; attemptCount: number }) => void;
+  recordKidLessonCompletion: (input: {
+    lessonId: string;
+    xp: number;
+    stars: number;
+    correctCount: number;
+    attemptCount: number;
+    wordResults?: KidReviewResult[];
+  }) => void;
   recordKidPracticeAnswer: (correct: boolean) => void;
   recordKidFriendChallenge: () => void;
 
@@ -385,7 +393,7 @@ export const useAppStore = create<AppState>()(
                 accuracyTotal: prevStat.accuracyTotal + input.attemptCount,
               },
             },
-            kid: completeKidLesson(s.kid, input),
+            kid: applyKidReviewResults(completeKidLesson(s.kid, input), input.wordResults, input.lessonId),
           };
         }),
 

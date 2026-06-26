@@ -9,6 +9,7 @@ import {
   kidProfiles,
   type KidPracticeMode,
 } from '../data/kidContent';
+import type { KidReviewResult, KidWordMastery } from './kidAdaptiveLearningService';
 
 export type KidLessonRuntime = {
   lessonId: string;
@@ -34,6 +35,7 @@ export type KidRuntimeState = {
   unlockedBadgeIds: string[];
   completedMissionIds: string[];
   friendChallengeCount: number;
+  wordMastery?: Record<string, KidWordMastery>;
   energy?: {
     current: number;
     max: number;
@@ -50,6 +52,7 @@ export function createInitialKidState(): KidRuntimeState {
     unlockedBadgeIds: ['super-star', 'word-hero', 'listener'],
     completedMissionIds: [],
     friendChallengeCount: 0,
+    wordMastery: {},
     energy: { current: 25, max: 25, combo: 0 },
   };
 }
@@ -242,6 +245,7 @@ export function completeKidLesson(
     stars: number;
     correctCount: number;
     attemptCount: number;
+    wordResults?: KidReviewResult[];
   }
 ): KidRuntimeState {
   const previous = getLessonRuntime(kid, input.lessonId);

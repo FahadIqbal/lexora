@@ -31,7 +31,6 @@ import {
   kidOnboardingSlides,
   kidParentInsights,
   kidProfiles,
-  kidPracticeActivities,
   kidReviewSchedule,
   kidTeacherPipelines,
   type KidPracticeActivity,
@@ -77,6 +76,17 @@ import {
   getKidPracticeStageSupport,
   type KidPracticeModeTheme,
 } from '../../services/kidPracticeExperienceService';
+import {
+  buildKidAdaptivePracticeActivities,
+  getKidAdaptiveReviewQueue,
+  getKidAdaptiveReviewSummary,
+  type KidReviewResult,
+} from '../../services/kidAdaptiveLearningService';
+import {
+  getKidParentGateChallenge,
+  isKidParentGateOpen,
+  verifyKidParentGateAnswer,
+} from '../../services/kidParentSafetyService';
 import missionPulse from '../../animations/mission-pulse.json';
 import wordQuestOrbit from '../../animations/word-quest-orbit.json';
 
@@ -93,6 +103,9 @@ export function KidsHomeScreen() {
   const dailyPath = getKidDailyPath(kid);
   const energy = getKidEnergy(kid);
   const dailyWords = getDailyKidDictionarySet(kid, 4);
+  const reviewSummary = getKidAdaptiveReviewSummary(kid);
+  const reviewQueue = getKidAdaptiveReviewQueue(kid, 3);
+  const primaryReview = reviewQueue[0];
   const primaryMission = missions[0];
   const primaryWord = dailyWords[0];
   const featuredFriend = friends[0];
@@ -133,15 +146,16 @@ export function KidsHomeScreen() {
         <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
       </View>
 
-      <SectionTitle title="Today" action="Start" onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)} />
+      <SectionTitle title="Today" action="Start" onPress={() => router.push(`/practice/${reviewSummary.recommendedMode}?lesson=adaptive-review`)} />
       <View style={styles.homeTodayGrid}>
         <HomeTodayCard
-          icon={dailyPath[0].icon}
-          title="Review"
-          subtitle={dailyPath[0].title}
-          color={dailyPath[0].color}
-          progress={dailyPath[0].progress}
-          onPress={() => router.push(`/practice/${dailyPath[0].mode}?lesson=${dailyPath[0].lessonId}`)}
+          icon={primaryReview?.entry.emoji ?? '🔁'}
+          title={`${reviewSummary.dueCount || reviewSummary.newCount} due`}
+          subtitle={primaryReview?.entry.word ?? reviewSummary.focusTitle}
+          badge={reviewSummary.nextReviewLabel}
+          color={primaryReview?.entry.color ?? c.purple}
+          progress={reviewSummary.progress.recall || 0.18}
+          onPress={() => router.push(`/practice/${reviewSummary.recommendedMode}?lesson=adaptive-review`)}
         />
         <HomeTodayCard
           icon={primaryMission.icon}
@@ -780,19 +794,40 @@ export function KidsPracticeScreen() {
   const kid = useAppStore((s) => s.kid);
   const recordKidLessonCompletion = useAppStore((s) => s.recordKidLessonCompletion);
   const recordKidPracticeAnswer = useAppStore((s) => s.recordKidPracticeAnswer);
-  const currentLesson = getKidLessons(kid).find((item) => item.id === lesson) ?? getKidLessons(kid)[0];
+  const lessonParam = String(lesson ?? '');
+  const baseLesson = getKidLessons(kid).find((item) => item.id === lesson) ?? getKidLessons(kid)[0];
   const energy = getKidEnergy(kid);
-  const selectedMode = String(mode ?? currentLesson.type);
+  const selectedMode = String(mode ?? baseLesson.type);
   const selectedPracticeMode = isKidPracticeMode(selectedMode) ? selectedMode : 'vocabulary';
+  const currentLesson =
+    lessonParam === 'adaptive-review'
+      ? {
+          ...baseLesson,
+          id: 'adaptive-review',
+          title: 'Memory Boost Review',
+          subtitle: 'Words before they fade',
+          icon: '🔁',
+          color: c.purple,
+          type: selectedPracticeMode,
+          progress: 0,
+          xp: 35,
+          stars: 0,
+          locked: false,
+        }
+      : baseLesson;
   const modeTheme = getKidPracticeModeTheme(selectedPracticeMode);
   const activities = useMemo(() => {
+    if (lessonParam === 'adaptive-review') {
+      return buildKidAdaptivePracticeActivities(kid, selectedPracticeMode, 7);
+    }
     const base = getKidPracticeActivities(selectedPracticeMode);
     const dictionaryActivities = getDictionaryEntriesForLesson(currentLesson.id).map((entry) => buildKidDictionaryActivity(entry, selectedPracticeMode));
     return dictionaryActivities.length ? [...base, ...dictionaryActivities] : base;
-  }, [currentLesson.id, selectedPracticeMode]);
+  }, [currentLesson.id, kid, lessonParam, selectedPracticeMode]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [sessionResults, setSessionResults] = useState<KidReviewResult[]>([]);
   const [complete, setComplete] = useState(false);
   const activity = activities[index % activities.length];
   const done = Boolean(selected);
@@ -808,6 +843,9 @@ export function KidsPracticeScreen() {
     setSelected(answer);
     const correct = answer === activity.answer;
     recordKidPracticeAnswer(correct);
+    if (dictionaryInsight) {
+      setSessionResults((items) => [...items, { entryId: dictionaryInsight.entry.id, correct, mode: activity.mode }]);
+    }
     if (correct) setCorrectCount((value) => value + 1);
   };
 
@@ -863,6 +901,7 @@ export function KidsPracticeScreen() {
                   stars,
                   correctCount,
                   attemptCount: activities.length,
+                  wordResults: sessionResults,
                 });
                 setComplete(true);
               }
@@ -1514,7 +1553,9 @@ export function KidsParentDashboardScreen() {
   const attempts = Object.values(kid.lessonProgress).reduce((sum, item) => sum + item.attemptCount, 0);
   const correct = Object.values(kid.lessonProgress).reduce((sum, item) => sum + item.correctCount, 0);
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 0;
-  const gatePassed = Boolean(kid.parentGatePassedAt);
+  const gateChallenge = getKidParentGateChallenge(kid);
+  const gatePassed = isKidParentGateOpen(kid);
+  const gateReady = gatePassed || verifyKidParentGateAnswer(kid, gateAnswer);
 
   return (
     <KidScreen>
@@ -1528,7 +1569,7 @@ export function KidsParentDashboardScreen() {
           <TextInput
             value={gateAnswer}
             onChangeText={setGateAnswer}
-            placeholder="Type 12 + 3"
+            placeholder={`Type ${gateChallenge.prompt}`}
             placeholderTextColor={c.muted}
             keyboardType="number-pad"
             accessibilityLabel="Parent gate answer"
@@ -1538,10 +1579,16 @@ export function KidsParentDashboardScreen() {
             <KidButton
               title={gatePassed ? 'Parent gate unlocked' : 'Unlock parent tools'}
               color={gatePassed ? c.mint : c.yellow}
-              disabled={!gatePassed && gateAnswer.trim() !== '15'}
-              onPress={passKidParentGate}
+              disabled={!gateReady}
+              onPress={() => {
+                passKidParentGate();
+                setGateAnswer('');
+              }}
             />
           </View>
+          <LexText variant="muted" style={{ color: c.muted, marginTop: 8, fontSize: 12 }}>
+            Unlock stays active for {gateChallenge.expiresInMinutes} minutes.
+          </LexText>
         </View>
       </KidCard>
       <View style={styles.statsRow}>
@@ -1663,25 +1710,57 @@ export function KidsAdminTeacherScreen() {
 }
 
 export function KidsReviewScreen() {
-  const reviewActivities = kidPracticeActivities.filter((activity) => activity.mode === 'vocabulary' || activity.mode === 'grammar').slice(0, 5);
+  const kid = useAppStore((s) => s.kid);
+  const reviewSummary = getKidAdaptiveReviewSummary(kid);
+  const reviewQueue = getKidAdaptiveReviewQueue(kid, 8);
 
   return (
     <KidScreen>
-      <KidHeader eyebrow="Review" title="Warm up your words" subtitle="Quick, gentle recall before learning more." avatar="🔁" />
+      <KidHeader eyebrow="Review" title="Memory Boost" subtitle="Words return right before they fade." avatar="🔁" />
       <KidCard color={c.mint}>
         <LexText variant="h2" style={{ color: 'white' }}>
-          {reviewActivities.length} activities ready
+          {reviewSummary.dueCount || reviewQueue.length} cards ready
         </LexText>
         <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
-          Review cards adapt to what your child remembers.
+          {reviewSummary.focusBody}
         </LexText>
+        <View style={styles.reviewHeroMetrics}>
+          <View style={styles.reviewHeroMetric}>
+            <LexText variant="title" style={{ color: 'white' }}>
+              {reviewSummary.newCount}
+            </LexText>
+            <LexText variant="label" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9 }}>
+              new
+            </LexText>
+          </View>
+          <View style={styles.reviewHeroMetric}>
+            <LexText variant="title" style={{ color: 'white' }}>
+              {reviewSummary.strongCount}
+            </LexText>
+            <LexText variant="label" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9 }}>
+              strong
+            </LexText>
+          </View>
+          <View style={styles.reviewHeroMetric}>
+            <LexText variant="title" style={{ color: 'white' }}>
+              {reviewSummary.masteredCount}
+            </LexText>
+            <LexText variant="label" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9 }}>
+              mastered
+            </LexText>
+          </View>
+        </View>
         <View style={{ marginTop: 16 }}>
-          <KidButton title="Start review" onPress={() => router.push('/practice/vocabulary?lesson=animals-1')} />
+          <KidButton title="Start review" onPress={() => router.push(`/practice/${reviewSummary.recommendedMode}?lesson=adaptive-review`)} />
         </View>
       </KidCard>
       <SectionTitle title="Memory timing" />
       <View style={{ gap: 10 }}>
-        {kidReviewSchedule.map((item) => (
+        {[
+          { ...kidReviewSchedule[0], progress: reviewSummary.progress.fresh, label: `${reviewSummary.newCount} new` },
+          { ...kidReviewSchedule[1], progress: reviewSummary.progress.recall, label: reviewSummary.nextReviewLabel },
+          { ...kidReviewSchedule[2], progress: reviewSummary.progress.strong, label: `${reviewSummary.strongCount + reviewSummary.masteredCount} strong` },
+        ].map((item) => (
           <KidCard key={item.id} animated={false} style={styles.reviewTimingRow}>
             <View style={[styles.reviewTimingIcon, { backgroundColor: `${item.color}22` }]}>
               <LexText style={{ fontSize: 24, lineHeight: 32 }}>{item.icon}</LexText>
@@ -1702,17 +1781,18 @@ export function KidsReviewScreen() {
         ))}
       </View>
       <SectionTitle title="Due cards" />
-      {reviewActivities.map((q) => (
-        <KidCard key={q.id} style={styles.reviewPreview}>
-          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{q.visual}</LexText>
+      {reviewQueue.map((item) => (
+        <KidCard key={item.entry.id} style={styles.reviewPreview}>
+          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{item.entry.emoji}</LexText>
           <View style={{ flex: 1 }}>
             <LexText variant="title" style={{ color: c.ink }}>
-              {q.answer}
+              {item.entry.word}
             </LexText>
             <LexText variant="muted" style={{ color: c.muted }}>
-              {q.hint}
+              {item.reason}
             </LexText>
           </View>
+          <KidPill label={item.dueLabel} active color={item.entry.color} />
         </KidCard>
       ))}
     </KidScreen>
@@ -3323,6 +3403,18 @@ const styles = StyleSheet.create({
   adminActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   adminLessonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   reviewPreview: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  reviewHeroMetrics: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  reviewHeroMetric: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   timerPill: {
     minHeight: 38,
     borderRadius: 999,
