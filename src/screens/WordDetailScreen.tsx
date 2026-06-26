@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
@@ -14,6 +13,7 @@ import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useAppStore } from '../store/useAppStore';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
+import { buildDictionaryLearningMaterial, pronounceDictionaryWord } from '../services/dictionaryLearning';
 
 export function WordDetailScreen({ id }: { id: string }) {
   const t = useTheme();
@@ -25,6 +25,7 @@ export function WordDetailScreen({ id }: { id: string }) {
     if (word.difficulty_level <= 4) return 'Growth word';
     return 'Advanced';
   }, [word]);
+  const learning = useMemo(() => (word ? buildDictionaryLearningMaterial(word) : null), [word]);
 
   if (!word) {
     return (
@@ -84,8 +85,7 @@ export function WordDetailScreen({ id }: { id: string }) {
               accessibilityRole="button"
               accessibilityLabel={`Pronounce ${word.word}`}
               onPress={() => {
-                Speech.speak(word.word, { rate: 0.95 });
-                hapticSelection();
+                pronounceDictionaryWord(word);
               }}
               style={({ pressed }) => [
                 styles.pronounceOrb,
@@ -116,6 +116,29 @@ export function WordDetailScreen({ id }: { id: string }) {
         </View>
 
         <Card style={{ marginTop: 14 }}>
+          <SectionTitle icon="speaker.wave.2.fill" fallback="P" title="Pronunciation" color={t.colors.accentPink} />
+          <View style={styles.pronunciationRow}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="title">{learning?.pronunciationText}</LexText>
+              <LexText variant="muted" style={{ marginTop: 6 }}>
+                {learning?.syllableHint}
+              </LexText>
+              <LexText variant="label" style={{ marginTop: 8, color: t.colors.muted }}>
+                {learning?.pronunciationSource === 'recorded-audio' ? 'Licensed audio reference available' : 'Device speech fallback'}
+              </LexText>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Practice pronunciation for ${word.word}`}
+              onPress={() => pronounceDictionaryWord(word, `${word.word}. ${word.word}. ${word.word}.`)}
+              style={[styles.practiceAudioButton, { borderColor: t.colors.accentPink }]}
+            >
+              <IconSymbol name="waveform" fallback="A" color={t.colors.accentPink} size={18} />
+            </Pressable>
+          </View>
+        </Card>
+
+        <Card style={{ marginTop: 12 }}>
           <SectionTitle icon="text.quote" fallback="D" title="Definition" color={t.colors.accentTeal} />
           <LexText variant="muted" style={{ marginTop: 8 }}>
             {word.definition}
@@ -157,6 +180,42 @@ export function WordDetailScreen({ id }: { id: string }) {
         </Card>
 
         <Card style={{ marginTop: 12 }}>
+          <SectionTitle icon="graduationcap.fill" fallback="L" title="Learning Material" color={t.colors.accentTeal} />
+          <View style={styles.learningGrid}>
+            <LearningTile label="Level" value={learning?.learnerLevel ?? difficultyLabel} />
+            <LearningTile label="Focus" value={learning?.focusSkill ?? 'Listen and use it in context'} />
+          </View>
+          <View style={{ marginTop: 12, gap: 8 }}>
+            {learning?.practiceSteps.map((step, index) => (
+              <View key={step} style={[styles.practiceStep, { borderColor: t.colors.border }]}>
+                <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                  {index + 1}
+                </LexText>
+                <LexText variant="muted" style={{ flex: 1 }}>
+                  {step}
+                </LexText>
+              </View>
+            ))}
+          </View>
+        </Card>
+
+        <Card style={{ marginTop: 12 }}>
+          <SectionTitle icon="questionmark.circle.fill" fallback="Q" title="Quick Check" color={t.colors.accentPurple} />
+          <LexText variant="title" style={{ marginTop: 10 }}>
+            {learning?.quickQuiz.prompt}
+          </LexText>
+          <View style={{ marginTop: 10, gap: 8 }}>
+            {[learning?.quickQuiz.answer, ...(learning?.quickQuiz.distractors ?? [])].filter(Boolean).slice(0, 4).map((choice, index) => (
+              <View key={`${choice}-${index}`} style={[styles.quizChoice, { borderColor: index === 0 ? t.colors.accentTeal : t.colors.border }]}>
+                <LexText variant="muted" style={{ color: index === 0 ? t.colors.accentTeal : t.colors.muted }}>
+                  {choice}
+                </LexText>
+              </View>
+            ))}
+          </View>
+        </Card>
+
+        <Card style={{ marginTop: 12 }}>
           <SectionTitle icon="lightbulb.fill" fallback="M" title="Mnemonic" color={t.colors.accentAmber} />
           <LexText variant="muted" style={{ marginTop: 8 }}>
             {word.mnemonic}
@@ -184,6 +243,19 @@ function MetaPill({ label }: { label: string }) {
     <View style={styles.metaPill}>
       <LexText variant="label" style={{ fontSize: 10 }}>
         {label}
+      </LexText>
+    </View>
+  );
+}
+
+function LearningTile({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.learningTile}>
+      <LexText variant="label" style={{ fontSize: 10 }}>
+        {label}
+      </LexText>
+      <LexText variant="muted" style={{ marginTop: 6 }}>
+        {value}
       </LexText>
     </View>
   );
@@ -263,6 +335,44 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  pronunciationRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+  practiceAudioButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  learningGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  learningTile: {
+    flex: 1,
+    minHeight: 88,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  practiceStep: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  quizChoice: {
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    padding: 12,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
 });

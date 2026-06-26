@@ -46,7 +46,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "seed:words": "tsx scripts/seed-words.ts"
+    "seed:words": "tsx scripts/seed-words.ts",
+    "import:dictionary": "tsx scripts/import-licensed-dictionary.ts"
   },
   "private": true
 }
