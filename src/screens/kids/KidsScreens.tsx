@@ -74,6 +74,7 @@ import {
   getKidPracticeStageSupport,
   type KidPracticeModeTheme,
 } from '../../services/kidPracticeExperienceService';
+import { getKidPlayStudio, type KidPlayStudioItem } from '../../services/kidPlayStudioService';
 import {
   buildKidAdaptivePracticeActivities,
   getKidAdaptiveReviewQueue,
@@ -2089,58 +2090,48 @@ export function KidsReviewScreen() {
 
 export function KidsGamesScreen() {
   const kid = useAppStore((s) => s.kid);
-  const lessons = getKidLessons(kid);
-  const dailyQuest = getKidDailyQuest(kid);
-  const gameModes = [
-    { title: 'Listening Pop', subtitle: 'Hear a word and tap the picture', icon: '🎧', mode: 'listening' },
-    { title: 'Speaking Star', subtitle: 'Say the answer out loud', icon: '🎤', mode: 'speaking' },
-    { title: 'Grammar Garden', subtitle: 'Choose the best sentence', icon: '🌱', mode: 'grammar' },
-    { title: 'Story Island', subtitle: 'Read and unlock the ending', icon: '🏝️', mode: 'story' },
-  ].map((item) => {
-    const lessonForMode = lessons.find((lessonItem) => lessonItem.type === item.mode) ?? lessons.find((lessonItem) => !lessonItem.locked) ?? lessons[0];
-    return { ...item, lessonId: lessonForMode.id, progress: lessonForMode.progress };
-  });
+  const playStudio = getKidPlayStudio(kid);
+  const dailyQuest = playStudio.quest;
+
   return (
     <KidScreen>
-      <KidHeader eyebrow="Play" title="Daily challenge" subtitle="Games that make English practice feel alive." avatar="🎮" />
-      <KidCard color={dailyQuest.playStep.color} style={styles.heroCard}>
+      <KidHeader eyebrow="Play Studio" title="Shows, songs & games" subtitle="Every playful card starts a real English activity." avatar="🎮" />
+      <KidCard color={playStudio.hero.color} style={styles.playStudioHero}>
+        <Floating3DToken icon="🎵" color={playStudio.hero.accent} style={styles.playStudioTokenOne} />
+        <Floating3DToken icon={playStudio.hero.icon} color="rgba(255,255,255,0.9)" delay={300} style={styles.playStudioTokenTwo} />
         <View style={{ flex: 1 }}>
-          <LexText variant="label" style={{ color: c.yellow }}>
-            Today’s play quest
+          <LexText variant="label" style={{ color: 'rgba(255,255,255,0.86)' }}>
+            Today’s featured play
           </LexText>
           <LexText variant="h2" style={{ color: 'white', marginTop: 6 }}>
-            {dailyQuest.playStep.title}
+            {playStudio.hero.title}
           </LexText>
           <LexText variant="muted" style={{ color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>
-            {dailyQuest.playStep.subtitle}
+            {playStudio.hero.coachLine}
           </LexText>
-          <View style={{ marginTop: 16, alignSelf: 'flex-start' }}>
-            <KidButton title={dailyQuest.playStep.kind === 'roleplay' ? 'Talk now' : 'Play now'} onPress={() => router.push(dailyQuest.playStep.route as never)} />
+          <View style={styles.playStudioHeroMeta}>
+            <KidPill label={playStudio.hero.tag} active color="rgba(255,255,255,0.24)" />
+            <KidPill label={`${playStudio.hero.minutes} min`} active color="rgba(255,255,255,0.24)" />
+            <KidPill label={`+${playStudio.hero.rewardXp} XP`} active color={playStudio.hero.accent} />
           </View>
+          <KidButton title={playStudio.hero.kind === 'roleplay' ? 'Talk now' : 'Play now'} onPress={() => router.push(playStudio.hero.route as never)} style={{ marginTop: 16, alignSelf: 'flex-start' }} />
         </View>
         <CharacterBubble mood="star" />
       </KidCard>
       <DailyQuestMiniPanel quest={dailyQuest} />
-      <SectionTitle title="Premium play systems" action="Review" onPress={() => router.push('/(tabs)/review')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-        {kidFeaturePowerUps.map((feature, index) => (
-          <FeaturePowerUpCard key={feature.id} feature={feature} index={index} />
-        ))}
-      </ScrollView>
-      <SectionTitle title="Game modes" />
-      <View style={styles.gameModeGrid}>
-        {gameModes.map(({ title, subtitle, icon, mode, lessonId, progress }) => (
-          <GameModeCard
-            key={mode}
-            title={title}
-            subtitle={subtitle}
-            icon={icon}
-            color={mode === 'grammar' ? c.mint : mode === 'speaking' ? c.coral : mode === 'listening' ? c.blue : c.purple}
-            progress={progress}
-            onPress={() => router.push(`/practice/${mode}?lesson=${lessonId}`)}
-          />
-        ))}
-      </View>
+      {playStudio.shelves.map((shelf) => (
+        <View key={shelf.id}>
+          <SectionTitle title={shelf.title} action={shelf.id === 'daily-challenges' ? 'Reward' : undefined} onPress={() => router.push('/kids-quest-reward')} />
+          <LexText variant="muted" style={{ color: c.muted, marginTop: -7, marginBottom: 12 }}>
+            {shelf.subtitle}
+          </LexText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {shelf.items.map((item, index) => (
+              <PlayStudioCard key={item.id} item={item} index={index} />
+            ))}
+          </ScrollView>
+        </View>
+      ))}
     </KidScreen>
   );
 }
@@ -2409,44 +2400,6 @@ function QuestPortal3D({ xp }: { xp: number }) {
   );
 }
 
-function FeaturePowerUpCard({ feature, index }: { feature: (typeof kidFeaturePowerUps)[number]; index: number }) {
-  const lift = useSharedValue(0);
-  React.useEffect(() => {
-    lift.value = withRepeat(withTiming(1, { duration: 1700 + index * 160, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [index, lift]);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -5 * lift.value }, { rotate: `${index % 2 === 0 ? -1.5 : 1.5}deg` }] }));
-
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${feature.title}. ${feature.subtitle}`} onPress={() => router.push(feature.route)}>
-      <Animated.View entering={FadeInDown.delay(index * 70).duration(380).springify().damping(17)}>
-        <Animated.View style={animatedStyle}>
-          <KidCard animated={false} color={feature.color} style={styles.featurePowerUpCard}>
-            <View style={styles.featurePowerTop}>
-              <KidPill label={feature.tag} active color="rgba(255,255,255,0.22)" />
-              <View style={[styles.featurePowerCta, { backgroundColor: feature.accent }]}>
-                <LexText variant="label" style={{ color: c.ink, fontSize: 10 }}>
-                  {feature.cta}
-                </LexText>
-              </View>
-            </View>
-            <View style={styles.featurePowerStage}>
-              <View style={[styles.featurePowerDisk, { backgroundColor: feature.accent }]} />
-              <LexText style={styles.featurePowerIcon}>{feature.icon}</LexText>
-              <Floating3DToken icon="+" color="white" delay={index * 180} style={styles.featureMiniToken} />
-            </View>
-            <LexText variant="h3" style={styles.featurePowerTitle}>
-              {feature.title}
-            </LexText>
-            <LexText variant="muted" numberOfLines={3} style={styles.featurePowerSubtitle}>
-              {feature.subtitle}
-            </LexText>
-          </KidCard>
-        </Animated.View>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
 function KidDictionaryMiniCard({ entry, index }: { entry: KidDictionaryEntry; index: number }) {
   return (
     <Pressable
@@ -2663,38 +2616,49 @@ function TrackMasteryRow({ track }: { track: (typeof kidLearningTracks)[number] 
   );
 }
 
-function GameModeCard({
-  title,
-  subtitle,
-  icon,
-  color,
-  progress,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  icon: string;
-  color: string;
-  progress: number;
-  onPress: () => void;
-}) {
+function PlayStudioCard({ item, index }: { item: KidPlayStudioItem; index: number }) {
+  const chips = item.focusWords.length
+    ? item.focusWords.slice(0, 3).map((entry) => `${entry.emoji} ${entry.word}`)
+    : [item.tag, `${item.minutes} min`, `+${item.rewardXp} XP`];
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={styles.gameModePressable}>
-      <KidCard animated={false} style={styles.gameModeCard}>
-        <LinearGradient colors={[`${color}DD`, '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gameModeArt}>
-          <LexText style={{ fontSize: 34, lineHeight: 42 }}>{icon}</LexText>
-        </LinearGradient>
-        <LexText variant="title" style={{ color: c.ink, marginTop: 10 }}>
-          {title}
-        </LexText>
-        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 3 }}>
-          {subtitle}
-        </LexText>
-        <View style={{ marginTop: 10 }}>
-          <KidProgressBar progress={progress} color={color} />
-        </View>
-      </KidCard>
-    </Pressable>
+    <Animated.View entering={FadeInDown.delay(index * 80).duration(360).springify().damping(17)} style={styles.playStudioCardWrap}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.subtitle}`} onPress={() => router.push(item.route as never)}>
+        <KidCard animated={false} color={item.color} style={styles.playStudioCard}>
+          <Floating3DToken icon={item.kind === 'song' ? '♪' : item.kind === 'read-aloud' ? '▶' : '★'} color={item.accent} style={styles.playStudioMiniToken} />
+          <View style={styles.playStudioCardTop}>
+            <View style={styles.playStudioIconPlate}>
+              <LexText style={{ fontSize: 36, lineHeight: 46 }}>{item.icon}</LexText>
+            </View>
+            <KidPill label={item.tag} active color="rgba(255,255,255,0.22)" />
+          </View>
+          <LexText variant="h3" numberOfLines={2} style={styles.playStudioCardTitle}>
+            {item.title}
+          </LexText>
+          <LexText variant="muted" numberOfLines={2} style={styles.playStudioCardSubtitle}>
+            {item.subtitle}
+          </LexText>
+          <View style={styles.playStudioChips}>
+            {chips.map((chip) => (
+              <View key={chip} style={styles.playStudioChip}>
+                <LexText variant="label" numberOfLines={1} style={{ color: c.ink, fontSize: 9 }}>
+                  {chip}
+                </LexText>
+              </View>
+            ))}
+          </View>
+          <View style={{ marginTop: 12 }}>
+            <KidProgressBar progress={item.progress} color={item.accent} />
+          </View>
+          <View style={styles.playStudioCardAction}>
+            <LexText variant="title" style={{ color: c.ink, fontSize: 13 }}>
+              Start
+            </LexText>
+            <LexText style={{ fontSize: 18, lineHeight: 24 }}>→</LexText>
+          </View>
+        </KidCard>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -3037,6 +3001,54 @@ function CelebrationBurst() {
 
 const styles = StyleSheet.create({
   heroCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  playStudioHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
+  playStudioHeroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  playStudioTokenOne: { position: 'absolute', right: 128, top: 18 },
+  playStudioTokenTwo: { position: 'absolute', right: 28, bottom: 22 },
+  playStudioCardWrap: { width: 218 },
+  playStudioCard: {
+    minHeight: 258,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    boxShadow: '0 18px 28px rgba(71,57,146,0.20)',
+  },
+  playStudioCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  playStudioIconPlate: {
+    width: 70,
+    height: 70,
+    borderRadius: 27,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.74)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+  },
+  playStudioMiniToken: { right: 44, top: 58, width: 34, height: 34, borderRadius: 14 },
+  playStudioCardTitle: { color: 'white', marginTop: 16, fontSize: 22, lineHeight: 27 },
+  playStudioCardSubtitle: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 12, lineHeight: 17 },
+  playStudioChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+  playStudioChip: {
+    maxWidth: '100%',
+    minHeight: 27,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playStudioCardAction: {
+    minHeight: 38,
+    borderRadius: 999,
+    marginTop: 14,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   questHero: { marginTop: 10, gap: 10, overflow: 'hidden' },
   questHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   questTitle: { color: 'white', marginTop: 6, fontSize: 20, lineHeight: 25 },
@@ -3417,45 +3429,6 @@ const styles = StyleSheet.create({
     opacity: 0.24,
   },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
-  featurePowerUpCard: {
-    width: 222,
-    minHeight: 250,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    boxShadow: '0 18px 28px rgba(71,57,146,0.22)',
-  },
-  featurePowerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  featurePowerCta: {
-    minHeight: 32,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.40)',
-  },
-  featurePowerStage: {
-    minHeight: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  featurePowerDisk: {
-    position: 'absolute',
-    width: 108,
-    height: 74,
-    borderRadius: 38,
-    borderCurve: 'continuous',
-    opacity: 0.95,
-    transform: [{ rotate: '-8deg' }, { translateY: 10 }],
-    boxShadow: '0 13px 0 rgba(34,35,74,0.13)',
-  },
-  featurePowerIcon: { fontSize: 58, lineHeight: 68, textAlign: 'center' },
-  featureMiniToken: { right: 36, top: 4, width: 34, height: 34, borderRadius: 14 },
-  featurePowerTitle: { color: 'white', fontSize: 21, lineHeight: 26, marginTop: 2 },
-  featurePowerSubtitle: { color: 'rgba(255,255,255,0.82)', fontSize: 12, lineHeight: 17, marginTop: 6 },
   dictionarySpotlight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   kidDictionaryHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
   kidDictionaryHeroEmoji: { fontSize: 70, lineHeight: 82, marginTop: 14 },
@@ -3658,10 +3631,6 @@ const styles = StyleSheet.create({
   pipelineDot: { width: 28, height: 8, borderRadius: 999, marginBottom: 10 },
   reviewTimingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   reviewTimingIcon: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
-  gameModeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  gameModePressable: { width: '47%' },
-  gameModeCard: { minHeight: 190 },
-  gameModeArt: { width: 68, height: 68, borderRadius: 25, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   activityRow: {
     minHeight: 62,
     flexDirection: 'row',

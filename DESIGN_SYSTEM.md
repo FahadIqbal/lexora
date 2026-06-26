@@ -82,6 +82,8 @@ Daily Quest orchestration lives in `src/services/kidDailyQuestService.ts`. Home,
 
 Daily Quest reward claiming lives at `/kids-quest-reward`. The claim id is date-specific and stored in kid runtime state so the chest can award XP once, add focus words back into Memory Boost, then become a collected reward instead of an infinite XP tap target.
 
+Play Studio content lives in `src/services/kidPlayStudioService.ts`. The Games tab should render games, songs, read-alouds, roleplay, and daily challenges from this service so entertainment-style learning is backed by real lesson routes, dictionary focus words, quest progress, and XP rewards instead of screen-local arrays.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
