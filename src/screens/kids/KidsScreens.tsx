@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { PanResponder, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 import {
   BadgeTile,
   CharacterBubble,
@@ -81,6 +82,7 @@ import {
   type KidPracticeModeTheme,
 } from '../../services/kidPracticeExperienceService';
 import { getKidPlayStudio, type KidPlayStudioItem } from '../../services/kidPlayStudioService';
+import { getKidAlphabetStudio, type KidAlphabetLetter } from '../../services/kidAlphabetStudioService';
 import {
   getKidContentCreationEngine,
   type KidContentCreationEngine,
@@ -117,6 +119,7 @@ export function KidsHomeScreen() {
   const energy = getKidEnergy(kid);
   const dailyQuest = getKidDailyQuest(kid);
   const contentEngine = getKidContentCreationEngine(kid);
+  const alphabetStudio = getKidAlphabetStudio(kid);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
   const questNodes = dailyQuest.steps.map(createMissionNode);
@@ -146,7 +149,7 @@ export function KidsHomeScreen() {
 
       <SectionTitle title="Quick actions" action="Games" onPress={() => router.push('/(tabs)/games')} />
       <View style={styles.homeQuickGrid}>
-        {kidFeaturePowerUps.slice(0, 2).map((feature) => (
+        {kidFeaturePowerUps.slice(0, 1).map((feature) => (
           <HomeQuickAction
             key={feature.id}
             icon={feature.icon}
@@ -156,6 +159,13 @@ export function KidsHomeScreen() {
             onPress={() => router.push(feature.route)}
           />
         ))}
+        <HomeQuickAction
+          icon="🎨"
+          title="Alphabet"
+          subtitle={`${alphabetStudio.dailyLetter.letter} art`}
+          color={alphabetStudio.dailyLetter.color}
+          onPress={() => router.push('/kids-alphabet-studio')}
+        />
         <HomeQuickAction icon="✨" title="Creator" subtitle={`${contentEngine.coverage[1]?.value ?? '0'} packs`} color={c.blue} onPress={() => router.push('/kids-content-studio')} />
         <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
       </View>
@@ -178,7 +188,13 @@ export function KidsHomeScreen() {
       <SectionTitle title="Explore" action="Learn" onPress={() => router.push('/(tabs)/learn')} />
       <View style={styles.homeExploreGrid}>
         {kidCategories.slice(0, 6).map((cat) => (
-          <HomeExplorePill key={cat.id} icon={cat.icon} label={cat.label} color={cat.color} onPress={() => router.push('/(tabs)/learn')} />
+          <HomeExplorePill
+            key={cat.id}
+            icon={cat.icon}
+            label={cat.label}
+            color={cat.color}
+            onPress={() => router.push(cat.id === 'alphabet' ? '/kids-alphabet-studio' : '/(tabs)/learn')}
+          />
         ))}
       </View>
     </KidScreen>
@@ -444,12 +460,22 @@ export function KidsLearnScreen() {
   const featuredTrack = kidLearningTracks[0];
   const featuredWords = getFeaturedKidWords(kid, 5);
   const contentEngine = getKidContentCreationEngine(kid);
+  const alphabetStudio = getKidAlphabetStudio(kid);
   const filteredTitle = active === 'all' ? 'Recommended next lessons' : 'Lessons in this path';
 
   return (
     <KidScreen>
       <KidHeader eyebrow="Choose your course" title="Learning worlds" subtitle="Play through English skills, stories, and review loops." avatar="🌈" />
       <TrackSpotlight track={featuredTrack} />
+      <KidContentPulseCard
+        title={`${alphabetStudio.dailyLetter.letter} Art Studio`}
+        subtitle={alphabetStudio.dailyLetter.paintingPrompt}
+        icon="🎨"
+        color={alphabetStudio.dailyLetter.color}
+        accent={alphabetStudio.dailyLetter.accent}
+        meta="Trace + paint"
+        onPress={() => router.push('/kids-alphabet-studio')}
+      />
       <KidContentPulseCard
         title={contentEngine.hero.title}
         subtitle={contentEngine.creatorLine}
@@ -612,6 +638,264 @@ export function KidsDictionaryScreen() {
       <View style={{ gap: 12 }}>
         {results.map((entry, index) => (
           <KidDictionaryWordCard key={entry.id} entry={entry} index={index} onSpeak={() => speak(entry)} />
+        ))}
+      </View>
+    </KidScreen>
+  );
+}
+
+type PaintStroke = {
+  id: string;
+  path: string;
+  color: string;
+  width: number;
+  opacity: number;
+};
+
+export function KidsAlphabetStudioScreen() {
+  const params = useLocalSearchParams<{ letter?: string }>();
+  const kid = useAppStore((s) => s.kid);
+  const addXp = useAppStore((s) => s.addXp);
+  const { width } = useWindowDimensions();
+  const studio = useMemo(() => getKidAlphabetStudio(kid), [kid]);
+  const routeLetter = normalizeAlphabetId(params.letter);
+  const [selectedId, setSelectedId] = useState(routeLetter ?? studio.dailyLetter.id);
+  const selected = studio.letters.find((item) => item.id === selectedId) ?? studio.dailyLetter;
+  const [selectedColor, setSelectedColor] = useState(selected.color);
+  const [toolId, setToolId] = useState<(typeof studio.tools)[number]['id']>('brush');
+  const tool = studio.tools.find((item) => item.id === toolId) ?? studio.tools[0];
+  const [strokes, setStrokes] = useState<PaintStroke[]>([]);
+  const [paintProgress, setPaintProgress] = useState<Record<string, number>>({});
+  const [rewarded, setRewarded] = useState<Record<string, boolean>>({});
+  const canvasWidth = Math.min(360, width - 36);
+  const canvasHeight = 282;
+  const progress = Math.min(1, Math.max(paintProgress[selected.id] ?? 0, strokes.length / 6));
+  const complete = progress >= 0.92 || Boolean(rewarded[selected.id]);
+
+  useEffect(() => {
+    if (routeLetter) setSelectedId(routeLetter);
+  }, [routeLetter]);
+
+  useEffect(() => {
+    setSelectedColor(selected.color);
+    setStrokes([]);
+  }, [selected.id, selected.color]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          const { locationX, locationY } = event.nativeEvent;
+          const x = clampCanvas(locationX, canvasWidth);
+          const y = clampCanvas(locationY, canvasHeight);
+          const stroke: PaintStroke = {
+            id: `${Date.now()}-${Math.round(x)}-${Math.round(y)}`,
+            path: `M ${x.toFixed(1)} ${y.toFixed(1)}`,
+            color: selectedColor,
+            width: tool.width,
+            opacity: tool.id === 'glow' ? 0.42 : 0.92,
+          };
+          setStrokes((prev) => [...prev, stroke]);
+        },
+        onPanResponderMove: (event) => {
+          const { locationX, locationY } = event.nativeEvent;
+          if (locationX < 0 || locationY < 0 || locationX > canvasWidth || locationY > canvasHeight) return;
+          const x = locationX.toFixed(1);
+          const y = locationY.toFixed(1);
+          setStrokes((prev) => {
+            if (!prev.length) return prev;
+            const next = prev.slice();
+            const last = next[next.length - 1];
+            next[next.length - 1] = { ...last, path: `${last.path} L ${x} ${y}` };
+            return next;
+          });
+        },
+        onPanResponderRelease: () => {
+          setPaintProgress((prev) => ({ ...prev, [selected.id]: Math.min(0.95, (prev[selected.id] ?? 0) + 0.18) }));
+        },
+      }),
+    [canvasHeight, canvasWidth, selected.id, selectedColor, tool.id, tool.width]
+  );
+
+  const speakLetter = () => {
+    Speech.stop();
+    Speech.speak(`${selected.letter}. ${selected.sound}. ${selected.letter} is for ${selected.heroWord.word}. ${selected.heroWord.definition}`, {
+      rate: 0.82,
+    });
+  };
+
+  const finishPainting = () => {
+    const alreadyRewarded = rewarded[selected.id];
+    setPaintProgress((prev) => ({ ...prev, [selected.id]: 1 }));
+    setRewarded((prev) => ({ ...prev, [selected.id]: true }));
+    if (!alreadyRewarded) addXp(selected.rewardXp);
+    Speech.stop();
+    Speech.speak(`Beautiful ${selected.letter} painting. ${selected.letter} is for ${selected.heroWord.word}.`, { rate: 0.86 });
+  };
+
+  return (
+    <KidScreen>
+      <KidHeader
+        eyebrow="Interactive Learning for Curious Kids"
+        title={studio.title}
+        subtitle={studio.subtitle}
+        avatar="🎨"
+        right={<KidPill label={`+${selected.rewardXp} XP`} active color={selected.accent} />}
+      />
+
+      <KidContentPulseCard
+        title={`${selected.letter} is for ${capitalizeKidWord(selected.heroWord.word)}`}
+        subtitle={selected.paintingPrompt}
+        icon={selected.heroWord.emoji}
+        color={selected.color}
+        accent={selected.accent}
+        meta={selected.phonics}
+        onPress={speakLetter}
+      />
+
+      <SectionTitle title="Choose a letter" action={selected.sound} onPress={speakLetter} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingVertical: 2 }}>
+        {studio.letters.map((letter) => (
+          <AlphabetLetterTile
+            key={letter.id}
+            item={letter}
+            active={letter.id === selected.id}
+            progress={letter.id === selected.id ? progress : paintProgress[letter.id] ?? letter.mastery}
+            onPress={() => setSelectedId(letter.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <KidCard style={styles.alphabetBoardCard}>
+        <View style={styles.alphabetBoardHeader}>
+          <View style={{ flex: 1 }}>
+            <LexText variant="label" style={{ color: selected.color }}>
+              Trace, paint, say
+            </LexText>
+            <LexText variant="h2" style={{ color: c.ink, marginTop: 2 }}>
+              Paint letter {selected.letter}
+            </LexText>
+          </View>
+          <View style={[styles.alphabetSoundBadge, { backgroundColor: `${selected.color}18` }]}>
+            <LexText variant="title" style={{ color: selected.color }}>
+              {selected.sound}
+            </LexText>
+          </View>
+        </View>
+
+        <View style={[styles.alphabetCanvas, { width: canvasWidth, height: canvasHeight }]} {...panResponder.panHandlers}>
+          <Svg width={canvasWidth} height={canvasHeight} viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
+            <Rect x="0" y="0" width={canvasWidth} height={canvasHeight} rx="28" fill="#FFFFFF" />
+            <Rect x="10" y="10" width={canvasWidth - 20} height={canvasHeight - 20} rx="24" fill={`${selected.color}10`} />
+            <SvgText
+              x={canvasWidth * 0.43}
+              y={canvasHeight * 0.68}
+              textAnchor="middle"
+              fontSize={canvasHeight * 0.73}
+              fontWeight="900"
+              fill={`${selected.color}18`}
+              stroke={`${selected.color}35`}
+              strokeWidth="2"
+            >
+              {selected.letter}
+            </SvgText>
+            <SvgText
+              x={canvasWidth * 0.76}
+              y={canvasHeight * 0.72}
+              textAnchor="middle"
+              fontSize={canvasHeight * 0.45}
+              fontWeight="900"
+              fill={`${selected.accent}33`}
+            >
+              {selected.lower}
+            </SvgText>
+            {strokes.map((stroke) => (
+              <Path
+                key={stroke.id}
+                d={stroke.path}
+                stroke={stroke.color}
+                strokeWidth={stroke.width}
+                strokeOpacity={stroke.opacity}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            ))}
+          </Svg>
+          <View pointerEvents="none" style={styles.alphabetCanvasCoach}>
+            <LexText style={{ fontSize: 26, lineHeight: 34 }}>{selected.heroWord.emoji}</LexText>
+            <LexText variant="label" numberOfLines={2} style={{ color: c.ink, flex: 1 }}>
+              {selected.guide}
+            </LexText>
+          </View>
+        </View>
+
+        <View style={styles.alphabetToolPanel}>
+          <View style={styles.alphabetPalette}>
+            {studio.palette.map((paint) => (
+              <Pressable
+                key={paint.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${paint.label} paint`}
+                accessibilityState={{ selected: selectedColor === paint.color }}
+                onPress={() => setSelectedColor(paint.color)}
+                style={[
+                  styles.alphabetPaintSwatch,
+                  {
+                    backgroundColor: paint.color,
+                    borderColor: selectedColor === paint.color ? c.ink : 'rgba(255,255,255,0.88)',
+                    transform: [{ scale: selectedColor === paint.color ? 1.08 : 1 }],
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.alphabetToolChips}>
+            {studio.tools.map((item) => (
+              <KidPill key={item.id} label={item.label} active={item.id === tool.id} color={selected.color} onPress={() => setToolId(item.id)} />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.alphabetProgressRow}>
+          <View style={{ flex: 1 }}>
+            <KidProgressBar progress={progress} color={complete ? c.mint : selected.color} />
+          </View>
+          <KidPill label={complete ? 'Masterpiece' : `${Math.round(progress * 100)}%`} active color={complete ? c.mint : selected.color} />
+        </View>
+
+        <View style={styles.alphabetActions}>
+          <KidButton title="Hear" icon="speaker.wave.2.fill" color={c.sky} onPress={speakLetter} style={{ flex: 1 }} />
+          <KidButton title="Clear" color={c.lilac} onPress={() => setStrokes([])} style={{ flex: 1 }} />
+          <KidButton title="Done" color={selected.accent} onPress={finishPainting} style={{ flex: 1 }} />
+        </View>
+      </KidCard>
+
+      <SectionTitle title="Word paintings" action="Speak" onPress={speakLetter} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {selected.words.map((word, index) => (
+          <AlphabetWordCard key={word.id} word={word} color={selected.color} index={index} />
+        ))}
+      </ScrollView>
+
+      <SectionTitle title="Mini mission" />
+      <View style={{ gap: 10 }}>
+        {selected.mission.map((step, index) => (
+          <KidCard key={step.id} animated={false} style={styles.alphabetMissionRow}>
+            <View style={[styles.alphabetMissionIcon, { backgroundColor: index === 1 ? selected.accent : `${selected.color}22` }]}>
+              <LexText style={{ fontSize: 22, lineHeight: 30 }}>{step.icon}</LexText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <LexText variant="title" style={{ color: c.ink }}>
+                {step.title}
+              </LexText>
+              <LexText variant="muted" style={{ color: c.muted, marginTop: 2 }}>
+                {step.body}
+              </LexText>
+            </View>
+          </KidCard>
         ))}
       </View>
     </KidScreen>
@@ -2354,6 +2638,73 @@ function HomeExplorePill({ icon, label, color, onPress }: { icon: string; label:
   );
 }
 
+function AlphabetLetterTile({
+  item,
+  active,
+  progress,
+  onPress,
+}: {
+  item: KidAlphabetLetter;
+  active: boolean;
+  progress: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Letter ${item.letter}, ${item.heroWord.word}`} accessibilityState={{ selected: active }} onPress={onPress}>
+      <View style={[styles.alphabetLetterTile, { borderColor: active ? item.color : c.line, backgroundColor: active ? `${item.color}18` : c.paper }]}>
+        <LexText variant="h2" style={{ color: item.color, fontSize: 28, lineHeight: 32 }}>
+          {item.letter}
+        </LexText>
+        <LexText variant="label" numberOfLines={1} style={{ color: c.muted, fontSize: 9 }}>
+          {item.heroWord.word}
+        </LexText>
+        <KidProgressBar progress={Math.min(1, progress)} color={item.color} />
+      </View>
+    </Pressable>
+  );
+}
+
+function AlphabetWordCard({
+  word,
+  color,
+  index,
+}: {
+  word: KidAlphabetLetter['words'][number];
+  color: string;
+  index: number;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 70).duration(320).springify().damping(17)} style={styles.alphabetWordCardWrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${word.word}. ${word.definition}`}
+        onPress={() => {
+          Speech.stop();
+          Speech.speak(word.audioText, { rate: 0.84 });
+        }}
+      >
+        <KidCard animated={false} color={`${word.color || color}20`} style={styles.alphabetWordCard}>
+          <View style={[styles.alphabetWordIcon, { backgroundColor: `${word.color || color}24` }]}>
+            <LexText style={{ fontSize: 34, lineHeight: 44 }}>{word.emoji}</LexText>
+          </View>
+          <LexText variant="h3" numberOfLines={1} style={{ color: c.ink, marginTop: 10 }}>
+            {capitalizeKidWord(word.word)}
+          </LexText>
+          <LexText variant="muted" numberOfLines={3} style={{ color: c.muted, fontSize: 12, lineHeight: 17, marginTop: 5 }}>
+            {word.definition}
+          </LexText>
+          <View style={styles.alphabetWordSpeak}>
+            <LexText variant="label" style={{ color }}>
+              Tap to hear
+            </LexText>
+            <LexText style={{ fontSize: 17, lineHeight: 22 }}>🔊</LexText>
+          </View>
+        </KidCard>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 function Floating3DToken({
   icon,
   color,
@@ -2708,7 +3059,7 @@ function PlayStudioCard({ item, index }: { item: KidPlayStudioItem; index: numbe
     <Animated.View entering={FadeInDown.delay(index * 80).duration(360).springify().damping(17)} style={styles.playStudioCardWrap}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.subtitle}`} onPress={() => router.push(item.route as never)}>
         <KidCard animated={false} color={item.color} style={styles.playStudioCard}>
-          <Floating3DToken icon={item.kind === 'song' ? '♪' : item.kind === 'read-aloud' ? '▶' : '★'} color={item.accent} style={styles.playStudioMiniToken} />
+          <Floating3DToken icon={item.kind === 'song' ? '♪' : item.kind === 'read-aloud' ? '▶' : item.kind === 'art' ? '✎' : '★'} color={item.accent} style={styles.playStudioMiniToken} />
           <View style={styles.playStudioCardTop}>
             <View style={styles.playStudioIconPlate}>
               <LexText style={{ fontSize: 36, lineHeight: 46 }}>{item.icon}</LexText>
@@ -3003,6 +3354,21 @@ function createMissionNode(step: KidDailyQuestStep): KidMissionNode {
     rewardLabel: step.state === 'complete' ? 'Done' : `+${step.rewardXp} XP`,
     route: step.route,
   };
+}
+
+function normalizeAlphabetId(value?: string | string[] | null) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const letter = raw?.trim().slice(0, 1).toLowerCase();
+  if (!letter || !/^[a-z]$/.test(letter)) return null;
+  return letter;
+}
+
+function clampCanvas(value: number, max: number) {
+  return Math.max(0, Math.min(max, value));
+}
+
+function capitalizeKidWord(value: string) {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
 function isKidPracticeMode(mode: string): mode is KidPracticeMode {
@@ -3396,6 +3762,105 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     paddingHorizontal: 8,
+  },
+  alphabetLetterTile: {
+    width: 76,
+    minHeight: 92,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    borderWidth: 2,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  alphabetBoardCard: { marginTop: 14, gap: 14 },
+  alphabetBoardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  alphabetSoundBadge: {
+    minWidth: 66,
+    minHeight: 58,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  alphabetCanvas: {
+    alignSelf: 'center',
+    borderRadius: 28,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(34,35,74,0.08)',
+    backgroundColor: c.paper,
+    boxShadow: '0 18px 28px rgba(71,57,146,0.14)',
+  },
+  alphabetCanvasCoach: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 12,
+    minHeight: 52,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,35,74,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 10,
+  },
+  alphabetToolPanel: {
+    gap: 10,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(129,116,242,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(129,116,242,0.10)',
+    padding: 10,
+  },
+  alphabetPalette: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  alphabetPaintSwatch: {
+    width: 42,
+    height: 42,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    borderWidth: 3,
+    boxShadow: '0 8px 14px rgba(71,57,146,0.16)',
+  },
+  alphabetToolChips: { flexDirection: 'row', gap: 8 },
+  alphabetProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  alphabetActions: { flexDirection: 'row', gap: 8 },
+  alphabetWordCardWrap: { width: 168 },
+  alphabetWordCard: { minHeight: 208 },
+  alphabetWordIcon: {
+    width: 66,
+    height: 66,
+    borderRadius: 25,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alphabetWordSpeak: {
+    minHeight: 34,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginTop: 12,
+  },
+  alphabetMissionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  alphabetMissionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   miniStat: { flex: 1, minHeight: 112, alignItems: 'center', justifyContent: 'center' },

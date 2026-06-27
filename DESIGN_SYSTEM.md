@@ -94,6 +94,8 @@ Play Studio content lives in `src/services/kidPlayStudioService.ts`. The Games t
 
 Content Creation Engine lives in `src/services/kidContentCreationEngine.ts` and `/kids-content-studio`. It composes dictionary words, adaptive review, daily quests, lessons, courses, and roleplay scenarios into fresh mini-lessons, stories, songs, roleplays, review games, and teacher drafts. Home, Learn, Play Studio, and Teacher Studio should consume this engine for dynamic content instead of adding hardcoded feature-specific data.
 
+Alphabet Art Studio lives in `src/services/kidAlphabetStudioService.ts`, `src/data/kids-alphabet.json`, and `/kids-alphabet-studio`. It is the model for "Interactive Learning for Curious Kids": trace a letter, paint with kid-safe tools, hear phonics/audio, connect the letter to dictionary-backed words, and earn XP from a tactile creative action. Screens should link to this route for alphabet, drawing, painting, phonics, and early-literacy entry points instead of sending every alphabet tap to generic Learn.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
@@ -129,6 +131,7 @@ The current kid-focused routes include:
 - Buddy Roleplay: `/kids-roleplay`.
 - Daily Quest reward chest: `/kids-quest-reward`.
 - Content Creation Studio: `/kids-content-studio`.
+- Alphabet Art Studio: `/kids-alphabet-studio`.
 - Review: `/(tabs)/review`.
 - Games/daily challenge: `/(tabs)/games`.
 - Rewards/badges: `/rewards`.

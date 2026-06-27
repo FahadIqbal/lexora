@@ -1,11 +1,12 @@
 import type { KidPracticeMode } from '../data/kidContent';
+import { getKidAlphabetStudio } from './kidAlphabetStudioService';
 import { getKidContentCreationEngine } from './kidContentCreationEngine';
 import { getDailyKidDictionarySet, getFeaturedKidWords, type KidDictionaryEntry } from './kidDictionaryService';
 import { getKidDailyQuest, type KidDailyQuest } from './kidDailyQuestService';
 import { getKidLessons, type KidRuntimeState } from './kidLearningService';
 import { getKidRoleplayScenarios } from './kidRoleplayService';
 
-export type KidPlayStudioItemKind = 'game' | 'song' | 'read-aloud' | 'roleplay' | 'challenge';
+export type KidPlayStudioItemKind = 'game' | 'song' | 'read-aloud' | 'roleplay' | 'challenge' | 'art';
 
 export type KidPlayStudioItem = {
   id: string;
@@ -40,6 +41,8 @@ export type KidPlayStudio = {
 
 export function getKidPlayStudio(kid: KidRuntimeState): KidPlayStudio {
   const quest = getKidDailyQuest(kid);
+  const alphabetStudio = getKidAlphabetStudio(kid);
+  const alphabetLetter = alphabetStudio.dailyLetter;
   const contentEngine = getKidContentCreationEngine(kid);
   const lessons = getKidLessons(kid);
   const unlocked = lessons.filter((lesson) => !lesson.locked);
@@ -52,8 +55,28 @@ export function getKidPlayStudio(kid: KidRuntimeState): KidPlayStudio {
   const grammar = unlocked.find((lesson) => lesson.type === 'grammar') ?? unlocked[0] ?? lessons[0];
   const story = unlocked.find((lesson) => lesson.type === 'story' || lesson.type === 'reading') ?? unlocked[0] ?? lessons[0];
   const vocabulary = unlocked.find((lesson) => lesson.type === 'vocabulary') ?? unlocked[0] ?? lessons[0];
+  const alphabetFocusWords = alphabetLetter.words
+    .map((word) => word.dictionaryEntry)
+    .filter((word): word is KidDictionaryEntry => Boolean(word));
 
   const gameItems: KidPlayStudioItem[] = [
+    {
+      id: 'alphabet-art',
+      kind: 'art',
+      title: `${alphabetLetter.letter} Art Studio`,
+      subtitle: `Trace, paint, and say ${alphabetLetter.heroWord.word}.`,
+      coachLine: alphabetLetter.paintingPrompt,
+      icon: '🎨',
+      color: alphabetLetter.color,
+      accent: alphabetLetter.accent,
+      route: `/kids-alphabet-studio?letter=${alphabetLetter.id}`,
+      progress: alphabetLetter.mastery,
+      rewardXp: alphabetLetter.rewardXp,
+      minutes: 4,
+      tag: 'A-Z',
+      mode: 'vocabulary',
+      focusWords: alphabetFocusWords,
+    },
     fromLesson({
       id: 'listening-pop',
       kind: 'game',
