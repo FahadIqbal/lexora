@@ -1893,6 +1893,7 @@ export function KidsRewardsScreen() {
   const unlockedCount = badges.filter((badge) => badge.unlocked).length;
   const dailyQuest = getKidDailyQuest(kid);
   const dailyQuestClaimed = Boolean(kid.claimedDailyQuestIds?.includes(dailyQuest.claimId));
+  const rewardStreak = Math.max(1, streakCurrent);
 
   return (
     <KidScreen>
@@ -1901,7 +1902,7 @@ export function KidsRewardsScreen() {
         <View style={{ flex: 1 }}>
           <KidPill label="Treasure room" active color="rgba(255,255,255,0.42)" />
           <LexText variant="h2" style={{ color: c.ink, marginTop: 10 }}>
-            {Math.max(1, streakCurrent)} day streak is powering the next badge
+            {rewardStreak} day streak is powering the next badge
           </LexText>
           <LexText variant="muted" style={{ color: c.ink, marginTop: 6 }}>
             {totalStars} stars collected across English worlds.
@@ -1916,15 +1917,9 @@ export function KidsRewardsScreen() {
       <View style={styles.statsRow}>
         <MiniStat icon="⭐" value={`${totalStars}`} label="stars" color={c.yellowSoft} />
         <MiniStat icon="🏅" value={`${unlockedCount}/${badges.length}`} label="badges" color={c.mintSoft} />
-        <MiniStat icon="🔥" value={`${Math.max(1, streakCurrent)}`} label="streak" color={c.coralSoft} />
+        <MiniStat icon="🔥" value={`${rewardStreak}`} label="streak" color={c.coralSoft} />
       </View>
-      <KidCard>
-        <SectionMini title="Next unlock" />
-        <KidProgressBar progress={Math.min(1, totalStars / 12)} color={c.purple} />
-        <LexText variant="muted" style={{ color: c.muted, marginTop: 10 }}>
-          Earn {Math.max(0, 12 - totalStars)} more stars to unlock a new character reward.
-        </LexText>
-      </KidCard>
+      <RewardUnlockTheater badges={badges} totalStars={totalStars} streak={rewardStreak} />
       <SectionTitle title="Badge cabinet" />
       <View style={styles.badgeGrid}>
         {badges.map((badge) => (
@@ -3266,6 +3261,81 @@ function DailyRewardChestPreview({ quest, claimed }: { quest: KidDailyQuest; cla
   );
 }
 
+function RewardUnlockTheater({
+  badges,
+  totalStars,
+  streak,
+}: {
+  badges: ReturnType<typeof getKidBadges>;
+  totalStars: number;
+  streak: number;
+}) {
+  const unlocked = badges.filter((badge) => badge.unlocked);
+  const nextBadge = badges.find((badge) => !badge.unlocked) ?? unlocked[unlocked.length - 1] ?? badges[0];
+  const nextIndex = Math.max(0, badges.findIndex((badge) => badge.id === nextBadge?.id));
+  const progress = nextBadge?.unlocked ? 1 : Math.max(nextBadge?.progress ?? 0, Math.min(1, totalStars / 12));
+  const source = progress >= 1 ? missionPulse : wordQuestOrbit;
+  const headline = nextBadge?.unlocked ? 'Badge room complete' : `${nextBadge?.title ?? 'Next badge'} is close`;
+  const body = nextBadge?.unlocked
+    ? `${unlocked.length} badge${unlocked.length === 1 ? '' : 's'} unlocked. Keep reviewing to protect the streak.`
+    : `${Math.round(progress * 100)}% ready with ${totalStars} stars and a ${streak} day streak.`;
+
+  return (
+    <KidCard color={progress >= 1 ? c.mint : c.purple} style={styles.rewardTheater}>
+      <View pointerEvents="none" style={styles.rewardTheaterBackdrop}>
+        <LexoraLottie source={source} size={196} speed={0.58} style={{ opacity: 0.22 }} />
+      </View>
+      <Floating3DToken icon="⭐" color={c.yellow} delay={100} style={styles.rewardTheaterTokenOne} />
+      <Floating3DToken icon={nextBadge?.icon ?? '🏅'} color="rgba(255,255,255,0.92)" delay={420} style={styles.rewardTheaterTokenTwo} />
+      <View style={{ flex: 1, zIndex: 2 }}>
+        <KidPill label={`${unlocked.length}/${badges.length} unlocked`} active color="rgba(255,255,255,0.22)" />
+        <LexText variant="h2" numberOfLines={2} style={styles.rewardTheaterTitle}>
+          {headline}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={styles.rewardTheaterBody}>
+          {body}
+        </LexText>
+        <View style={styles.rewardTheaterProgressRow}>
+          <View style={{ flex: 1 }}>
+            <KidProgressBar progress={progress} color={c.yellow} />
+          </View>
+          <LexText variant="label" style={{ color: 'rgba(255,255,255,0.86)' }}>
+            {Math.round(progress * 100)}%
+          </LexText>
+        </View>
+        <View style={styles.rewardRoadmapRail}>
+          {badges.map((badge, index) => {
+            const active = badge.id === nextBadge?.id;
+            return (
+              <View key={badge.id} style={styles.rewardRoadmapNodeWrap}>
+                <View
+                  style={[
+                    styles.rewardRoadmapNode,
+                    {
+                      backgroundColor: badge.unlocked ? c.yellow : active ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.24)',
+                      transform: [{ translateY: active ? -4 : 0 }, { scale: active ? 1.08 : 1 }],
+                    },
+                  ]}
+                >
+                  <LexText style={{ fontSize: 16, lineHeight: 22 }}>{badge.unlocked ? '✓' : badge.icon}</LexText>
+                </View>
+                {index < badges.length - 1 ? <View style={[styles.rewardRoadmapLine, { backgroundColor: index < nextIndex ? c.yellow : 'rgba(255,255,255,0.28)' }]} /> : null}
+              </View>
+            );
+          })}
+        </View>
+        <KidButton title={nextBadge?.unlocked ? 'Practice more' : 'Earn badge'} color={c.yellow} onPress={() => router.push('/(tabs)/learn')} style={styles.rewardTheaterCta} />
+      </View>
+      <View pointerEvents="none" style={styles.rewardTheaterStage}>
+        <LexoraLottie source={source} size={126} speed={0.82} />
+        <View style={styles.rewardTheaterBadge}>
+          <LexText style={{ fontSize: 46, lineHeight: 56 }}>{nextBadge?.icon ?? '🏅'}</LexText>
+        </View>
+      </View>
+    </KidCard>
+  );
+}
+
 function DailyQuestMiniPanel({ quest }: { quest: KidDailyQuest }) {
   return (
     <KidCard color={c.lilac} style={styles.dailyQuestMiniPanel}>
@@ -3726,6 +3796,80 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.72)',
     boxShadow: '0 10px 0 rgba(34,35,74,0.10)',
+  },
+  rewardTheater: {
+    marginTop: 14,
+    minHeight: 236,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.36)',
+  },
+  rewardTheaterBackdrop: {
+    position: 'absolute',
+    right: -48,
+    top: -52,
+  },
+  rewardTheaterTokenOne: { position: 'absolute', left: 20, top: 28 },
+  rewardTheaterTokenTwo: { position: 'absolute', right: 92, bottom: 24 },
+  rewardTheaterTitle: { color: 'white', marginTop: 10, fontSize: 26, lineHeight: 31 },
+  rewardTheaterBody: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 13, lineHeight: 19 },
+  rewardTheaterProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  rewardRoadmapRail: {
+    minHeight: 48,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  rewardRoadmapNodeWrap: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  rewardRoadmapNode: {
+    width: 30,
+    height: 30,
+    borderRadius: 13,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.72)',
+  },
+  rewardRoadmapLine: {
+    flex: 1,
+    height: 4,
+    borderRadius: 999,
+    marginHorizontal: 4,
+  },
+  rewardTheaterCta: { alignSelf: 'flex-start', marginTop: 12 },
+  rewardTheaterStage: {
+    width: 118,
+    minHeight: 142,
+    borderRadius: 38,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+  },
+  rewardTheaterBadge: {
+    position: 'absolute',
+    width: 78,
+    height: 78,
+    borderRadius: 29,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
   },
   dailyQuestMiniPanel: { marginTop: 14, gap: 12 },
   dailyQuestMiniTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },

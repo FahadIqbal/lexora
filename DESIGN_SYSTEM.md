@@ -90,6 +90,8 @@ Home should stay mission-first: show the child header, one rich mission constell
 
 Daily Quest reward claiming lives at `/kids-quest-reward`. The claim id is date-specific and stored in kid runtime state so the chest can award XP once, add focus words back into Memory Boost, then become a collected reward instead of an infinite XP tap target.
 
+Rewards should feel like a game unlock loop, not a static badge list. The Rewards screen should focus on the next derived badge, current streak/star inputs, an animated reward stage, and a compact roadmap of all badges before showing the full cabinet.
+
 Play Studio content lives in `src/services/kidPlayStudioService.ts`. The Games tab should render games, songs, read-alouds, roleplay, and daily challenges from this service so entertainment-style learning is backed by real lesson routes, dictionary focus words, quest progress, and XP rewards instead of screen-local arrays.
 
 Content Creation Engine lives in `src/services/kidContentCreationEngine.ts` and `/kids-content-studio`. It composes dictionary words, adaptive review, daily quests, lessons, courses, and roleplay scenarios into fresh mini-lessons, stories, songs, roleplays, review games, and teacher drafts. Home, Learn, Play Studio, and Teacher Studio should consume this engine for dynamic content instead of adding hardcoded feature-specific data.
