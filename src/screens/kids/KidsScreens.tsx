@@ -2019,7 +2019,8 @@ export function KidsSocialScreen() {
   const kid = useAppStore((s) => s.kid);
   const xpTotal = useAppStore((s) => s.xpTotal);
   const recordKidFriendChallenge = useAppStore((s) => s.recordKidFriendChallenge);
-  const rows = tab === 'world' ? getKidLeaderboard(kid, xpTotal) : getKidFriends(kid).map((item, index) => ({ ...item, rank: index + 1 }));
+  const friends = getKidFriends(kid);
+  const rows = tab === 'world' ? getKidLeaderboard(kid, xpTotal) : friends.map((item, index) => ({ ...item, rank: index + 1 }));
   const podiumRows = getKidLeaderboard(kid, xpTotal).slice(0, 3);
 
   return (
@@ -2047,6 +2048,7 @@ export function KidsSocialScreen() {
           ))}
         </View>
       </KidCard>
+      <FriendChallengeArena friends={friends} onChallenge={recordKidFriendChallenge} onShowFriends={() => setTab('friends')} />
       <View style={{ flexDirection: 'row', gap: 10, marginVertical: 16 }}>
         <KidPill label="World" active={tab === 'world'} onPress={() => setTab('world')} />
         <KidPill label="Friends" active={tab === 'friends'} color={c.mint} onPress={() => setTab('friends')} />
@@ -2084,6 +2086,74 @@ function FriendChallengePill({ challenged, onChallenge }: { challenged: boolean;
       color={challenged ? c.mint : c.yellow}
       onPress={challenged ? undefined : onChallenge}
     />
+  );
+}
+
+function FriendChallengeArena({
+  friends,
+  onChallenge,
+  onShowFriends,
+}: {
+  friends: ReturnType<typeof getKidFriends>;
+  onChallenge: () => void;
+  onShowFriends: () => void;
+}) {
+  const challengedCount = friends.filter((friend) => friend.challenged).length;
+  const complete = friends.length > 0 && challengedCount >= friends.length;
+  const nextFriend = friends.find((friend) => !friend.challenged) ?? friends[0];
+  const progress = friends.length ? challengedCount / friends.length : 0;
+
+  const sendChallenge = () => {
+    if (complete) {
+      router.push('/practice/vocabulary?lesson=animals-1');
+      return;
+    }
+    hapticSelection();
+    onChallenge();
+  };
+
+  return (
+    <KidCard color={complete ? c.mint : c.coral} style={styles.friendArena}>
+      <View pointerEvents="none" style={styles.friendArenaBackdrop}>
+        <LexoraLottie source={complete ? missionPulse : wordQuestOrbit} size={178} speed={0.6} style={{ opacity: 0.2 }} />
+      </View>
+      <Floating3DToken icon="⚡" color={c.yellow} delay={160} style={styles.friendArenaTokenOne} />
+      <Floating3DToken icon="🏅" color="rgba(255,255,255,0.92)" delay={460} style={styles.friendArenaTokenTwo} />
+      <View style={styles.friendArenaStage}>
+        <LexoraLottie source={complete ? missionPulse : wordQuestOrbit} size={112} speed={0.76} />
+        <View style={styles.friendArenaAvatar}>
+          <LexText style={{ fontSize: 46, lineHeight: 56 }}>{nextFriend?.avatar ?? '🙂'}</LexText>
+        </View>
+      </View>
+      <View style={{ flex: 1, zIndex: 2 }}>
+        <KidPill label={`${challengedCount}/${friends.length} friendly challenges`} active color="rgba(255,255,255,0.22)" />
+        <LexText variant="h3" numberOfLines={2} style={styles.friendArenaTitle}>
+          {complete ? 'Friend league complete' : `Challenge ${nextFriend?.name ?? 'a friend'}`}
+        </LexText>
+        <LexText variant="muted" numberOfLines={2} style={styles.friendArenaBody}>
+          {complete ? 'Every friend has a safe challenge. Keep your skills sharp with a quick word round.' : 'Send a short practice challenge with no chat, ads, or public comments.'}
+        </LexText>
+        <View style={styles.friendArenaRail}>
+          {friends.map((friend) => (
+            <View key={friend.id} style={[styles.friendArenaMiniAvatar, { backgroundColor: friend.challenged ? c.yellow : 'rgba(255,255,255,0.72)' }]}>
+              <LexText style={{ fontSize: 18, lineHeight: 24 }}>{friend.challenged ? '✓' : friend.avatar}</LexText>
+            </View>
+          ))}
+        </View>
+        <View style={styles.friendArenaProgress}>
+          <View style={{ flex: 1 }}>
+            <KidProgressBar progress={progress} color={c.yellow} />
+          </View>
+          <LexText variant="label" style={{ color: 'rgba(255,255,255,0.86)' }}>
+            {Math.round(progress * 100)}%
+          </LexText>
+        </View>
+        <View style={styles.friendArenaActions}>
+          <KidButton title={complete ? 'Practice' : 'Send'} color={c.yellow} onPress={sendChallenge} style={styles.friendArenaButton} />
+          <KidButton title="Friends" color="rgba(255,255,255,0.86)" onPress={onShowFriends} style={styles.friendArenaButton} />
+        </View>
+      </View>
+    </KidCard>
   );
 }
 
@@ -4481,6 +4551,64 @@ const styles = StyleSheet.create({
   characterRewardRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   rewardCharacter: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   socialHero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  friendArena: {
+    marginTop: 14,
+    minHeight: 226,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.36)',
+  },
+  friendArenaBackdrop: {
+    position: 'absolute',
+    right: -44,
+    top: -48,
+  },
+  friendArenaTokenOne: { position: 'absolute', left: 20, top: 24 },
+  friendArenaTokenTwo: { position: 'absolute', right: 28, bottom: 20 },
+  friendArenaStage: {
+    width: 112,
+    minHeight: 138,
+    borderRadius: 36,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+  },
+  friendArenaAvatar: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 29,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+  },
+  friendArenaTitle: { color: 'white', marginTop: 10, fontSize: 24, lineHeight: 29 },
+  friendArenaBody: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 13, lineHeight: 19 },
+  friendArenaRail: { flexDirection: 'row', gap: 7, marginTop: 12 },
+  friendArenaMiniAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.72)',
+  },
+  friendArenaProgress: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
+  friendArenaActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  friendArenaButton: { flex: 1 },
   podiumWrap: { width: 126, minHeight: 138, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
   podiumLottie: {
     position: 'absolute',
