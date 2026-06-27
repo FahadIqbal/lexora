@@ -104,6 +104,8 @@ Home and Play Studio can use compact Lottie delight cards/stages when they point
 
 Practice feedback should use short Lottie moments for answer feedback and lesson completion. Correct answers get a bright success burst; wrong answers get a gentler coaching motion so mistakes still feel safe.
 
+Content-generation, social, and progress surfaces should also avoid static dashboard blocks. Use subdued Lottie backdrops, animated 3D tokens, and layered avatar/reward stages to show that the app is alive, but keep motion behind the primary copy, progress, and CTA.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:

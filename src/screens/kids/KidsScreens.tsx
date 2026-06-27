@@ -2041,6 +2041,7 @@ export function KidsSocialScreen() {
           </LexText>
         </View>
         <View style={styles.podiumWrap}>
+          <LexoraLottie source={missionPulse} size={132} speed={0.68} style={styles.podiumLottie} />
           {podiumRows.map((row, index) => (
             <View key={row.name} style={[styles.podiumStep, index === 0 ? styles.podiumStepWinner : null]}>
               <KidAvatar label={row.avatar} size={index === 0 ? 52 : 44} color="white" />
@@ -2107,7 +2108,10 @@ export function KidsProgressScreen() {
     <KidScreen>
       <KidHeader eyebrow="Profile" title={`${child.name}’s progress`} subtitle="Parent-friendly learning snapshot." avatar={child.avatar} right={<KidButton title="Parent" onPress={() => router.push('/parent')} />} />
       <KidCard color={c.purple} style={styles.profileHeroCard}>
-        <KidAvatar label={child.avatar} size={86} color="white" />
+        <View pointerEvents="none" style={styles.profileHeroAvatarStage}>
+          <LexoraLottie source={wordQuestOrbit} size={116} speed={0.58} style={styles.profileHeroLottie} />
+          <KidAvatar label={child.avatar} size={86} color="white" />
+        </View>
         <View style={{ flex: 1 }}>
           <KidPill label={`Level ${child.level}`} active color={c.yellow} />
           <LexText variant="h2" style={{ color: 'white', marginTop: 10 }}>
@@ -3084,8 +3088,13 @@ function TrackMasteryRow({ track }: { track: (typeof kidLearningTracks)[number] 
 }
 
 function ContentEngineSpotlight({ engine, compact }: { engine: KidContentCreationEngine; compact?: boolean }) {
+  const source = engine.hero.kind === 'story' || engine.hero.kind === 'roleplay' ? wordQuestOrbit : missionPulse;
+
   return (
     <KidCard color={engine.hero.color} style={[styles.contentEngineHero, compact ? styles.contentEngineHeroCompact : null]}>
+      <View pointerEvents="none" style={styles.contentEngineLottieBackdrop}>
+        <LexoraLottie source={source} size={188} speed={0.58} style={{ opacity: 0.24 }} />
+      </View>
       <Floating3DToken icon="✨" color={engine.hero.accent} style={styles.contentEngineTokenOne} />
       <Floating3DToken icon={engine.hero.icon} color="rgba(255,255,255,0.92)" delay={260} style={styles.contentEngineTokenTwo} />
       <View style={{ flex: 1 }}>
@@ -3103,6 +3112,7 @@ function ContentEngineSpotlight({ engine, compact }: { engine: KidContentCreatio
         </View>
       </View>
       <View style={styles.contentEngineOrb}>
+        <LexoraLottie source={source} size={94} speed={0.78} style={styles.contentEngineOrbLottie} />
         <LexText style={{ fontSize: compact ? 44 : 54, lineHeight: compact ? 54 : 64 }}>{engine.hero.icon}</LexText>
         <View style={styles.contentEngineXp}>
           <LexText variant="label" style={{ color: c.ink }}>
@@ -3115,13 +3125,19 @@ function ContentEngineSpotlight({ engine, compact }: { engine: KidContentCreatio
 }
 
 function GeneratedContentCard({ item, index }: { item: KidGeneratedContentItem; index: number }) {
+  const source = item.kind === 'story' || item.kind === 'roleplay' ? wordQuestOrbit : missionPulse;
+
   return (
     <Animated.View entering={FadeInDown.delay(index * 70).duration(360).springify().damping(17)} style={styles.generatedCardWrap}>
       <Pressable accessibilityRole="button" accessibilityLabel={item.accessibilityLabel} onPress={() => router.push(item.route as never)}>
         <KidCard animated={false} color={item.color} style={styles.generatedContentCard}>
+          <View pointerEvents="none" style={styles.generatedCardLottie}>
+            <LexoraLottie source={source} size={134} speed={0.62} style={{ opacity: 0.23 }} />
+          </View>
           <Floating3DToken icon={item.kind === 'song' ? '♪' : item.kind === 'teacher-draft' ? '✓' : '+'} color={item.accent} style={styles.generatedMiniToken} />
           <View style={styles.generatedCardTop}>
             <View style={styles.generatedIconPlate}>
+              <LexoraLottie source={source} size={58} speed={0.76} style={styles.generatedIconLottie} />
               <LexText style={{ fontSize: 34, lineHeight: 44 }}>{item.icon}</LexText>
             </View>
             <KidPill label={item.level} active color="rgba(255,255,255,0.24)" />
@@ -3512,6 +3528,11 @@ const styles = StyleSheet.create({
   heroCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
   contentEngineHero: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
   contentEngineHeroCompact: { minHeight: 154 },
+  contentEngineLottieBackdrop: {
+    position: 'absolute',
+    right: -36,
+    top: -42,
+  },
   contentEngineTitle: { color: 'white', marginTop: 10, fontSize: 28, lineHeight: 34 },
   contentEngineSubtitle: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 13, lineHeight: 19 },
   contentEngineWordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 },
@@ -3527,6 +3548,10 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.74)',
     boxShadow: '0 18px 0 rgba(34,35,74,0.12)',
+  },
+  contentEngineOrbLottie: {
+    position: 'absolute',
+    opacity: 0.36,
   },
   contentEngineXp: {
     minHeight: 28,
@@ -3556,6 +3581,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.35)',
     boxShadow: '0 18px 28px rgba(71,57,146,0.20)',
   },
+  generatedCardLottie: {
+    position: 'absolute',
+    right: -38,
+    top: -28,
+  },
   generatedCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   generatedIconPlate: {
     width: 68,
@@ -3568,7 +3598,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.74)',
     boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+    overflow: 'hidden',
   },
+  generatedIconLottie: { position: 'absolute', opacity: 0.34 },
   generatedMiniToken: { right: 42, top: 58, width: 34, height: 34, borderRadius: 14 },
   generatedTitle: { color: 'white', marginTop: 15, fontSize: 21, lineHeight: 26 },
   generatedSubtitle: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 12, lineHeight: 17 },
@@ -4305,7 +4337,12 @@ const styles = StyleSheet.create({
   characterRewardRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   rewardCharacter: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   socialHero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  podiumWrap: { width: 126, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
+  podiumWrap: { width: 126, minHeight: 138, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
+  podiumLottie: {
+    position: 'absolute',
+    top: -10,
+    opacity: 0.36,
+  },
   podiumStep: {
     width: 36,
     minHeight: 98,
@@ -4317,6 +4354,16 @@ const styles = StyleSheet.create({
   },
   podiumStepWinner: { width: 44, minHeight: 124, backgroundColor: 'rgba(255,217,61,0.28)' },
   profileHeroCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 },
+  profileHeroAvatarStage: {
+    width: 104,
+    height: 112,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileHeroLottie: {
+    position: 'absolute',
+    opacity: 0.34,
+  },
   trackMasteryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   masteryIcon: { width: 52, height: 52, borderRadius: 20, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   masteryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
