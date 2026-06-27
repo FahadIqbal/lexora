@@ -102,6 +102,8 @@ Alphabet progress is persisted in kid runtime state. A completed letter can be r
 
 Home and Play Studio can use compact Lottie delight cards/stages when they point to a real next action. Keep animated surfaces tappable, bounded, and purposeful: one motion-led CTA per screen section is enough.
 
+Practice feedback should use short Lottie moments for answer feedback and lesson completion. Correct answers get a bright success burst; wrong answers get a gentler coaching motion so mistakes still feel safe.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:

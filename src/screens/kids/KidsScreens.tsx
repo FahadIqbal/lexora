@@ -2958,8 +2958,11 @@ function FeedbackBurstIcon({ ok }: { ok: boolean }) {
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }, { scale: scale.value }, { rotate: ok ? '0deg' : '-3deg' }] }));
 
   return (
-    <Animated.View style={[styles.feedbackBurstIcon, { backgroundColor: ok ? c.yellow : c.coral }, style]}>
-      <LexText style={{ fontSize: 25, lineHeight: 33 }}>{ok ? '🎉' : '💡'}</LexText>
+    <Animated.View pointerEvents="none" style={[styles.feedbackBurstIcon, { backgroundColor: ok ? c.yellow : c.coral }, style]}>
+      <LexoraLottie source={ok ? missionPulse : wordQuestOrbit} size={62} speed={ok ? 1.04 : 0.68} style={{ opacity: ok ? 0.72 : 0.42 }} />
+      <View style={styles.feedbackBurstBadge}>
+        <LexText style={{ fontSize: 24, lineHeight: 32 }}>{ok ? '🎉' : '💡'}</LexText>
+      </View>
     </Animated.View>
   );
 }
@@ -3496,8 +3499,11 @@ function CelebrationBurst() {
   }, [scale, spin]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }, { rotate: `${spin.value * 12}deg` }] }));
   return (
-    <Animated.View style={style}>
-      <LexText style={{ fontSize: 86 }}>🎊</LexText>
+    <Animated.View pointerEvents="none" style={[styles.completionBurstStage, style]}>
+      <LexoraLottie source={missionPulse} size={154} speed={1.06} />
+      <View style={styles.completionBurstBadge}>
+        <LexText style={{ fontSize: 64, lineHeight: 76 }}>🎊</LexText>
+      </View>
     </Animated.View>
   );
 }
@@ -4454,6 +4460,25 @@ const styles = StyleSheet.create({
   completionHeroV2: { alignItems: 'center', gap: 12, overflow: 'hidden' },
   completionFloatOne: { position: 'absolute', top: 20, left: 20 },
   completionFloatTwo: { position: 'absolute', top: 42, right: 22 },
+  completionBurstStage: {
+    width: 154,
+    height: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completionBurstBadge: {
+    position: 'absolute',
+    width: 94,
+    height: 94,
+    borderRadius: 34,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.90)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 14px 0 rgba(34,35,74,0.12)',
+  },
   completionStarRow: { flexDirection: 'row', gap: 8 },
   completionStar: {
     width: 46,
@@ -4600,6 +4625,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.82)',
     boxShadow: '0 9px 0 rgba(34,35,74,0.10)',
+    overflow: 'hidden',
+  },
+  feedbackBurstBadge: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 15,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   completionHero: { alignItems: 'center', gap: 14 },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
