@@ -55,6 +55,7 @@ Reusable kid UI lives in `src/components/kids/KidKit.tsx`.
 Premium kid visual patterns live in `src/components/kids/KidVisualSystem.tsx`.
 
 - `KidMissionConstellation`: the primary home mission surface. It turns daily quest service data into a compact animated path with a curved route, 3D-style nodes, progress rings, reward chip, and one next-step CTA.
+- `KidOnboardingDock`: the first-run control surface. It combines step progress, swipe/dot navigation, focus selection, parent access, back navigation, and the primary CTA so onboarding does not feel like disconnected website sections.
 - `KidContentPulseCard`: a high-energy generated-content preview used when the Content Creation Engine needs to feel more like a playable feature than a dashboard module.
 
 Centralized kid visual assets live in `src/assets/kidAssets.ts`. Screens should pull character, route, category, and native icon references from that file instead of scattering visual constants through feature code.

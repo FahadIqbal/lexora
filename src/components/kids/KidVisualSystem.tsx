@@ -31,6 +31,12 @@ export type KidMissionNode = {
   route: string;
 };
 
+export type KidOnboardingFocusOption = {
+  id: string;
+  label: string;
+  icon: string;
+};
+
 export function KidMissionConstellation({
   eyebrow,
   title,
@@ -130,6 +136,140 @@ export function KidMissionConstellation({
             </LexText>
           </View>
           <KidButton title={primaryLabel} onPress={onPrimaryPress} color="#FFD93D" style={styles.constellationCta} />
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+}
+
+export function KidOnboardingDock({
+  step,
+  total,
+  title,
+  color,
+  accent,
+  primaryLabel,
+  showFocusPicker,
+  focusOptions,
+  selectedFocusIds,
+  onStepPress,
+  onPrimaryPress,
+  onBackPress,
+  onParentPress,
+  onToggleFocus,
+}: {
+  step: number;
+  total: number;
+  title: string;
+  color: string;
+  accent: string;
+  primaryLabel: string;
+  showFocusPicker: boolean;
+  focusOptions: readonly KidOnboardingFocusOption[];
+  selectedFocusIds: readonly string[];
+  onStepPress: (step: number) => void;
+  onPrimaryPress: () => void;
+  onBackPress: () => void;
+  onParentPress: () => void;
+  onToggleFocus: (id: string) => void;
+}) {
+  const progress = total > 0 ? (step + 1) / total : 0;
+
+  return (
+    <Animated.View entering={FadeInDown.duration(360).springify().damping(18)} style={styles.onboardingDockShadow}>
+      <LinearGradient colors={['rgba(255,255,255,0.98)', '#F7FBFF']} style={styles.onboardingDock}>
+        <View style={styles.onboardingDockTop}>
+          <View style={{ flex: 1 }}>
+            <LexText variant="label" style={{ color }}>
+              {showFocusPicker ? 'Choose your adventure' : 'Swipe the story'}
+            </LexText>
+            <LexText variant="title" numberOfLines={1} style={styles.onboardingDockTitle}>
+              {title}
+            </LexText>
+          </View>
+          <View style={[styles.onboardingDockOrb, { backgroundColor: `${accent}55` }]}>
+            <LexText variant="title" style={{ color: c.ink }}>
+              {step + 1}
+            </LexText>
+            <LexText variant="label" style={{ color: c.muted, fontSize: 8 }}>
+              of {total}
+            </LexText>
+          </View>
+        </View>
+
+        <KidProgressBar progress={progress} color={color} />
+
+        <View style={styles.onboardingDots}>
+          {Array.from({ length: total }).map((_, index) => (
+            <Pressable
+              key={index}
+              accessibilityRole="button"
+              accessibilityLabel={`Go to onboarding step ${index + 1}`}
+              accessibilityState={{ selected: index === step }}
+              onPress={() => onStepPress(index)}
+              style={[styles.onboardingDotPressable, index === step ? { backgroundColor: `${color}18` } : null]}
+            >
+              <View style={[styles.onboardingDot, { width: index === step ? 28 : 10, backgroundColor: index === step ? color : c.line }]} />
+            </Pressable>
+          ))}
+        </View>
+
+        {showFocusPicker ? (
+          <View style={styles.onboardingFocusGrid}>
+            {focusOptions.map((item) => {
+              const active = selectedFocusIds.includes(item.id);
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`${item.label} focus`}
+                  onPress={() => {
+                    hapticSelection();
+                    onToggleFocus(item.id);
+                  }}
+                  style={({ pressed }) => [
+                    styles.onboardingFocusToken,
+                    {
+                      borderColor: active ? color : c.line,
+                      backgroundColor: active ? `${color}18` : c.paper,
+                      transform: [{ scale: pressed ? 0.96 : active ? 1.03 : 1 }],
+                    },
+                  ]}
+                >
+                  <View style={[styles.onboardingFocusIcon, { backgroundColor: active ? accent : `${color}16` }]}>
+                    <LexText style={{ fontSize: 19, lineHeight: 25 }}>{item.icon}</LexText>
+                  </View>
+                  <LexText variant="label" numberOfLines={1} style={{ color: active ? color : c.muted, fontSize: 10 }}>
+                    {item.label}
+                  </LexText>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.onboardingSwipeHint}>
+            <LexText style={{ fontSize: 18, lineHeight: 24 }}>↔</LexText>
+            <LexText variant="muted" style={{ color: c.muted, flex: 1, fontSize: 12 }}>
+              Swipe sideways or tap Next to preview the learning world.
+            </LexText>
+          </View>
+        )}
+
+        <View style={styles.onboardingDockActions}>
+          <View style={styles.onboardingSecondaryActions}>
+            <Pressable accessibilityRole="button" disabled={step === 0} onPress={onBackPress} style={[styles.onboardingSecondaryButton, step === 0 ? { opacity: 0.42 } : null]}>
+              <LexText variant="label" style={{ color: c.ink }}>
+                Back
+              </LexText>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onParentPress} style={styles.onboardingSecondaryButton}>
+              <LexText variant="label" style={{ color }}>
+                Parent
+              </LexText>
+            </Pressable>
+          </View>
+          <KidButton title={primaryLabel} onPress={onPrimaryPress} color={accent} style={styles.onboardingPrimaryButton} />
         </View>
       </LinearGradient>
     </Animated.View>
@@ -400,6 +540,84 @@ const styles = StyleSheet.create({
   progressMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
   activeNodeLine: { color: 'rgba(255,255,255,0.78)', marginTop: 7, fontSize: 12 },
   constellationCta: { minHeight: 50, paddingHorizontal: 16, alignSelf: 'center' },
+  onboardingDockShadow: {
+    borderRadius: 30,
+    borderCurve: 'continuous',
+    boxShadow: '0 18px 30px rgba(71,57,146,0.16)',
+  },
+  onboardingDock: {
+    borderRadius: 30,
+    borderCurve: 'continuous',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(34,35,74,0.08)',
+    gap: 10,
+  },
+  onboardingDockTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  onboardingDockTitle: { color: c.ink, fontSize: 17, lineHeight: 22, marginTop: 2 },
+  onboardingDockOrb: {
+    width: 56,
+    height: 56,
+    borderRadius: 21,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.82)',
+  },
+  onboardingDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  onboardingDotPressable: {
+    minWidth: 32,
+    minHeight: 28,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingDot: { height: 10, borderRadius: 999 },
+  onboardingFocusGrid: { flexDirection: 'row', gap: 8 },
+  onboardingFocusToken: {
+    flex: 1,
+    minHeight: 70,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  onboardingFocusIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingSwipeHint: {
+    minHeight: 44,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(129,116,242,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(129,116,242,0.10)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  onboardingDockActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  onboardingSecondaryActions: { gap: 6 },
+  onboardingSecondaryButton: {
+    minWidth: 70,
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: c.paper,
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingPrimaryButton: { flex: 1, minHeight: 54 },
   orbitToken: {
     position: 'absolute',
     width: 40,

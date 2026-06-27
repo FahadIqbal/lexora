@@ -21,6 +21,7 @@ import {
 import {
   KidContentPulseCard,
   KidMissionConstellation,
+  KidOnboardingDock,
   type KidMissionNode,
 } from '../../components/kids/KidVisualSystem';
 import { LexText } from '../../components/LexText';
@@ -191,7 +192,7 @@ export function KidsOnboardingScreen() {
   const setSelectedCategories = useAppStore((s) => s.setSelectedCategories);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const slideWidth = Math.max(300, width - 36);
-  const heroHeight = Math.min(500, Math.max(420, width * 1.04));
+  const heroHeight = Math.min(470, Math.max(350, width * 0.94));
   const slides = kidOnboardingSlides;
   const slide = slides[step];
   const focusChips = kidOnboardingFocusOptions;
@@ -215,6 +216,10 @@ export function KidsOnboardingScreen() {
           style={styles.onboardingPager}
           horizontal
           pagingEnabled
+          snapToInterval={slideWidth}
+          snapToAlignment="start"
+          disableIntervalMomentum
+          bounces={false}
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           onMomentumScrollEnd={(event) => {
@@ -259,44 +264,25 @@ export function KidsOnboardingScreen() {
           ))}
         </ScrollView>
 
-        <View>
-          <View style={styles.dots}>
-            {slides.map((_, index) => (
-              <Pressable key={index} accessibilityRole="button" onPress={() => goToStep(index)}>
-                <View style={[styles.dot, { width: index === step ? 28 : 12, backgroundColor: index === step ? slide.color : c.line }]} />
-              </Pressable>
-            ))}
-          </View>
-          {step === slides.length - 1 ? (
-            <View style={styles.focusPicker}>
-              {focusChips.map((item) => {
-                const active = selectedCategories.includes(item.id);
-                return (
-                  <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => toggleFocus(item.id)}>
-                    <View style={[styles.focusChip, { borderColor: active ? c.purple : c.line, backgroundColor: active ? c.lilac : c.paper }]}>
-                      <LexText style={{ fontSize: 20, lineHeight: 26 }}>{item.icon}</LexText>
-                      <LexText variant="label" style={{ color: active ? c.purple : c.muted }}>
-                        {item.label}
-                      </LexText>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-          <KidButton
-            title={step === slides.length - 1 ? 'Create profile' : 'Next'}
-            onPress={() => {
-              if (step === slides.length - 1) router.replace('/child-profiles');
-              else goToStep(step + 1);
-            }}
-          />
-          <Pressable accessibilityRole="button" onPress={() => router.push('/auth')} style={styles.onboardingParentLink}>
-            <LexText variant="label" style={{ color: c.purple }}>
-              Parent sign in
-            </LexText>
-          </Pressable>
-        </View>
+        <KidOnboardingDock
+          step={step}
+          total={slides.length}
+          title={slide.eyebrow}
+          color={slide.color}
+          accent={slide.accent}
+          primaryLabel={step === slides.length - 1 ? 'Create profile' : 'Next'}
+          showFocusPicker={step === slides.length - 1}
+          focusOptions={focusChips}
+          selectedFocusIds={selectedCategories}
+          onStepPress={goToStep}
+          onBackPress={() => goToStep(step - 1)}
+          onParentPress={() => router.push('/auth')}
+          onToggleFocus={toggleFocus}
+          onPrimaryPress={() => {
+            if (step === slides.length - 1) router.replace('/child-profiles');
+            else goToStep(step + 1);
+          }}
+        />
       </View>
     </KidScreen>
   );
@@ -3365,20 +3351,6 @@ const styles = StyleSheet.create({
   onboardingTokenOne: { left: 42, top: 22 },
   onboardingTokenTwo: { right: 38, top: 56 },
   onboardingTokenThree: { right: 82, bottom: 12 },
-  focusPicker: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
-  focusChip: {
-    width: 104,
-    minHeight: 62,
-    borderRadius: 22,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  onboardingParentLink: { minHeight: 42, alignItems: 'center', justifyContent: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
-  dot: { width: 12, height: 12, borderRadius: 6 },
   authHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
   authToggle: { flexDirection: 'row', gap: 10, marginTop: 18, marginBottom: 12 },
   authHintRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
