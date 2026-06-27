@@ -76,6 +76,11 @@ import {
 } from '../../services/kidPracticeExperienceService';
 import { getKidPlayStudio, type KidPlayStudioItem } from '../../services/kidPlayStudioService';
 import {
+  getKidContentCreationEngine,
+  type KidContentCreationEngine,
+  type KidGeneratedContentItem,
+} from '../../services/kidContentCreationEngine';
+import {
   buildKidAdaptivePracticeActivities,
   getKidAdaptiveReviewQueue,
   getKidAdaptiveReviewSummary,
@@ -105,6 +110,7 @@ export function KidsHomeScreen() {
   const leaderboard = getKidLeaderboard(kid, xpTotal);
   const energy = getKidEnergy(kid);
   const dailyQuest = getKidDailyQuest(kid);
+  const contentEngine = getKidContentCreationEngine(kid);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
 
@@ -122,7 +128,7 @@ export function KidsHomeScreen() {
 
       <SectionTitle title="Quick actions" action="Games" onPress={() => router.push('/(tabs)/games')} />
       <View style={styles.homeQuickGrid}>
-        {kidFeaturePowerUps.slice(0, 3).map((feature) => (
+        {kidFeaturePowerUps.slice(0, 2).map((feature) => (
           <HomeQuickAction
             key={feature.id}
             icon={feature.icon}
@@ -132,6 +138,7 @@ export function KidsHomeScreen() {
             onPress={() => router.push(feature.route)}
           />
         ))}
+        <HomeQuickAction icon="✨" title="Creator" subtitle={`${contentEngine.coverage[1]?.value ?? '0'} packs`} color={c.blue} onPress={() => router.push('/kids-content-studio')} />
         <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
       </View>
 
@@ -449,12 +456,20 @@ export function KidsLearnScreen() {
   const lessons = active === 'all' ? allLessons : allLessons.filter((lesson) => lesson.courseId === active || lesson.type === active);
   const featuredTrack = kidLearningTracks[0];
   const featuredWords = getFeaturedKidWords(kid, 5);
+  const contentEngine = getKidContentCreationEngine(kid);
   const filteredTitle = active === 'all' ? 'Recommended next lessons' : 'Lessons in this path';
 
   return (
     <KidScreen>
       <KidHeader eyebrow="Choose your course" title="Learning worlds" subtitle="Play through English skills, stories, and review loops." avatar="🌈" />
       <TrackSpotlight track={featuredTrack} />
+      <ContentEngineSpotlight engine={contentEngine} compact />
+      <SectionTitle title="Generated for today" action="Open studio" onPress={() => router.push('/kids-content-studio')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {contentEngine.shelves[0].items.map((item, index) => (
+          <GeneratedContentCard key={item.id} item={item} index={index} />
+        ))}
+      </ScrollView>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 16 }}>
         <KidPill label="All" active={active === 'all'} onPress={() => setActive('all')} />
         {courses.map((course) => (
@@ -1929,6 +1944,7 @@ export function KidsAdminTeacherScreen() {
   const [search, setSearch] = useState('');
   const kid = useAppStore((s) => s.kid);
   const lessons = getKidLessons(kid);
+  const contentEngine = getKidContentCreationEngine(kid);
   const drafts = useMemo(
     () => lessons.filter((lesson) => lesson.title.toLowerCase().includes(search.trim().toLowerCase())),
     [lessons, search]
@@ -1967,6 +1983,12 @@ export function KidsAdminTeacherScreen() {
           </KidCard>
         ))}
       </View>
+      <SectionTitle title="Generated drafts" action="Studio" onPress={() => router.push('/kids-content-studio')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {contentEngine.adminDrafts.map((item, index) => (
+          <GeneratedContentCard key={item.id} item={item} index={index} />
+        ))}
+      </ScrollView>
       <KidCard>
         <SectionMini title="Search content" />
         <TextInput
@@ -2132,6 +2154,49 @@ export function KidsGamesScreen() {
           </ScrollView>
         </View>
       ))}
+    </KidScreen>
+  );
+}
+
+export function KidsContentStudioScreen() {
+  const kid = useAppStore((s) => s.kid);
+  const engine = getKidContentCreationEngine(kid);
+
+  return (
+    <KidScreen>
+      <KidHeader eyebrow="Creator engine" title="Fresh learning, every day" subtitle={engine.subtitle} avatar="✨" />
+      <ContentEngineSpotlight engine={engine} />
+      <View style={styles.contentEngineCoverageRow}>
+        {engine.coverage.map((item) => (
+          <MiniStat key={item.label} icon={item.label === 'Words' ? '📚' : item.label === 'Packs' ? '🧩' : '📝'} value={item.value} label={item.label} color={`${item.color}22`} />
+        ))}
+      </View>
+      {engine.shelves.map((shelf) => (
+        <View key={shelf.id}>
+          <SectionTitle title={shelf.title} action={shelf.id === 'studio-drafts' ? 'Admin' : 'Play'} onPress={() => router.push(shelf.id === 'studio-drafts' ? '/admin' : '/(tabs)/games')} />
+          <LexText variant="muted" style={{ color: c.muted, marginTop: -6, marginBottom: 12 }}>
+            {shelf.subtitle}
+          </LexText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {shelf.items.map((item, index) => (
+              <GeneratedContentCard key={item.id} item={item} index={index} />
+            ))}
+          </ScrollView>
+        </View>
+      ))}
+      <SectionTitle title="Parent-safe generation" />
+      <View style={{ gap: 10 }}>
+        {engine.parentHighlights.map((line, index) => (
+          <KidCard key={line} animated={false} style={styles.contentEngineHighlight}>
+            <View style={[styles.contentEngineHighlightIcon, { backgroundColor: index === 0 ? c.lilac : index === 1 ? c.coralSoft : c.mintSoft }]}>
+              <LexText style={{ fontSize: 20, lineHeight: 28 }}>{index === 0 ? '🔁' : index === 1 ? '🎭' : '🌈'}</LexText>
+            </View>
+            <LexText variant="title" style={{ color: c.ink, flex: 1 }}>
+              {line}
+            </LexText>
+          </KidCard>
+        ))}
+      </View>
     </KidScreen>
   );
 }
@@ -2616,6 +2681,88 @@ function TrackMasteryRow({ track }: { track: (typeof kidLearningTracks)[number] 
   );
 }
 
+function ContentEngineSpotlight({ engine, compact }: { engine: KidContentCreationEngine; compact?: boolean }) {
+  return (
+    <KidCard color={engine.hero.color} style={[styles.contentEngineHero, compact ? styles.contentEngineHeroCompact : null]}>
+      <Floating3DToken icon="✨" color={engine.hero.accent} style={styles.contentEngineTokenOne} />
+      <Floating3DToken icon={engine.hero.icon} color="rgba(255,255,255,0.92)" delay={260} style={styles.contentEngineTokenTwo} />
+      <View style={{ flex: 1 }}>
+        <KidPill label={engine.dayKey} active color="rgba(255,255,255,0.22)" />
+        <LexText variant="h2" numberOfLines={2} style={styles.contentEngineTitle}>
+          {engine.hero.title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={compact ? 2 : 3} style={styles.contentEngineSubtitle}>
+          {engine.creatorLine}
+        </LexText>
+        <View style={styles.contentEngineWordRow}>
+          {engine.hero.focusWords.slice(0, 3).map((entry) => (
+            <KidPill key={entry.id} label={`${entry.emoji} ${entry.word}`} active color="rgba(255,255,255,0.22)" />
+          ))}
+        </View>
+      </View>
+      <View style={styles.contentEngineOrb}>
+        <LexText style={{ fontSize: compact ? 44 : 54, lineHeight: compact ? 54 : 64 }}>{engine.hero.icon}</LexText>
+        <View style={styles.contentEngineXp}>
+          <LexText variant="label" style={{ color: c.ink }}>
+            +{engine.hero.rewardXp} XP
+          </LexText>
+        </View>
+      </View>
+    </KidCard>
+  );
+}
+
+function GeneratedContentCard({ item, index }: { item: KidGeneratedContentItem; index: number }) {
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 70).duration(360).springify().damping(17)} style={styles.generatedCardWrap}>
+      <Pressable accessibilityRole="button" accessibilityLabel={item.accessibilityLabel} onPress={() => router.push(item.route as never)}>
+        <KidCard animated={false} color={item.color} style={styles.generatedContentCard}>
+          <Floating3DToken icon={item.kind === 'song' ? '♪' : item.kind === 'teacher-draft' ? '✓' : '+'} color={item.accent} style={styles.generatedMiniToken} />
+          <View style={styles.generatedCardTop}>
+            <View style={styles.generatedIconPlate}>
+              <LexText style={{ fontSize: 34, lineHeight: 44 }}>{item.icon}</LexText>
+            </View>
+            <KidPill label={item.level} active color="rgba(255,255,255,0.24)" />
+          </View>
+          <LexText variant="h3" numberOfLines={2} style={styles.generatedTitle}>
+            {item.title}
+          </LexText>
+          <LexText variant="muted" numberOfLines={2} style={styles.generatedSubtitle}>
+            {item.learningGoal}
+          </LexText>
+          <View style={styles.generatedWordRow}>
+            {item.focusWords.slice(0, 3).map((entry) => (
+              <View key={entry.id} style={styles.generatedWordChip}>
+                <LexText variant="label" numberOfLines={1} style={{ color: c.ink, fontSize: 9 }}>
+                  {entry.emoji} {entry.word}
+                </LexText>
+              </View>
+            ))}
+          </View>
+          <View style={styles.generatedSteps}>
+            {item.steps.slice(0, 2).map((step, stepIndex) => (
+              <View key={step} style={styles.generatedStepRow}>
+                <LexText variant="label" style={{ color: item.accent, width: 18 }}>
+                  {stepIndex + 1}
+                </LexText>
+                <LexText variant="muted" numberOfLines={1} style={{ color: 'rgba(255,255,255,0.86)', flex: 1, fontSize: 11 }}>
+                  {step}
+                </LexText>
+              </View>
+            ))}
+          </View>
+          <View style={styles.generatedActionRow}>
+            <LexText variant="label" style={{ color: c.ink }}>
+              {item.minutes}m · +{item.rewardXp} XP
+            </LexText>
+            <LexText style={{ fontSize: 18, lineHeight: 24 }}>→</LexText>
+          </View>
+        </KidCard>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 function PlayStudioCard({ item, index }: { item: KidPlayStudioItem; index: number }) {
   const chips = item.focusWords.length
     ? item.focusWords.slice(0, 3).map((entry) => `${entry.emoji} ${entry.word}`)
@@ -3001,6 +3148,98 @@ function CelebrationBurst() {
 
 const styles = StyleSheet.create({
   heroCard: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  contentEngineHero: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
+  contentEngineHeroCompact: { minHeight: 154 },
+  contentEngineTitle: { color: 'white', marginTop: 10, fontSize: 28, lineHeight: 34 },
+  contentEngineSubtitle: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 13, lineHeight: 19 },
+  contentEngineWordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 },
+  contentEngineOrb: {
+    width: 102,
+    minHeight: 118,
+    borderRadius: 34,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.74)',
+    boxShadow: '0 18px 0 rgba(34,35,74,0.12)',
+  },
+  contentEngineXp: {
+    minHeight: 28,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    backgroundColor: c.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contentEngineTokenOne: { position: 'absolute', right: 124, top: 24 },
+  contentEngineTokenTwo: { position: 'absolute', right: 28, bottom: 18 },
+  contentEngineCoverageRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  contentEngineHighlight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  contentEngineHighlightIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generatedCardWrap: { width: 226 },
+  generatedContentCard: {
+    minHeight: 286,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    boxShadow: '0 18px 28px rgba(71,57,146,0.20)',
+  },
+  generatedCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  generatedIconPlate: {
+    width: 68,
+    height: 68,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.74)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+  },
+  generatedMiniToken: { right: 42, top: 58, width: 34, height: 34, borderRadius: 14 },
+  generatedTitle: { color: 'white', marginTop: 15, fontSize: 21, lineHeight: 26 },
+  generatedSubtitle: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 12, lineHeight: 17 },
+  generatedWordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+  generatedWordChip: {
+    maxWidth: '100%',
+    minHeight: 26,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generatedSteps: { gap: 5, marginTop: 12 },
+  generatedStepRow: {
+    minHeight: 24,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  generatedActionRow: {
+    minHeight: 38,
+    borderRadius: 999,
+    marginTop: 14,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   playStudioHero: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' },
   playStudioHeroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   playStudioTokenOne: { position: 'absolute', right: 128, top: 18 },

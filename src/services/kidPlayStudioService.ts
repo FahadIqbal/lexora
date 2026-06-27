@@ -1,4 +1,5 @@
 import type { KidPracticeMode } from '../data/kidContent';
+import { getKidContentCreationEngine } from './kidContentCreationEngine';
 import { getDailyKidDictionarySet, getFeaturedKidWords, type KidDictionaryEntry } from './kidDictionaryService';
 import { getKidDailyQuest, type KidDailyQuest } from './kidDailyQuestService';
 import { getKidLessons, type KidRuntimeState } from './kidLearningService';
@@ -39,6 +40,7 @@ export type KidPlayStudio = {
 
 export function getKidPlayStudio(kid: KidRuntimeState): KidPlayStudio {
   const quest = getKidDailyQuest(kid);
+  const contentEngine = getKidContentCreationEngine(kid);
   const lessons = getKidLessons(kid);
   const unlocked = lessons.filter((lesson) => !lesson.locked);
   const dailyWords = getDailyKidDictionarySet(kid, 6);
@@ -181,10 +183,34 @@ export function getKidPlayStudio(kid: KidRuntimeState): KidPlayStudio {
     }),
   ];
 
+  const creatorItems = contentEngine.shelves[0]?.items.map((item) => ({
+    id: item.id,
+    kind: item.kind === 'song' || item.kind === 'roleplay' ? item.kind : item.kind === 'story' ? 'read-aloud' as const : 'challenge' as const,
+    title: item.title,
+    subtitle: item.subtitle,
+    coachLine: item.learningGoal,
+    icon: item.icon,
+    color: item.color,
+    accent: item.accent,
+    route: item.route,
+    progress: item.kind === 'roleplay' ? quest.steps.find((step) => step.kind === 'roleplay')?.progress ?? 0 : 0,
+    rewardXp: item.rewardXp,
+    minutes: item.minutes,
+    tag: item.level,
+    mode: item.mode,
+    focusWords: item.focusWords,
+  })) ?? [];
+
   return {
-    hero: varietyItems[0] ?? gameItems[0] ?? challengeItems[0],
+    hero: creatorItems[0] ?? varietyItems[0] ?? gameItems[0] ?? challengeItems[0],
     quest,
     shelves: [
+      {
+        id: 'creator-picks',
+        title: 'Creator picks',
+        subtitle: 'Fresh packs generated from today’s dictionary, quest, and memory state.',
+        items: creatorItems,
+      },
       {
         id: 'play-games',
         title: 'Game worlds',
