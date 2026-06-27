@@ -72,7 +72,7 @@ const tools = [
 export function getKidAlphabetStudio(kid: KidRuntimeState, now = Date.now()): KidAlphabetStudio {
   const child = getActiveKidProfile(kid);
   const dictionary = getKidDictionaryEntries();
-  const letters = alphabetSeeds.map((seed, index) => createAlphabetLetter(seed, dictionary, index, child.age));
+  const letters = alphabetSeeds.map((seed, index) => createAlphabetLetter(seed, dictionary, index, child.age, kid));
   const dayIndex = Math.floor(now / 86_400_000);
   const dailyLetter = letters[dayIndex % letters.length] ?? letters[0];
 
@@ -86,8 +86,10 @@ export function getKidAlphabetStudio(kid: KidRuntimeState, now = Date.now()): Ki
   };
 }
 
-function createAlphabetLetter(seed: AlphabetSeed, dictionary: KidDictionaryEntry[], index: number, childAge: number): KidAlphabetLetter {
+function createAlphabetLetter(seed: AlphabetSeed, dictionary: KidDictionaryEntry[], index: number, childAge: number, kid: KidRuntimeState): KidAlphabetLetter {
   const letter = seed.letter.toUpperCase();
+  const letterId = letter.toLowerCase();
+  const saved = kid.alphabetProgress?.[letterId];
   const dictionaryMatches = dictionary
     .filter((entry) => entry.word.slice(0, 1).toUpperCase() === letter)
     .sort((a, b) => a.level - b.level || a.word.localeCompare(b.word));
@@ -97,10 +99,11 @@ function createAlphabetLetter(seed: AlphabetSeed, dictionary: KidDictionaryEntry
     fallbackWord,
   ]).slice(0, 3);
   const heroWord = words[0] ?? fallbackWord;
-  const mastery = Math.min(0.92, 0.12 + ((index % 5) + (childAge % 4)) * 0.11);
+  const baseMastery = Math.min(0.92, 0.12 + ((index % 5) + (childAge % 4)) * 0.11);
+  const mastery = saved?.completedAt ? 1 : Math.max(saved?.progress ?? 0, baseMastery);
 
   return {
-    id: letter.toLowerCase(),
+    id: letterId,
     letter,
     lower: letter.toLowerCase(),
     sound: seed.sound,

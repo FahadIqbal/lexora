@@ -68,6 +68,12 @@ type AppState = {
     attemptCount: number;
     wordResults?: KidReviewResult[];
   }) => void;
+  recordKidAlphabetCompletion: (input: {
+    letterId: string;
+    xp: number;
+    progress: number;
+    wordResults?: KidReviewResult[];
+  }) => void;
   claimKidDailyQuest: (input: { questId: string; xp: number; wordResults?: KidReviewResult[] }) => void;
   recordKidPracticeAnswer: (correct: boolean) => void;
   recordKidFriendChallenge: () => void;
@@ -395,6 +401,61 @@ export const useAppStore = create<AppState>()(
               },
             },
             kid: applyKidReviewResults(completeKidLesson(s.kid, input), input.wordResults, input.lessonId),
+          };
+        }),
+
+      recordKidAlphabetCompletion: (input) =>
+        set((s) => {
+          const letterId = input.letterId.toLowerCase();
+          const alphabetProgress = s.kid.alphabetProgress ?? {};
+          const previous = alphabetProgress[letterId];
+          const firstCompletion = !previous?.completedAt;
+          const awardedXp = firstCompletion ? input.xp : 0;
+          const today = isoDate();
+          const prevStat = s.dailyStats[today] ? DailyStatSchema.parse(s.dailyStats[today]) : DailyStatSchema.parse({ date: today });
+          let streakCurrent = s.streakCurrent;
+          let streakLongest = s.streakLongest;
+          if (s.lastActiveDate !== today) {
+            if (s.lastActiveDate && isYesterday(s.lastActiveDate, today)) streakCurrent = s.streakCurrent + 1;
+            else streakCurrent = 1;
+            streakLongest = Math.max(streakLongest, streakCurrent);
+          }
+
+          const nextAlphabetProgress = {
+            ...alphabetProgress,
+            [letterId]: {
+              letterId,
+              progress: Math.max(previous?.progress ?? 0, Math.min(1, input.progress)),
+              completions: (previous?.completions ?? 0) + 1,
+              xpEarned: (previous?.xpEarned ?? 0) + awardedXp,
+              lastPaintedAt: Date.now(),
+              completedAt: previous?.completedAt ?? Date.now(),
+            },
+          };
+
+          const kidWithAlphabet = {
+            ...s.kid,
+            alphabetProgress: nextAlphabetProgress,
+          };
+
+          return {
+            lastActiveDate: today,
+            streakCurrent,
+            streakLongest,
+            xpToday: s.xpToday + awardedXp,
+            xpTotal: s.xpTotal + awardedXp,
+            dailyStats: {
+              ...s.dailyStats,
+              [today]: {
+                ...prevStat,
+                wordsLearned: prevStat.wordsLearned + (firstCompletion ? Math.min(2, input.wordResults?.length ?? 1) : 0),
+                sessionsCount: prevStat.sessionsCount + 1,
+                xpEarned: prevStat.xpEarned + awardedXp,
+                accuracyCorrect: prevStat.accuracyCorrect + (input.wordResults?.filter((item) => item.correct).length ?? 0),
+                accuracyTotal: prevStat.accuracyTotal + (input.wordResults?.length ?? 0),
+              },
+            },
+            kid: applyKidReviewResults(kidWithAlphabet, input.wordResults, `alphabet-${letterId}`),
           };
         }),
 

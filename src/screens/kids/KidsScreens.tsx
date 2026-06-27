@@ -655,24 +655,25 @@ type PaintStroke = {
 export function KidsAlphabetStudioScreen() {
   const params = useLocalSearchParams<{ letter?: string }>();
   const kid = useAppStore((s) => s.kid);
-  const addXp = useAppStore((s) => s.addXp);
+  const recordKidAlphabetCompletion = useAppStore((s) => s.recordKidAlphabetCompletion);
   const { width } = useWindowDimensions();
   const studio = useMemo(() => getKidAlphabetStudio(kid), [kid]);
   const routeLetter = normalizeAlphabetId(params.letter);
   const [selectedId, setSelectedId] = useState(routeLetter ?? studio.dailyLetter.id);
   const selected = studio.letters.find((item) => item.id === selectedId) ?? studio.dailyLetter;
+  const savedLetterProgress = kid.alphabetProgress?.[selected.id];
   const [selectedColor, setSelectedColor] = useState(selected.color);
   const [toolId, setToolId] = useState<(typeof studio.tools)[number]['id']>('brush');
   const tool = studio.tools.find((item) => item.id === toolId) ?? studio.tools[0];
   const [strokes, setStrokes] = useState<PaintStroke[]>([]);
   const [paintProgress, setPaintProgress] = useState<Record<string, number>>({});
-  const [rewarded, setRewarded] = useState<Record<string, boolean>>({});
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasWidth = Math.min(360, width - 36);
   const canvasHeight = 282;
-  const progress = Math.min(1, Math.max(paintProgress[selected.id] ?? 0, strokes.length / 6));
-  const complete = progress >= 0.92 || Boolean(rewarded[selected.id]);
+  const progress = Math.min(1, Math.max(savedLetterProgress?.progress ?? 0, paintProgress[selected.id] ?? 0, strokes.length / 6));
+  const complete = progress >= 0.92 || Boolean(savedLetterProgress?.completedAt);
+  const firstCompletionAvailable = !savedLetterProgress?.completedAt;
 
   useEffect(() => {
     if (routeLetter) setSelectedId(routeLetter);
@@ -736,10 +737,17 @@ export function KidsAlphabetStudioScreen() {
   };
 
   const finishPainting = () => {
-    const alreadyRewarded = rewarded[selected.id];
     setPaintProgress((prev) => ({ ...prev, [selected.id]: 1 }));
-    setRewarded((prev) => ({ ...prev, [selected.id]: true }));
-    if (!alreadyRewarded) addXp(selected.rewardXp);
+    const wordResults: KidReviewResult[] = selected.words
+      .filter((word) => Boolean(word.dictionaryEntry))
+      .slice(0, 3)
+      .map((word) => ({ entryId: word.dictionaryEntry!.id, correct: true, mode: 'vocabulary' }));
+    recordKidAlphabetCompletion({
+      letterId: selected.id,
+      xp: selected.rewardXp,
+      progress: 1,
+      wordResults: wordResults.length ? wordResults : undefined,
+    });
     setShowCelebration(true);
     if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
     celebrationTimer.current = setTimeout(() => setShowCelebration(false), 2400);
@@ -754,7 +762,7 @@ export function KidsAlphabetStudioScreen() {
         title={studio.title}
         subtitle={studio.subtitle}
         avatar="🎨"
-        right={<KidPill label={`+${selected.rewardXp} XP`} active color={selected.accent} />}
+        right={<KidPill label={firstCompletionAvailable ? `+${selected.rewardXp} XP` : 'Saved'} active color={selected.accent} />}
       />
 
       <KidContentPulseCard
@@ -844,7 +852,7 @@ export function KidsAlphabetStudioScreen() {
               <LexoraLottie source={missionPulse} size={168} speed={1.08} />
               <View style={[styles.alphabetCelebrationPill, { backgroundColor: selected.accent }]}>
                 <LexText variant="title" style={{ color: c.ink }}>
-                  Masterpiece +{selected.rewardXp} XP
+                  {firstCompletionAvailable ? `Masterpiece +${selected.rewardXp} XP` : 'Masterpiece saved'}
                 </LexText>
               </View>
             </Animated.View>
@@ -894,7 +902,7 @@ export function KidsAlphabetStudioScreen() {
         <View style={styles.alphabetActions}>
           <KidButton title="Hear" icon="speaker.wave.2.fill" color={c.sky} onPress={speakLetter} style={{ flex: 1 }} />
           <KidButton title="Clear" color={c.lilac} onPress={() => setStrokes([])} style={{ flex: 1 }} />
-          <KidButton title="Done" color={selected.accent} onPress={finishPainting} style={{ flex: 1 }} />
+          <KidButton title={complete ? 'Save' : 'Done'} color={selected.accent} onPress={finishPainting} style={{ flex: 1 }} />
         </View>
       </KidCard>
 

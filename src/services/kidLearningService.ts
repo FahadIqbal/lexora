@@ -22,6 +22,15 @@ export type KidLessonRuntime = {
   lastCompletedAt?: number;
 };
 
+export type KidAlphabetRuntime = {
+  letterId: string;
+  progress: number;
+  completions: number;
+  xpEarned: number;
+  lastPaintedAt?: number;
+  completedAt?: number;
+};
+
 export type KidRuntimeState = {
   activeProfileId?: string;
   parentSession?: {
@@ -35,6 +44,7 @@ export type KidRuntimeState = {
   unlockedBadgeIds: string[];
   completedMissionIds: string[];
   claimedDailyQuestIds?: string[];
+  alphabetProgress?: Record<string, KidAlphabetRuntime>;
   friendChallengeCount: number;
   wordMastery?: Record<string, KidWordMastery>;
   energy?: {
@@ -53,6 +63,7 @@ export function createInitialKidState(): KidRuntimeState {
     unlockedBadgeIds: ['super-star', 'word-hero', 'listener'],
     completedMissionIds: [],
     claimedDailyQuestIds: [],
+    alphabetProgress: {},
     friendChallengeCount: 0,
     wordMastery: {},
     energy: { current: 25, max: 25, combo: 0 },

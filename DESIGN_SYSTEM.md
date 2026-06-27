@@ -98,6 +98,8 @@ Alphabet Art Studio lives in `src/services/kidAlphabetStudioService.ts`, `src/da
 
 Alphabet Art uses Lottie in two intentional places: a soft ambient orbit inside the canvas while kids paint, and a short success burst when the child completes a masterpiece. Lottie effects should support focus, feedback, and reward instead of covering controls or blocking drawing gestures.
 
+Alphabet progress is persisted in kid runtime state. A completed letter can be revisited and repainted, but first-completion XP should only be awarded once per letter; repeated saves should update the masterpiece state without farming rewards.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:
