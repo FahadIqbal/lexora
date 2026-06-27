@@ -96,6 +96,8 @@ Content Creation Engine lives in `src/services/kidContentCreationEngine.ts` and 
 
 Alphabet Art Studio lives in `src/services/kidAlphabetStudioService.ts`, `src/data/kids-alphabet.json`, and `/kids-alphabet-studio`. It is the model for "Interactive Learning for Curious Kids": trace a letter, paint with kid-safe tools, hear phonics/audio, connect the letter to dictionary-backed words, and earn XP from a tactile creative action. Screens should link to this route for alphabet, drawing, painting, phonics, and early-literacy entry points instead of sending every alphabet tap to generic Learn.
 
+Alphabet Art uses Lottie in two intentional places: a soft ambient orbit inside the canvas while kids paint, and a short success burst when the child completes a masterpiece. Lottie effects should support focus, feedback, and reward instead of covering controls or blocking drawing gestures.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:

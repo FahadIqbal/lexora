@@ -667,6 +667,8 @@ export function KidsAlphabetStudioScreen() {
   const [strokes, setStrokes] = useState<PaintStroke[]>([]);
   const [paintProgress, setPaintProgress] = useState<Record<string, number>>({});
   const [rewarded, setRewarded] = useState<Record<string, boolean>>({});
+  const [showCelebration, setShowCelebration] = useState(false);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasWidth = Math.min(360, width - 36);
   const canvasHeight = 282;
   const progress = Math.min(1, Math.max(paintProgress[selected.id] ?? 0, strokes.length / 6));
@@ -679,7 +681,14 @@ export function KidsAlphabetStudioScreen() {
   useEffect(() => {
     setSelectedColor(selected.color);
     setStrokes([]);
+    setShowCelebration(false);
   }, [selected.id, selected.color]);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+    };
+  }, []);
 
   const panResponder = useMemo(
     () =>
@@ -731,6 +740,9 @@ export function KidsAlphabetStudioScreen() {
     setPaintProgress((prev) => ({ ...prev, [selected.id]: 1 }));
     setRewarded((prev) => ({ ...prev, [selected.id]: true }));
     if (!alreadyRewarded) addXp(selected.rewardXp);
+    setShowCelebration(true);
+    if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+    celebrationTimer.current = setTimeout(() => setShowCelebration(false), 2400);
     Speech.stop();
     Speech.speak(`Beautiful ${selected.letter} painting. ${selected.letter} is for ${selected.heroWord.word}.`, { rate: 0.86 });
   };
@@ -786,6 +798,9 @@ export function KidsAlphabetStudioScreen() {
         </View>
 
         <View style={[styles.alphabetCanvas, { width: canvasWidth, height: canvasHeight }]} {...panResponder.panHandlers}>
+          <View pointerEvents="none" style={styles.alphabetCanvasMotion}>
+            <LexoraLottie source={wordQuestOrbit} size={Math.min(214, canvasWidth * 0.64)} speed={0.56} style={{ opacity: 0.22 }} />
+          </View>
           <Svg width={canvasWidth} height={canvasHeight} viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
             <Rect x="0" y="0" width={canvasWidth} height={canvasHeight} rx="28" fill="#FFFFFF" />
             <Rect x="10" y="10" width={canvasWidth - 20} height={canvasHeight - 20} rx="24" fill={`${selected.color}10`} />
@@ -824,6 +839,16 @@ export function KidsAlphabetStudioScreen() {
               />
             ))}
           </Svg>
+          {showCelebration ? (
+            <Animated.View pointerEvents="none" entering={FadeInDown.duration(280).springify().damping(14)} style={styles.alphabetCelebrationLayer}>
+              <LexoraLottie source={missionPulse} size={168} speed={1.08} />
+              <View style={[styles.alphabetCelebrationPill, { backgroundColor: selected.accent }]}>
+                <LexText variant="title" style={{ color: c.ink }}>
+                  Masterpiece +{selected.rewardXp} XP
+                </LexText>
+              </View>
+            </Animated.View>
+          ) : null}
           <View pointerEvents="none" style={styles.alphabetCanvasCoach}>
             <LexText style={{ fontSize: 26, lineHeight: 34 }}>{selected.heroWord.emoji}</LexText>
             <LexText variant="label" numberOfLines={2} style={{ color: c.ink, flex: 1 }}>
@@ -3796,6 +3821,41 @@ const styles = StyleSheet.create({
     backgroundColor: c.paper,
     boxShadow: '0 18px 28px rgba(71,57,146,0.14)',
   },
+  alphabetCanvasMotion: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  alphabetCelebrationLayer: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    top: 34,
+    bottom: 62,
+    borderRadius: 30,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.76)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.82)',
+  },
+  alphabetCelebrationPill: {
+    minHeight: 40,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(34,35,74,0.08)',
+    marginTop: -16,
+  },
   alphabetCanvasCoach: {
     position: 'absolute',
     left: 12,
@@ -3811,6 +3871,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
     paddingHorizontal: 10,
+    zIndex: 6,
   },
   alphabetToolPanel: {
     gap: 10,
