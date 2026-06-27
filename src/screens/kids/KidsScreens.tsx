@@ -18,6 +18,11 @@ import {
   LessonCard,
   QuizOption,
 } from '../../components/kids/KidKit';
+import {
+  KidContentPulseCard,
+  KidMissionConstellation,
+  type KidMissionNode,
+} from '../../components/kids/KidVisualSystem';
 import { LexText } from '../../components/LexText';
 import { IconSymbol } from '../../components/IconSymbol';
 import { LexoraLottie } from '../../components/LexoraLottie';
@@ -113,12 +118,24 @@ export function KidsHomeScreen() {
   const contentEngine = getKidContentCreationEngine(kid);
   const selfRank = leaderboard.find((row) => row.name === child.name)?.rank ?? 1;
   const totalXp = child.xp + xpTotal;
+  const questNodes = dailyQuest.steps.map(createMissionNode);
+  const questComplete = dailyQuest.completion >= 0.98;
 
   return (
     <KidScreen>
       <HomeCompactHeader childName={child.name} avatar={child.avatar} energy={energy.current} energyMax={energy.max} xp={totalXp} />
 
-      <QuestIslandHero quest={dailyQuest} />
+      <KidMissionConstellation
+        eyebrow={dailyQuest.streakLabel}
+        title={dailyQuest.title}
+        subtitle={dailyQuest.companionLine}
+        nodes={questNodes}
+        progress={dailyQuest.completion}
+        rewardLabel={`+${dailyQuest.rewardXp} XP`}
+        primaryLabel={questComplete ? 'Open chest' : `Start ${dailyQuest.nextStep.label}`}
+        onPrimaryPress={() => router.push((questComplete ? '/kids-quest-reward' : dailyQuest.nextStep.route) as never)}
+        onNodePress={(node) => router.push(node.route as never)}
+      />
 
       <View style={styles.homeStatsCompactRow}>
         <HomeMetricChip icon="🔥" value={`${Math.max(child.streak, streakCurrent)}`} label="streak" color={c.coralSoft} />
@@ -140,22 +157,6 @@ export function KidsHomeScreen() {
         ))}
         <HomeQuickAction icon="✨" title="Creator" subtitle={`${contentEngine.coverage[1]?.value ?? '0'} packs`} color={c.blue} onPress={() => router.push('/kids-content-studio')} />
         <HomeQuickAction icon="📚" title="Dictionary" subtitle="Hear words" color={c.purple} onPress={() => router.push('/kids-dictionary')} />
-      </View>
-
-      <SectionTitle title="Daily quest plan" action="Continue" onPress={() => router.push(dailyQuest.nextStep.route as never)} />
-      <View style={styles.homeTodayGrid}>
-        {dailyQuest.steps.map((step) => (
-          <HomeTodayCard
-            key={step.id}
-            icon={step.icon}
-            title={step.label}
-            subtitle={step.title}
-            badge={step.state === 'complete' ? 'Done' : `+${step.rewardXp} XP`}
-            color={step.color}
-            progress={step.progress}
-            onPress={() => router.push(step.route as never)}
-          />
-        ))}
       </View>
 
       <SectionTitle title="Next lessons" action="See all" onPress={() => router.push('/(tabs)/learn')} />
@@ -463,7 +464,15 @@ export function KidsLearnScreen() {
     <KidScreen>
       <KidHeader eyebrow="Choose your course" title="Learning worlds" subtitle="Play through English skills, stories, and review loops." avatar="🌈" />
       <TrackSpotlight track={featuredTrack} />
-      <ContentEngineSpotlight engine={contentEngine} compact />
+      <KidContentPulseCard
+        title={contentEngine.hero.title}
+        subtitle={contentEngine.creatorLine}
+        icon={contentEngine.hero.icon}
+        color={contentEngine.hero.color}
+        accent={contentEngine.hero.accent}
+        meta={`${contentEngine.coverage[1]?.value ?? '0'} live packs`}
+        onPress={() => router.push('/kids-content-studio')}
+      />
       <SectionTitle title="Generated for today" action="Open studio" onPress={() => router.push('/kids-content-studio')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
         {contentEngine.shelves[0].items.map((item, index) => (
@@ -2306,48 +2315,6 @@ function HomeQuickAction({
   );
 }
 
-function HomeTodayCard({
-  icon,
-  title,
-  subtitle,
-  badge,
-  color,
-  progress,
-  onPress,
-}: {
-  icon: string;
-  title: string;
-  subtitle: string;
-  badge?: string;
-  color: string;
-  progress?: number;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={styles.homeTodayPressable}>
-      <KidCard animated={false} style={styles.homeTodayCard}>
-        <View style={styles.homeTodayTop}>
-          <View style={[styles.homeTodayIcon, { backgroundColor: `${color}28` }]}>
-            <LexText style={{ fontSize: 24, lineHeight: 32 }}>{icon}</LexText>
-          </View>
-          {badge ? <KidPill label={badge} active color={`${color}33`} /> : null}
-        </View>
-        <LexText variant="title" numberOfLines={1} style={{ color: c.ink, marginTop: 8, fontSize: 15 }}>
-          {title}
-        </LexText>
-        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, fontSize: 12, lineHeight: 16, marginTop: 3 }}>
-          {subtitle}
-        </LexText>
-        {typeof progress === 'number' ? (
-          <View style={{ marginTop: 10 }}>
-            <KidProgressBar progress={progress} color={color} />
-          </View>
-        ) : null}
-      </KidCard>
-    </Pressable>
-  );
-}
-
 function HomeLessonCompact({
   title,
   subtitle,
@@ -2444,23 +2411,6 @@ function Onboarding3DStage({ item, heroHeight }: { item: (typeof kidOnboardingSl
       <Floating3DToken icon="⭐" color={c.yellow} delay={120} style={styles.onboardingTokenOne} />
       <Floating3DToken icon="🎤" color={c.coral} delay={340} style={styles.onboardingTokenTwo} />
       <Floating3DToken icon="🔁" color={c.blue} delay={620} style={styles.onboardingTokenThree} />
-    </View>
-  );
-}
-
-function QuestPortal3D({ xp }: { xp: number }) {
-  return (
-    <View style={styles.questPortal3D}>
-      <View style={styles.questPortalBackPlate} />
-      <View style={styles.questPortalFloor} />
-      <LexoraLottie source={missionPulse} size={70} speed={0.82} />
-      <Floating3DToken icon="⭐" color={c.yellow} delay={140} style={styles.questTokenStar} />
-      <Floating3DToken icon="🔊" color={c.blue} delay={420} style={styles.questTokenAudio} />
-      <View style={styles.questXpPlate}>
-        <LexText variant="label" style={{ color: c.ink }}>
-          +{xp} XP
-        </LexText>
-      </View>
     </View>
   );
 }
@@ -2823,80 +2773,6 @@ function MiniStat({ icon, value, label, color }: { icon: string; value: string; 
   );
 }
 
-function QuestIslandHero({ quest }: { quest: KidDailyQuest }) {
-  const complete = quest.completion >= 0.98;
-  const primaryRoute = complete ? '/kids-quest-reward' : quest.nextStep.route;
-
-  return (
-    <KidCard color={quest.color} style={styles.questHero}>
-      <View style={styles.questHeroTop}>
-        <View style={{ flex: 1 }}>
-          <KidPill label="Today’s quest" active color="rgba(255,255,255,0.22)" />
-          <LexText variant="h2" numberOfLines={2} style={styles.questTitle}>
-            {quest.title}
-          </LexText>
-          <LexText variant="muted" numberOfLines={2} style={styles.questSubtitle}>
-            {quest.companionLine}
-          </LexText>
-        </View>
-        <QuestPortal3D xp={quest.rewardXp} />
-      </View>
-
-      <View style={styles.questMap}>
-        <View pointerEvents="none" style={styles.questPathBeam} />
-        {quest.steps.map((step, index) => {
-          const active = step.state === 'active';
-          return (
-            <Animated.View
-              key={step.id}
-              entering={FadeInDown.delay(index * 90).duration(360).springify().damping(16)}
-              style={styles.questNode}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${step.title}, ${step.subtitle}`}
-                onPress={() => router.push(step.route as never)}
-                style={[styles.questNodePressable, active ? styles.questNodeActive : null]}
-              >
-                <View style={[styles.questNodeIcon, { backgroundColor: step.color, borderColor: active ? c.yellow : 'rgba(255,255,255,0.58)' }]}>
-                  <LexText style={{ fontSize: 24, lineHeight: 32 }}>{step.state === 'complete' ? '✓' : step.icon}</LexText>
-                </View>
-                <LexText variant="label" style={[styles.questNodeLabel, { color: active ? c.yellow : 'rgba(255,255,255,0.78)' }]}>
-                  {step.label}
-                </LexText>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
-      </View>
-
-      <View style={styles.questProgressRow}>
-        <View style={{ flex: 1 }}>
-          <KidProgressBar progress={quest.completion} color={quest.accent} />
-        </View>
-        <LexText variant="label" style={{ color: 'rgba(255,255,255,0.82)' }}>
-          {Math.round(quest.completion * 100)}%
-        </LexText>
-      </View>
-
-      <View style={styles.questActions}>
-        <KidButton title={complete ? 'Open chest' : `Start ${quest.nextStep.label}`} onPress={() => router.push(primaryRoute as never)} style={{ flex: 1, minHeight: 48 }} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open quest reward"
-          onPress={() => router.push('/kids-quest-reward')}
-          style={styles.questSecondaryAction}
-        >
-          <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
-            {complete ? 'Chest' : `${quest.estimatedMinutes}m`}
-          </LexText>
-          <LexText style={{ fontSize: 18, lineHeight: 24 }}>⭐</LexText>
-        </Pressable>
-      </View>
-    </KidCard>
-  );
-}
-
 function DailyRewardChestPreview({ quest, claimed }: { quest: KidDailyQuest; claimed: boolean }) {
   const complete = quest.completion >= 0.98;
   return (
@@ -3127,6 +3003,22 @@ function formatHomePowerUpTitle(title: string) {
   return title;
 }
 
+function createMissionNode(step: KidDailyQuestStep): KidMissionNode {
+  return {
+    id: step.id,
+    label: step.label,
+    title: step.title,
+    subtitle: step.subtitle,
+    icon: step.icon,
+    color: step.color,
+    accent: step.accent,
+    progress: step.progress,
+    state: step.state,
+    rewardLabel: step.state === 'complete' ? 'Done' : `+${step.rewardXp} XP`,
+    route: step.route,
+  };
+}
+
 function isKidPracticeMode(mode: string): mode is KidPracticeMode {
   return ['vocabulary', 'listening', 'speaking', 'reading', 'grammar', 'story'].includes(mode);
 }
@@ -3287,70 +3179,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  questHero: { marginTop: 10, gap: 10, overflow: 'hidden' },
-  questHeroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  questTitle: { color: 'white', marginTop: 6, fontSize: 20, lineHeight: 25 },
-  questSubtitle: { color: 'rgba(255,255,255,0.78)', marginTop: 4, fontSize: 12, lineHeight: 17 },
-  questLottie: {
-    width: 124,
-    minHeight: 144,
-    borderRadius: 34,
-    borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  questMap: {
-    minHeight: 72,
-    borderRadius: 24,
-    borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
-    overflow: 'hidden',
-  },
-  questPathBeam: {
-    position: 'absolute',
-    left: 34,
-    right: 34,
-    top: 36,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.26)',
-  },
-  questNode: { flex: 1, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  questNodePressable: { minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  questNodeActive: { transform: [{ scale: 1.08 }] },
-  questNodeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 17,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    boxShadow: `0 13px 0 rgba(34,35,74,0.14)`,
-  },
-  questNodeLabel: { textAlign: 'center', fontSize: 10 },
-  questProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  questActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
-  questSecondaryAction: {
-    minHeight: 48,
-    borderRadius: 999,
-    backgroundColor: c.sky,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(34,35,74,0.08)',
   },
   dailyRewardPreview: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   dailyRewardPreviewIcon: {
@@ -3537,50 +3365,6 @@ const styles = StyleSheet.create({
   onboardingTokenOne: { left: 42, top: 22 },
   onboardingTokenTwo: { right: 38, top: 56 },
   onboardingTokenThree: { right: 82, bottom: 12 },
-  questPortal3D: {
-    width: 92,
-    minHeight: 104,
-    borderRadius: 26,
-    borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    overflow: 'visible',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    boxShadow: '0 20px 26px rgba(34,35,74,0.18)',
-  },
-  questPortalBackPlate: {
-    position: 'absolute',
-    width: 66,
-    height: 78,
-    borderRadius: 21,
-    borderCurve: 'continuous',
-    backgroundColor: c.yellow,
-    opacity: 0.7,
-    transform: [{ translateY: 16 }, { rotate: '-8deg' }],
-  },
-  questPortalFloor: {
-    position: 'absolute',
-    width: 74,
-    height: 18,
-    borderRadius: 999,
-    bottom: 16,
-    backgroundColor: 'rgba(34,35,74,0.12)',
-  },
-  questTokenStar: { right: -8, top: 8, width: 32, height: 32, borderRadius: 14 },
-  questTokenAudio: { left: -8, bottom: 24, width: 32, height: 32, borderRadius: 14 },
-  questXpPlate: {
-    minHeight: 30,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    backgroundColor: c.yellow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(34,35,74,0.10)',
-  },
   focusPicker: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
   focusChip: {
     width: 104,
@@ -3626,11 +3410,6 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   homeQuickIcon: { width: 42, height: 42, borderRadius: 17, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
-  homeTodayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  homeTodayPressable: { width: '48.5%' },
-  homeTodayCard: { minHeight: 142, borderRadius: 24, borderCurve: 'continuous', padding: 12 },
-  homeTodayTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  homeTodayIcon: { width: 46, height: 46, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   homeLessonCompact: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
   homeLessonIcon: { width: 48, height: 48, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   homeExploreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 4 },

@@ -52,6 +52,11 @@ Reusable kid UI lives in `src/components/kids/KidKit.tsx`.
 - `QuizOption`: multiple-choice option with correct/wrong states.
 - `BadgeTile`: rewards and locked badge states.
 
+Premium kid visual patterns live in `src/components/kids/KidVisualSystem.tsx`.
+
+- `KidMissionConstellation`: the primary home mission surface. It turns daily quest service data into a compact animated path with a curved route, 3D-style nodes, progress rings, reward chip, and one next-step CTA.
+- `KidContentPulseCard`: a high-energy generated-content preview used when the Content Creation Engine needs to feel more like a playable feature than a dashboard module.
+
 Centralized kid visual assets live in `src/assets/kidAssets.ts`. Screens should pull character, route, category, and native icon references from that file instead of scattering visual constants through feature code.
 
 ## Product Loops
@@ -79,6 +84,8 @@ Adaptive memory review lives in `src/services/kidAdaptiveLearningService.ts`. Le
 Buddy Roleplay lives in `src/services/kidRoleplayService.ts` and `/kids-roleplay`. It is the kid-safe implementation of the competitor pattern: real-world scenario practice, character-guided conversation, immediate response coaching, "Explain my answer" feedback, XP reward, and word-level review scheduling.
 
 Daily Quest orchestration lives in `src/services/kidDailyQuestService.ts`. Home, Games, and Progress should render quest state from this service so the daily path, next action, XP reward, play step, focus words, and parent summary stay consistent instead of being manually assembled per screen.
+
+Home should stay mission-first: show the child header, one rich mission constellation, compact stats, a small set of quick actions, then next lessons/explore. Avoid reintroducing separate daily quest grids that duplicate the same steps and make the screen feel long or messy.
 
 Daily Quest reward claiming lives at `/kids-quest-reward`. The claim id is date-specific and stored in kid runtime state so the chest can award XP once, add focus words back into Memory Boost, then become a collected reward instead of an infinite XP tap target.
 
