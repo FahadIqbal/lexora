@@ -100,6 +100,8 @@ Alphabet Art uses Lottie in two intentional places: a soft ambient orbit inside 
 
 Alphabet progress is persisted in kid runtime state. A completed letter can be revisited and repainted, but first-completion XP should only be awarded once per letter; repeated saves should update the masterpiece state without farming rewards.
 
+Home and Play Studio can use compact Lottie delight cards/stages when they point to a real next action. Keep animated surfaces tappable, bounded, and purposeful: one motion-led CTA per screen section is enough.
+
 ## 3D And Depth
 
 Kid-facing hero areas should feel like a toy-like learning world:

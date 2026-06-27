@@ -147,6 +147,18 @@ export function KidsHomeScreen() {
         <HomeMetricChip icon="🏆" value={`#${selfRank}`} label="league" color={c.mintSoft} />
       </View>
 
+      <LottieDelightCard
+        eyebrow="Animated learning"
+        title={`${alphabetStudio.dailyLetter.letter} paint quest`}
+        subtitle={alphabetStudio.dailyLetter.paintingPrompt}
+        icon={alphabetStudio.dailyLetter.heroWord.emoji}
+        color={alphabetStudio.dailyLetter.color}
+        accent={alphabetStudio.dailyLetter.accent}
+        source={wordQuestOrbit}
+        cta="Paint"
+        onPress={() => router.push(`/kids-alphabet-studio?letter=${alphabetStudio.dailyLetter.id}`)}
+      />
+
       <SectionTitle title="Quick actions" action="Games" onPress={() => router.push('/(tabs)/games')} />
       <View style={styles.homeQuickGrid}>
         {kidFeaturePowerUps.slice(0, 1).map((feature) => (
@@ -2450,7 +2462,7 @@ export function KidsGamesScreen() {
           </View>
           <KidButton title={playStudio.hero.kind === 'roleplay' ? 'Talk now' : 'Play now'} onPress={() => router.push(playStudio.hero.route as never)} style={{ marginTop: 16, alignSelf: 'flex-start' }} />
         </View>
-        <CharacterBubble mood="star" />
+        <PlayHeroLottieStage source={playStudio.hero.kind === 'art' ? wordQuestOrbit : missionPulse} icon={playStudio.hero.icon} accent={playStudio.hero.accent} />
       </KidCard>
       <DailyQuestMiniPanel quest={dailyQuest} />
       {playStudio.shelves.map((shelf) => (
@@ -2668,6 +2680,73 @@ function HomeExplorePill({ icon, label, color, onPress }: { icon: string; label:
         </LexText>
       </View>
     </Pressable>
+  );
+}
+
+function LottieDelightCard({
+  eyebrow,
+  title,
+  subtitle,
+  icon,
+  color,
+  accent,
+  source,
+  cta,
+  onPress,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  color: string;
+  accent: string;
+  source: React.ComponentProps<typeof LexoraLottie>['source'];
+  cta: string;
+  onPress: () => void;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.duration(380).springify().damping(17)}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${subtitle}`} onPress={onPress} style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
+        <KidCard animated={false} color={color} style={styles.lottieDelightCard}>
+          <View pointerEvents="none" style={styles.lottieDelightGlow}>
+            <LexoraLottie source={source} size={142} speed={0.72} style={{ opacity: 0.28 }} />
+          </View>
+          <View style={styles.lottieDelightCopy}>
+            <KidPill label={eyebrow} active color="rgba(255,255,255,0.22)" />
+            <LexText variant="h3" numberOfLines={2} style={styles.lottieDelightTitle}>
+              {title}
+            </LexText>
+            <LexText variant="muted" numberOfLines={2} style={styles.lottieDelightSubtitle}>
+              {subtitle}
+            </LexText>
+            <View style={[styles.lottieDelightButton, { backgroundColor: accent }]}>
+              <LexText variant="title" style={{ color: c.ink, fontSize: 14 }}>
+                {cta}
+              </LexText>
+              <LexText style={{ fontSize: 17, lineHeight: 22 }}>→</LexText>
+            </View>
+          </View>
+          <View style={styles.lottieDelightStage}>
+            <LexoraLottie source={source} size={104} speed={0.9} />
+            <View style={[styles.lottieDelightIcon, { backgroundColor: accent }]}>
+              <LexText style={{ fontSize: 30, lineHeight: 38 }}>{icon}</LexText>
+            </View>
+          </View>
+        </KidCard>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function PlayHeroLottieStage({ source, icon, accent }: { source: React.ComponentProps<typeof LexoraLottie>['source']; icon: string; accent: string }) {
+  return (
+    <View pointerEvents="none" style={styles.playHeroLottieStage}>
+      <View style={[styles.playHeroBackPlate, { backgroundColor: accent }]} />
+      <LexoraLottie source={source} size={118} speed={0.82} />
+      <View style={[styles.playHeroIconBadge, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
+        <LexText style={{ fontSize: 36, lineHeight: 46 }}>{icon}</LexText>
+      </View>
+    </View>
   );
 }
 
@@ -3521,6 +3600,39 @@ const styles = StyleSheet.create({
   playStudioHeroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   playStudioTokenOne: { position: 'absolute', right: 128, top: 18 },
   playStudioTokenTwo: { position: 'absolute', right: 28, bottom: 22 },
+  playHeroLottieStage: {
+    width: 118,
+    minHeight: 132,
+    borderRadius: 36,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    overflow: 'visible',
+  },
+  playHeroBackPlate: {
+    position: 'absolute',
+    width: 78,
+    height: 92,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    opacity: 0.72,
+    transform: [{ translateY: 18 }, { rotate: '-8deg' }],
+  },
+  playHeroIconBadge: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+  },
   playStudioCardWrap: { width: 218 },
   playStudioCard: {
     minHeight: 258,
@@ -3781,6 +3893,60 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   homeQuickIcon: { width: 42, height: 42, borderRadius: 17, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  lottieDelightCard: {
+    minHeight: 162,
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.38)',
+  },
+  lottieDelightGlow: {
+    position: 'absolute',
+    right: 46,
+    top: -24,
+  },
+  lottieDelightCopy: { flex: 1, zIndex: 2 },
+  lottieDelightTitle: { color: 'white', fontSize: 23, lineHeight: 28, marginTop: 10 },
+  lottieDelightSubtitle: { color: 'rgba(255,255,255,0.84)', fontSize: 12, lineHeight: 18, marginTop: 5 },
+  lottieDelightButton: {
+    minHeight: 38,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderWidth: 2,
+    borderColor: 'rgba(34,35,74,0.08)',
+  },
+  lottieDelightStage: {
+    width: 112,
+    minHeight: 124,
+    borderRadius: 34,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    overflow: 'hidden',
+  },
+  lottieDelightIcon: {
+    position: 'absolute',
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 10px 0 rgba(34,35,74,0.11)',
+  },
   homeLessonCompact: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
   homeLessonIcon: { width: 48, height: 48, borderRadius: 18, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   homeExploreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 4 },
