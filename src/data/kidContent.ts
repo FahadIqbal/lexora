@@ -601,12 +601,6 @@ export const kidMissions = [
   { id: 'friend', title: 'Challenge a friend', reward: 'Badge', progress: 0, icon: '🏆' },
 ];
 
-export const kidParentInsights = [
-  { id: 'strength', title: 'Strongest skill', value: 'Vocabulary', detail: 'Picture-to-word choices are improving fastest.', icon: '🧩', color: '#51D9A8' },
-  { id: 'focus', title: 'Needs support', value: 'Speaking', detail: 'Short daily phrases will build confidence.', icon: '🎤', color: '#FF7A7A' },
-  { id: 'recall', title: 'Review timing', value: 'Today', detail: 'Three words are ready for spaced recall.', icon: '🔁', color: '#55B7FF' },
-];
-
 export const kidTeacherPipelines = [
   { id: 'draft', title: 'Draft', count: 4, detail: 'New words and story cards being prepared', color: '#8174F2' },
   { id: 'review', title: 'Review', count: 3, detail: 'Safety, reading level, and audio check', color: '#FF7A7A' },

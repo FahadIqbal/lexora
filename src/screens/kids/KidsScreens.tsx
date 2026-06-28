@@ -36,7 +36,6 @@ import {
   kidLearningTracks,
   kidOnboardingFocusOptions,
   kidOnboardingSlides,
-  kidParentInsights,
   kidProfiles,
   kidReviewSchedule,
   kidTeacherPipelines,
@@ -100,6 +99,12 @@ import {
   isKidParentGateOpen,
   verifyKidParentGateAnswer,
 } from '../../services/kidParentSafetyService';
+import {
+  getKidParentDashboard,
+  type KidParentControl,
+  type KidParentDashboard,
+  type KidParentInsightCard,
+} from '../../services/kidParentDashboardService';
 import {
   getKidRoleplayScenario,
   getKidRoleplayScenarios,
@@ -2244,12 +2249,8 @@ export function KidsParentDashboardScreen() {
   const xpTotal = useAppStore((s) => s.xpTotal);
   const passKidParentGate = useAppStore((s) => s.passKidParentGate);
   const [gateAnswer, setGateAnswer] = useState('');
-  const child = getActiveKidProfile(kid);
-  const lessons = getKidLessons(kid);
-  const completedLessons = lessons.filter((lesson) => lesson.progress >= 1).length;
-  const attempts = Object.values(kid.lessonProgress).reduce((sum, item) => sum + item.attemptCount, 0);
-  const correct = Object.values(kid.lessonProgress).reduce((sum, item) => sum + item.correctCount, 0);
-  const accuracy = attempts ? Math.round((correct / attempts) * 100) : 0;
+  const dashboard = getKidParentDashboard(kid, xpTotal);
+  const child = dashboard.child;
   const gateChallenge = getKidParentGateChallenge(kid);
   const gatePassed = isKidParentGateOpen(kid);
   const gateReady = gatePassed || verifyKidParentGateAnswer(kid, gateAnswer);
@@ -2289,47 +2290,123 @@ export function KidsParentDashboardScreen() {
         </View>
       </KidCard>
       <View style={styles.statsRow}>
-        <MiniStat icon="⭐" value={`${child.xp + xpTotal}`} label="total XP" color={c.sky} />
-        <MiniStat icon="✅" value={`${accuracy}%`} label="accuracy" color={c.mintSoft} />
-        <MiniStat icon="📥" value={`${lessons.length}`} label="offline" color={c.yellowSoft} />
+        <MiniStat icon="⭐" value={`${dashboard.totalXp}`} label="total XP" color={c.sky} />
+        <MiniStat icon="✅" value={`${dashboard.accuracy}%`} label="accuracy" color={c.mintSoft} />
+        <MiniStat icon="📥" value={`${dashboard.offlineReadyCount}`} label="offline" color={c.yellowSoft} />
       </View>
+      <ParentLearningPulse dashboard={dashboard} />
       <SectionTitle title="Parent insights" />
       <View style={{ gap: 10 }}>
-        {kidParentInsights.map((insight) => (
-          <KidCard key={insight.id} animated={false} style={styles.parentInsightRow}>
-            <View style={[styles.parentInsightIcon, { backgroundColor: `${insight.color}22` }]}>
-              <LexText style={{ fontSize: 24, lineHeight: 32 }}>{insight.icon}</LexText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <LexText variant="label" style={{ color: insight.color }}>
-                {insight.title}
-              </LexText>
-              <LexText variant="title" style={{ color: c.ink, marginTop: 2 }}>
-                {insight.value}
-              </LexText>
-              <LexText variant="muted" style={{ color: c.muted, marginTop: 2 }}>
-                {insight.detail}
-              </LexText>
-            </View>
-          </KidCard>
+        {dashboard.insights.map((insight) => (
+          <ParentInsightRow key={insight.id} insight={insight} />
         ))}
       </View>
       <KidCard>
         <SectionMini title={`${child.name}'s learning controls`} />
-        {[
-          [`${completedLessons}/${lessons.length} lessons complete`, '/(tabs)/learn'],
-          ['Create or edit lesson content', '/admin'],
-          ['Review vocabulary practice', '/(tabs)/review'],
-        ].map(([item, href]) => (
-          <Pressable key={item} style={styles.activityRow} onPress={() => router.push(href as never)} disabled={!gatePassed && href === '/admin'}>
-            <LexText variant="title" style={{ color: c.ink, flex: 1 }}>
-              {item}
-            </LexText>
-            <LexText variant="title" style={{ color: c.purple }}>→</LexText>
-          </Pressable>
+        {dashboard.controls.map((control) => (
+          <ParentControlRow key={control.id} control={control} gatePassed={gatePassed} />
         ))}
       </KidCard>
     </KidScreen>
+  );
+}
+
+function ParentLearningPulse({ dashboard }: { dashboard: KidParentDashboard }) {
+  const source = dashboard.pulse.label === 'Support' ? wordQuestOrbit : missionPulse;
+
+  return (
+    <KidCard color={dashboard.pulse.color} style={styles.parentPulseCard}>
+      <View pointerEvents="none" style={styles.parentPulseBackdrop}>
+        <LexoraLottie source={source} size={188} speed={0.56} style={{ opacity: 0.2 }} />
+      </View>
+      <Floating3DToken icon="📊" color={c.yellow} delay={140} style={styles.parentPulseTokenOne} />
+      <Floating3DToken icon="🔒" color="rgba(255,255,255,0.9)" delay={420} style={styles.parentPulseTokenTwo} />
+      <View pointerEvents="none" style={styles.parentPulseStage}>
+        <LexoraLottie source={source} size={112} speed={0.72} />
+        <View style={styles.parentPulseIcon}>
+          <LexText style={{ fontSize: 42, lineHeight: 52 }}>{dashboard.pulse.icon}</LexText>
+        </View>
+      </View>
+      <View style={{ flex: 1, zIndex: 2 }}>
+        <KidPill label={dashboard.pulse.label} active color="rgba(255,255,255,0.22)" />
+        <LexText variant="h3" numberOfLines={2} style={styles.parentPulseTitle}>
+          {dashboard.pulse.title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={3} style={styles.parentPulseBody}>
+          {dashboard.pulse.body}
+        </LexText>
+        <View style={styles.parentPulseProgress}>
+          <View style={{ flex: 1 }}>
+            <KidProgressBar progress={dashboard.pulse.progress} color={c.yellow} />
+          </View>
+          <LexText variant="label" style={{ color: 'rgba(255,255,255,0.86)' }}>
+            {Math.round(dashboard.pulse.progress * 100)}%
+          </LexText>
+        </View>
+        <View style={styles.parentPulseActions}>
+          <KidButton title="Review" color={c.yellow} onPress={() => router.push('/(tabs)/review')} style={styles.parentPulseButton} />
+          <KidButton title="Lessons" color="rgba(255,255,255,0.86)" onPress={() => router.push('/(tabs)/learn')} style={styles.parentPulseButton} />
+        </View>
+      </View>
+    </KidCard>
+  );
+}
+
+function ParentInsightRow({ insight }: { insight: KidParentInsightCard }) {
+  return (
+    <KidCard animated={false} style={styles.parentInsightRow}>
+      <View style={[styles.parentInsightIcon, { backgroundColor: `${insight.color}22` }]}>
+        <LexText style={{ fontSize: 24, lineHeight: 32 }}>{insight.icon}</LexText>
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.parentInsightTop}>
+          <LexText variant="label" style={{ color: insight.color }}>
+            {insight.title}
+          </LexText>
+          <LexText variant="label" style={{ color: insight.color }}>
+            {insight.value}
+          </LexText>
+        </View>
+        <LexText variant="muted" numberOfLines={2} style={{ color: c.muted, marginTop: 3 }}>
+          {insight.detail}
+        </LexText>
+        <View style={{ marginTop: 9 }}>
+          <KidProgressBar progress={insight.progress} color={insight.color} />
+        </View>
+      </View>
+    </KidCard>
+  );
+}
+
+function ParentControlRow({ control, gatePassed }: { control: KidParentControl; gatePassed: boolean }) {
+  const locked = Boolean(control.requiresGate && !gatePassed);
+
+  return (
+    <Pressable
+      key={control.id}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: locked }}
+      style={[styles.parentControlRow, locked ? { opacity: 0.55 } : null]}
+      onPress={() => {
+        if (locked) return;
+        hapticSelection();
+        router.push(control.route as never);
+      }}
+      disabled={locked}
+    >
+      <View style={[styles.parentControlIcon, { backgroundColor: `${control.color}22` }]}>
+        <LexText style={{ fontSize: 22, lineHeight: 30 }}>{locked ? '🔒' : control.icon}</LexText>
+      </View>
+      <View style={{ flex: 1 }}>
+        <LexText variant="title" style={{ color: c.ink }}>
+          {control.title}
+        </LexText>
+        <LexText variant="muted" numberOfLines={1} style={{ color: c.muted, marginTop: 2 }}>
+          {locked ? 'Unlock parent gate first.' : control.subtitle}
+        </LexText>
+      </View>
+      <LexText variant="title" style={{ color: locked ? c.muted : c.purple }}>→</LexText>
+    </Pressable>
   );
 }
 
@@ -4639,8 +4716,73 @@ const styles = StyleSheet.create({
   trackMasteryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   masteryIcon: { width: 52, height: 52, borderRadius: 20, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   masteryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  parentPulseCard: {
+    marginTop: 14,
+    minHeight: 226,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.36)',
+  },
+  parentPulseBackdrop: {
+    position: 'absolute',
+    right: -48,
+    top: -52,
+  },
+  parentPulseTokenOne: { position: 'absolute', left: 20, top: 24 },
+  parentPulseTokenTwo: { position: 'absolute', right: 28, bottom: 20 },
+  parentPulseStage: {
+    width: 112,
+    minHeight: 138,
+    borderRadius: 36,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+  },
+  parentPulseIcon: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 29,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.72)',
+    boxShadow: '0 12px 0 rgba(34,35,74,0.12)',
+  },
+  parentPulseTitle: { color: 'white', marginTop: 10, fontSize: 24, lineHeight: 29 },
+  parentPulseBody: { color: 'rgba(255,255,255,0.84)', marginTop: 6, fontSize: 13, lineHeight: 19 },
+  parentPulseProgress: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
+  parentPulseActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  parentPulseButton: { flex: 1 },
   parentInsightRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   parentInsightIcon: { width: 54, height: 54, borderRadius: 21, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  parentInsightTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  parentControlRow: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: c.line,
+    paddingVertical: 12,
+  },
+  parentControlIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 19,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pipelineGrid: { flexDirection: 'row', gap: 10 },
   pipelineCard: { flex: 1, minHeight: 154 },
   pipelineDot: { width: 28, height: 8, borderRadius: 999, marginBottom: 10 },

@@ -76,7 +76,9 @@ Competitor-inspired loops are modeled as reusable content, not one-off screen co
 - `kidLearningTracks`: skill worlds for vocabulary, phonics/listening, stories, and sentence practice.
 - `kidReviewSchedule`: visual spaced-repetition states for fresh words, recall checks, and long-term mastery.
 
-Course and progress screens also use `kidParentInsights` and `kidTeacherPipelines` from `src/data/kidContent.ts` so content remains structured and reusable.
+Course and progress screens use structured track and teacher pipeline data from `src/data/kidContent.ts` so content remains reusable.
+
+Parent dashboard insights live in `src/services/kidParentDashboardService.ts`. They must be derived from runtime state such as lesson completion, accuracy, adaptive review timing, daily quest progress, generated content coverage, and parent-gate status instead of screen-local static insight cards.
 
 Practice sessions use `src/services/kidPracticeExperienceService.ts` for mode themes, mission steps, dictionary insight cards, coaching copy, and completion plans. New lesson types should extend that service first, then render through the shared practice stage, reward trail, feedback, and completion patterns.
 
