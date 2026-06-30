@@ -41,13 +41,27 @@ npm run web
 
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` (production-safe live tutor proxy; backend or Supabase Edge Function)
 - `EXPO_PUBLIC_ANTHROPIC_API_KEY` (development-only live tutor; offline tutor coaching works without it)
 - `EXPO_PUBLIC_REVENUECAT_API_KEY` (optional future billing integration; the current premium preview stores access locally)
 
 Notes:
 
 - Expo only exposes env vars prefixed with `EXPO_PUBLIC_` to the JavaScript runtime.
-- Don’t call Anthropic directly from the client in production. Proxy through a backend (or Supabase Edge Function) to keep keys private and enable streaming safely.
+- Don’t call Anthropic directly from the client in production. Use `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` to point at a backend or Supabase Edge Function that owns the private AI key.
+
+## Verify production readiness
+
+```bash
+npm run typecheck
+npm run export:ios
+```
+
+Or run both:
+
+```bash
+npm run verify:ios
+```
 
 ## Supabase setup (optional)
 
@@ -65,7 +79,7 @@ Minimal setup:
 ## AI Tutor (optional)
 
 - Client integration: [aiTutor.ts](src/services/aiTutor.ts)
-- Current behavior: uses offline coaching when no Anthropic key is configured, calls Anthropic in development when `EXPO_PUBLIC_ANTHROPIC_API_KEY` is set, and remains disabled for production client-side API calls.
+- Current behavior: uses offline coaching when live AI is not configured, calls `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` when provided, and only calls Anthropic directly in development when `EXPO_PUBLIC_ANTHROPIC_API_KEY` is set.
 
 ## Project structure
 

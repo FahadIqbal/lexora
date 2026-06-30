@@ -1,4 +1,4 @@
-import { env, hasAnthropic } from './env';
+import { env, hasAiTutorProxy, hasAnthropic } from './env';
 
 export type TutorMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -7,6 +7,13 @@ type AnthropicMessage = { role: 'user' | 'assistant'; content: string };
 type AnthropicResponse = {
   content?: Array<{ type: 'text'; text: string } | { type: string }>;
   error?: { type?: string; message?: string };
+};
+
+type TutorProxyResponse = {
+  text?: string;
+  message?: string;
+  content?: string | Array<{ type?: string; text?: string }>;
+  error?: { message?: string } | string;
 };
 
 function extractText(res: AnthropicResponse): string {
@@ -83,12 +90,12 @@ function offlineTutorResponse(messages: TutorMessage[]): string {
 }
 
 export async function sendTutorMessage(messages: TutorMessage[]): Promise<string> {
-  if (!hasAnthropic()) {
-    return offlineTutorResponse(messages);
+  if (hasAiTutorProxy()) {
+    return sendViaTutorProxy(messages);
   }
 
-  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
-    return 'AI Tutor is disabled in production builds. Proxy requests through a backend or Supabase Edge Function.';
+  if (!hasAnthropic()) {
+    return offlineTutorResponse(messages);
   }
 
   const system =
@@ -122,4 +129,31 @@ export async function sendTutorMessage(messages: TutorMessage[]): Promise<string
 
   const text = extractText(raw);
   return text || 'AI Tutor returned an empty response.';
+}
+
+async function sendViaTutorProxy(messages: TutorMessage[]): Promise<string> {
+  const r = await fetch(env.aiTutorProxyUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  const raw = (await r.json().catch(() => ({}))) as TutorProxyResponse;
+  if (!r.ok) {
+    const proxyError = typeof raw.error === 'string' ? raw.error : raw.error?.message;
+    return `AI Tutor error: ${proxyError || raw.message || `Proxy request failed (${r.status})`}`;
+  }
+
+  const text =
+    raw.text ??
+    raw.message ??
+    (typeof raw.content === 'string'
+      ? raw.content
+      : Array.isArray(raw.content)
+        ? raw.content.map((block) => block.text ?? '').join('')
+        : '');
+
+  return text.trim() || 'AI Tutor returned an empty response.';
 }

@@ -4,7 +4,7 @@ This project uses the word “skills” to mean the app’s core capabilities th
 
 ## 1) AI Tutor (Claude)
 
-**Status:** Implemented (development-only direct API). Production must proxy through a backend/Edge Function.
+**Status:** Implemented (production proxy + development-only direct API).
 
 - UI: [ChatScreen.tsx](file:///Users/fahadiqbal/Downloads/Latest%20Projects/Lexora/lexora/src/screens/ChatScreen.tsx)
 - Service: [aiTutor.ts](file:///Users/fahadiqbal/Downloads/Latest%20Projects/Lexora/lexora/src/services/aiTutor.ts)
@@ -12,9 +12,10 @@ This project uses the word “skills” to mean the app’s core capabilities th
 
 **How it works**
 
-- When `EXPO_PUBLIC_ANTHROPIC_API_KEY` is missing: the tutor returns a friendly “not configured” message.
-- When `EXPO_PUBLIC_ANTHROPIC_API_KEY` exists and the build is dev (`__DEV__`): the tutor calls the Anthropic Messages API and returns Markdown.
-- When the build is production: the tutor is intentionally disabled to avoid shipping client-side keys.
+- When `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` is configured: the tutor sends messages to that backend/Supabase Edge Function proxy and expects a text response.
+- When the proxy is missing and the build is dev (`__DEV__`) with `EXPO_PUBLIC_ANTHROPIC_API_KEY`: the tutor calls the Anthropic Messages API directly for local development.
+- When neither live path is available: the tutor returns offline coaching, so the app stays useful without secrets or network AI.
+- Production builds must not rely on `EXPO_PUBLIC_ANTHROPIC_API_KEY`; private AI keys belong in the proxy.
 
 ## 2) Supabase Auth (Email + Password)
 

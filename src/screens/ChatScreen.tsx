@@ -10,7 +10,7 @@ import { Button } from '../components/Button';
 import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
 import { sendTutorMessage, type TutorMessage } from '../services/aiTutor';
-import { hasAnthropic } from '../services/env';
+import { hasLiveAiTutor } from '../services/env';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
@@ -34,7 +34,7 @@ export function ChatScreen() {
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
 
-  const liveTutor = hasAnthropic();
+  const liveTutor = hasLiveAiTutor();
   const topicHint = selectedCategories[0]?.replace(/[-_]/g, ' ') ?? 'daily vocabulary';
   const coachPrompts = useMemo(
     () => [

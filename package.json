@@ -46,6 +46,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "export:ios": "expo export --platform ios --clear",
+    "verify:ios": "npm run typecheck && npm run export:ios",
     "seed:words": "tsx scripts/seed-words.ts",
     "import:dictionary": "tsx scripts/import-licensed-dictionary.ts"
   },
