@@ -256,10 +256,10 @@ export function AdminWordsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <FlashList
-                data={(rows ?? []) as any}
-                keyExtractor={(x: any) => x.id}
+                data={rows ?? []}
+                keyExtractor={(item) => item.id}
                 ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />}
-                renderItem={({ item }: any) => {
+                renderItem={({ item }) => {
                   const active = selected?.id === item.id;
                   return (
                     <Pressable
@@ -336,17 +336,17 @@ export function AdminWordsScreen() {
                 />
                 <Field
                   label="Categories (comma separated slugs)"
-                  value={arrayToCsv(draft.categories as any)}
+                  value={arrayToCsv(draft.categories)}
                   onChange={(v) => setDraft((d) => ({ ...d, categories: csvToArray(v) }))}
                 />
                 <Field
                   label="Synonyms (comma separated)"
-                  value={arrayToCsv(draft.synonyms as any)}
+                  value={arrayToCsv(draft.synonyms)}
                   onChange={(v) => setDraft((d) => ({ ...d, synonyms: csvToArray(v) }))}
                 />
                 <Field
                   label="Antonyms (comma separated)"
-                  value={arrayToCsv(draft.antonyms as any)}
+                  value={arrayToCsv(draft.antonyms)}
                   onChange={(v) => setDraft((d) => ({ ...d, antonyms: csvToArray(v) }))}
                 />
                 <Field

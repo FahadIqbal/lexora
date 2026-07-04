@@ -14,9 +14,8 @@ export function Screen({
   safe?: boolean;
 }) {
   const t = useTheme();
-  const Container: any = safe ? SafeAreaView : View;
-  return (
-    <Container style={[styles.base, { backgroundColor: t.colors.bg }, style]}>
+  const content = (
+    <>
       <LinearGradient
         pointerEvents="none"
         colors={[t.colors.bgElevated, t.colors.bg, 'rgba(8,20,28,0.98)']}
@@ -38,7 +37,13 @@ export function Screen({
         style={styles.bottomWash}
       />
       {children}
-    </Container>
+    </>
+  );
+
+  return safe ? (
+    <SafeAreaView style={[styles.base, { backgroundColor: t.colors.bg }, style]}>{content}</SafeAreaView>
+  ) : (
+    <View style={[styles.base, { backgroundColor: t.colors.bg }, style]}>{content}</View>
   );
 }
 

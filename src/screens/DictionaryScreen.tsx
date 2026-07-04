@@ -19,6 +19,13 @@ import { useAppStore } from '../store/useAppStore';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { hapticSelection } from '../utils/haptics';
 
+type CategoryFilterItem = {
+  key: string;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
 export function DictionaryScreen() {
   const t = useTheme();
   const [q, setQ] = useState('');
@@ -42,7 +49,7 @@ export function DictionaryScreen() {
     () => repos.words.search(dq, { category: cat, difficulty }),
     [dq, cat, difficulty]
   );
-  const words = (filtered ?? []) as Word[];
+  const words = filtered ?? [];
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.slug, c])), [categories]);
   const activeCategory = cat ? categoryMap.get(cat) : null;
   const recommendedCategory = useMemo(() => {
@@ -75,6 +82,26 @@ export function DictionaryScreen() {
     addToStudyList(id);
     hapticSelection();
   };
+
+  const categoryFilters: CategoryFilterItem[] = [
+    { key: 'all', label: 'All', onPress: () => setCategoryFilter(null), active: !cat },
+    ...(recommendedCategory
+      ? [
+          {
+            key: 'recommended',
+            label: `For you ${categoryMap.get(recommendedCategory)?.emoji ?? ''}`,
+            onPress: () => setCategoryFilter(recommendedCategory),
+            active: cat === recommendedCategory,
+          },
+        ]
+      : []),
+    ...(categories ?? []).map((category: Category) => ({
+      key: category.slug,
+      label: `${category.emoji} ${category.name}`,
+      onPress: () => setCategoryFilter(category.slug),
+      active: cat === category.slug,
+    })),
+  ];
 
   return (
     <Screen>
@@ -167,28 +194,10 @@ export function DictionaryScreen() {
           <View style={{ height: 10 }} />
           <FlashList
             horizontal
-            data={[
-              { key: 'all', label: 'All', onPress: () => setCategoryFilter(null), active: !cat },
-              ...(recommendedCategory
-                ? [
-                    {
-                      key: 'recommended',
-                      label: `For you ${categoryMap.get(recommendedCategory)?.emoji ?? ''}`,
-                      onPress: () => setCategoryFilter(recommendedCategory),
-                      active: cat === recommendedCategory,
-                    },
-                  ]
-                : []),
-              ...(categories ?? []).map((c: Category) => ({
-                key: c.slug,
-                label: `${c.emoji} ${c.name}`,
-                onPress: () => setCategoryFilter(c.slug),
-                active: cat === c.slug,
-              })),
-            ]}
-            keyExtractor={(x: any) => x.key}
+            data={categoryFilters}
+            keyExtractor={(item) => item.key}
             showsHorizontalScrollIndicator={false}
-            renderItem={({ item }: any) => (
+            renderItem={({ item }) => (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ selected: item.active }}
@@ -270,8 +279,8 @@ export function DictionaryScreen() {
             <FlashList
               contentInsetAdjustmentBehavior="automatic"
               contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }}
-              data={words as any}
-              keyExtractor={(x: any) => x.id}
+              data={words}
+              keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
               ListEmptyComponent={
@@ -291,14 +300,14 @@ export function DictionaryScreen() {
                   </View>
                 </View>
               }
-              renderItem={({ item, index }: any) => (
+              renderItem={({ item, index }) => (
                 <Animated.View
                   entering={FadeInDown.duration(240).delay(Math.min(index, 8) * 28)}
                   layout={LinearTransition.duration(180)}
                 >
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${item.word}, ${item.part_of_speech}. ${item.short_definition}`}
+                    accessibilityLabel={`${item.word}, ${item.part_of_speech ?? 'word'}. ${item.short_definition ?? item.definition ?? 'Open details'}`}
                     onPress={() => {
                       hapticSelection();
                       router.push(`/dictionary/${item.id}`);
