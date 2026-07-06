@@ -24,6 +24,7 @@ import { repos } from '../data/repositories';
 import { useAsyncResource } from '../hooks/useAsyncResource';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
+import { getDifficultyMaxForProficiency } from '../utils/proficiency';
 
 export function LearnScreen() {
   const t = useTheme();
@@ -34,14 +35,7 @@ export function LearnScreen() {
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
   const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
 
-  const difficultyMax = useMemo(() => {
-    if (!proficiency) return null;
-    const p = proficiency.toUpperCase();
-    if (p === 'A1' || p === 'A2') return 2;
-    if (p === 'B1') return 3;
-    if (p === 'B2') return 4;
-    return 5;
-  }, [proficiency]);
+  const difficultyMax = useMemo(() => getDifficultyMaxForProficiency(proficiency), [proficiency]);
 
   const categoriesKey = useMemo(
     () => selectedCategories.slice().sort().join('|'),

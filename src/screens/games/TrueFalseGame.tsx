@@ -11,6 +11,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppStore } from '../../store/useAppStore';
 import { repos } from '../../data/repositories';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
+import { getDifficultyMaxForProficiency } from '../../utils/proficiency';
 
 export function TrueFalseGame() {
   const t = useTheme();
@@ -19,14 +20,7 @@ export function TrueFalseGame() {
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
-  const difficultyMax = useMemo(() => {
-    if (!proficiency) return null;
-    const p = proficiency.toUpperCase();
-    if (p === 'A1' || p === 'A2') return 2;
-    if (p === 'B1') return 3;
-    if (p === 'B2') return 4;
-    return 5;
-  }, [proficiency]);
+  const difficultyMax = useMemo(() => getDifficultyMaxForProficiency(proficiency), [proficiency]);
 
   const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
   const day = Math.floor(Date.now() / 86_400_000);

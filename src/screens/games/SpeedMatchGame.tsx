@@ -11,6 +11,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { repos } from '../../data/repositories';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { Haptics, hapticNotify } from '../../utils/haptics';
+import { getDifficultyMaxForProficiency } from '../../utils/proficiency';
 
 export function SpeedMatchGame() {
   const t = useTheme();
@@ -30,14 +31,7 @@ export function SpeedMatchGame() {
   const [score, setScore] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
 
-  const difficultyMax = useMemo(() => {
-    if (!proficiency) return null;
-    const p = proficiency.toUpperCase();
-    if (p === 'A1' || p === 'A2') return 2;
-    if (p === 'B1') return 3;
-    if (p === 'B2') return 4;
-    return 5;
-  }, [proficiency]);
+  const difficultyMax = useMemo(() => getDifficultyMaxForProficiency(proficiency), [proficiency]);
 
   const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
   const day = Math.floor(Date.now() / 86_400_000);

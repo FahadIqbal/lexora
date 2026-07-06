@@ -14,6 +14,7 @@ import { hasLiveAiTutor } from '../services/env';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
 import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
+import { getDisplayProficiency } from '../utils/proficiency';
 
 type UiMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -36,6 +37,7 @@ export function ChatScreen() {
 
   const liveTutor = hasLiveAiTutor();
   const topicHint = selectedCategories[0]?.replace(/[-_]/g, ' ') ?? 'daily vocabulary';
+  const displayProficiency = getDisplayProficiency(proficiency);
   const coachPrompts = useMemo(
     () => [
       {
@@ -43,7 +45,7 @@ export function ChatScreen() {
         icon: 'text.magnifyingglass',
         fallback: 'E',
         title: 'Make it simple',
-        prompt: `Explain a ${proficiency ?? 'B1'} vocabulary word from ${topicHint} in simple terms, then give one memory hook.`,
+        prompt: `Explain a ${displayProficiency} vocabulary word from ${topicHint} in simple terms, then give one memory hook.`,
         color: t.colors.accentTeal,
       },
       {
@@ -63,7 +65,7 @@ export function ChatScreen() {
         color: t.colors.accentAmber,
       },
     ],
-    [proficiency, t.colors.accentAmber, t.colors.accentPurple, t.colors.accentTeal, topicHint]
+    [displayProficiency, t.colors.accentAmber, t.colors.accentPurple, t.colors.accentTeal, topicHint]
   );
   const chips = ['Simpler explanation', 'Find synonyms for nuance', 'Quiz me on meticulous', 'Use ephemeral in a sentence'];
 
