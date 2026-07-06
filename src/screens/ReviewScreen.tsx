@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import Animated, {
   Easing,
   FadeInDown,
@@ -15,6 +16,7 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import type { Word } from '../domain/schema';
 import { useAppStore } from '../store/useAppStore';
@@ -30,13 +32,23 @@ export function ReviewScreen() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
   const dueIds = useAppStore(useShallow((s) => s.getDueWordIds()));
+  const wordProgress = useAppStore((s) => s.wordProgress);
   const recordReview = useAppStore((s) => s.recordReview);
+  const practiceIds = useMemo(() => {
+    return Object.values(wordProgress)
+      .filter((progress) => progress.status !== 'new')
+      .sort((a, b) => (b.lastReviewedAt ?? b.firstSeenAt ?? 0) - (a.lastReviewedAt ?? a.firstSeenAt ?? 0))
+      .map((progress) => progress.wordId)
+      .slice(0, 12);
+  }, [wordProgress]);
+  const activeIds = dueIds.length ? dueIds : practiceIds;
+  const isPracticeMode = !dueIds.length && practiceIds.length > 0;
 
   const { data: due, loading } = useAsyncResource(async () => {
-    const ids = dueIds.slice(0, 20);
+    const ids = activeIds.slice(0, 20);
     const words = await Promise.all(ids.map((id) => repos.words.getById(id)));
     return words.filter(Boolean) as Word[];
-  }, [dueIds.join('|')]);
+  }, [activeIds.join('|')]);
 
   const [phase, setPhase] = useState<'intro' | 'review' | 'done'>('intro');
   const [i, setI] = useState(0);
@@ -49,55 +61,93 @@ export function ReviewScreen() {
     <Screen>
       <View style={[styles.wrap, { backgroundColor: t.colors.bg }]}>
         {phase === 'intro' && (
-          <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }} showsVerticalScrollIndicator={false}>
-            <LexText variant="h2">Spaced Review</LexText>
-            <LexText variant="muted" style={{ marginTop: 6 }}>
-              SM-2 algorithm schedules each card at the perfect moment.
-            </LexText>
+          <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
+            contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInDown.duration(420)}>
+              <AppHeader
+                eyebrow="Memory engine"
+                title="Protect today's recall"
+                subtitle="Clear due cards first, or run a quick refresher when your queue is clear."
+                icon="arrow.clockwise"
+                fallback="R"
+                accent={t.colors.accentPink}
+                metric={String(total)}
+              />
+            </Animated.View>
 
-            <GlowCard style={{ marginTop: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <LexText style={{ fontSize: 44 }}>🔁</LexText>
-                <View style={{ flex: 1 }}>
-                  <LexText variant="h3">
-                    {total > 0 ? `${total} cards due` : 'All caught up!'}
-                  </LexText>
-                  <LexText variant="muted" style={{ marginTop: 4, fontSize: 13 }}>
-                    {total > 0
-                      ? 'Rate each card honestly — it schedules your next review.'
-                      : 'No cards are due right now. Come back later!'}
-                  </LexText>
+            <Animated.View entering={FadeInDown.delay(70).duration(460).springify().damping(17)}>
+              <GlowCard style={{ marginTop: 18 }} colors={['rgba(255,107,157,0.38)', 'rgba(123,111,255,0.24)']}>
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={[styles.reviewGlyph, { borderColor: t.colors.border, backgroundColor: 'rgba(0,229,184,0.10)' }]}>
+                    <LexText variant="h3" style={{ color: t.colors.accentTeal }}>
+                      {isPracticeMode ? 'P' : 'R'}
+                    </LexText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <LexText variant="h3">
+                      {total > 0 ? (isPracticeMode ? `${total} refresher cards` : `${total} cards due`) : 'No study cards yet'}
+                    </LexText>
+                    <LexText variant="muted" style={{ marginTop: 4, fontSize: 13 }}>
+                      {total > 0
+                        ? isPracticeMode
+                          ? 'Your due queue is clear. Practice recent words to keep recall warm.'
+                          : 'Rate each card honestly. Lexora schedules your next review.'
+                        : 'Learn or add words first, then review becomes your memory engine.'}
+                    </LexText>
+                  </View>
                 </View>
-              </View>
 
-              {total > 0 && (
-                <>
-                  <View style={[styles.ratingGuide, { borderColor: t.colors.border }]}>
-                    {[
-                      { emoji: '🔴', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
-                      { emoji: '🟡', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
-                      { emoji: '🟢', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
-                      { emoji: '💙', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
-                    ].map((r) => (
-                      <View key={r.label} style={styles.ratingRow}>
-                        <LexText style={{ fontSize: 18, width: 28 }}>{r.emoji}</LexText>
-                        <LexText variant="title" style={{ color: r.color, width: 52, fontSize: 14 }}>
-                          {r.label}
-                        </LexText>
-                        <LexText variant="muted" style={{ flex: 1, fontSize: 13 }}>{r.desc}</LexText>
-                      </View>
-                    ))}
-                  </View>
+                <View style={styles.reviewStatsRow}>
+                  <ReviewStat value={loading ? '...' : String(total)} label={isPracticeMode ? 'refresher' : 'due cards'} color={t.colors.accentPink} />
+                  <ReviewStat value={isPracticeMode ? 'Warm' : dueIds.length ? 'Due' : 'Clear'} label="queue" color={t.colors.accentTeal} />
+                  <ReviewStat value="SRS" label="schedule" color={t.colors.accentPurple} />
+                </View>
+
+                {total > 0 && (
+                  <>
+                    <View style={[styles.ratingGuide, { borderColor: t.colors.border }]}>
+                      {[
+                        { mark: 'A', label: 'Again', desc: 'Completely forgot', color: '#FF6B9D' },
+                        { mark: 'H', label: 'Hard', desc: 'Struggled', color: '#FFB347' },
+                        { mark: 'G', label: 'Good', desc: 'Recalled with effort', color: '#00E5B8' },
+                        { mark: 'E', label: 'Easy', desc: 'Remembered instantly', color: '#5BA8FF' },
+                      ].map((r) => (
+                        <View key={r.label} style={styles.ratingRow}>
+                          <View style={[styles.ratingMark, { backgroundColor: `${r.color}22` }]}>
+                            <LexText variant="label" style={{ color: r.color, fontSize: 10 }}>{r.mark}</LexText>
+                          </View>
+                          <LexText variant="title" style={{ color: r.color, width: 52, fontSize: 14 }}>
+                            {r.label}
+                          </LexText>
+                          <LexText variant="muted" style={{ flex: 1, fontSize: 13 }}>{r.desc}</LexText>
+                        </View>
+                      ))}
+                    </View>
+                    <View style={{ marginTop: 16 }}>
+                      <Button
+                        title={loading ? 'Loading...' : isPracticeMode ? 'Start refresher' : 'Start review'}
+                        onPress={() => setPhase('review')}
+                        disabled={loading || !total}
+                      />
+                    </View>
+                  </>
+                )}
+                {!total ? (
                   <View style={{ marginTop: 16 }}>
-                    <Button
-                      title={loading ? 'Loading…' : 'Start review →'}
-                      onPress={() => setPhase('review')}
-                      disabled={loading || !total}
-                    />
+                    <Button title="Learn words first" onPress={() => router.push('/(tabs)/learn')} />
                   </View>
-                </>
-              )}
-            </GlowCard>
+                ) : null}
+              </GlowCard>
+            </Animated.View>
           </ScrollView>
         )}
 
@@ -304,6 +354,19 @@ function ReviewCard({
   );
 }
 
+function ReviewStat({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.reviewStat}>
+      <LexText variant="h3" style={{ color, fontSize: 18, textAlign: 'center' }}>
+        {value}
+      </LexText>
+      <LexText variant="label" style={{ fontSize: 9, marginTop: 2, textAlign: 'center' }}>
+        {label}
+      </LexText>
+    </View>
+  );
+}
+
 function RatingButton({
   emoji,
   label,
@@ -349,9 +412,19 @@ function ReviewComplete({
   const t = useTheme();
   const total = Math.max(1, counts.again + counts.hard + counts.good + counts.easy);
   const successRate = Math.round(((counts.good + counts.easy) / total) * 100);
+  const guidance =
+    successRate >= 85
+      ? 'Your recall is strong. A short game will turn it into speed.'
+      : successRate >= 60
+      ? 'Good progress. Replay difficult cards later today for a stronger curve.'
+      : 'The weak spots are visible now. Slow review will help more than speed.';
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ paddingBottom: TAB_BAR_BOTTOM }}
+      showsVerticalScrollIndicator={false}
+    >
       <GlowCard colors={['rgba(0,229,184,0.55)', 'rgba(123,111,255,0.35)']}>
         <LexText style={{ fontSize: 44, textAlign: 'center' }}>✅</LexText>
         <LexText variant="h2" style={{ textAlign: 'center', marginTop: 10 }}>
@@ -380,8 +453,31 @@ function ReviewComplete({
           </View>
         </View>
 
+        <View style={[styles.reviewNextPanel, { borderColor: t.colors.border }]}>
+          <LexText variant="label" style={{ color: t.colors.muted }}>
+            Coach note
+          </LexText>
+          <LexText variant="muted" style={{ marginTop: 6, fontSize: 13, lineHeight: 18 }}>
+            {guidance}
+          </LexText>
+        </View>
+
         <View style={{ marginTop: 16, gap: 10 }}>
-          <Button title="Back to review hub →" onPress={onHome} />
+          <Button
+            title={successRate >= 85 ? 'Play recall game' : 'Back to review hub'}
+            onPress={() => {
+              if (successRate >= 85) router.push('/games/true-false');
+              else onHome();
+            }}
+          />
+          <Button
+            title={successRate >= 85 ? 'Back to review hub' : 'Learn new words'}
+            variant="ghost"
+            onPress={() => {
+              if (successRate >= 85) onHome();
+              else router.push('/(tabs)/learn');
+            }}
+          />
         </View>
       </GlowCard>
     </ScrollView>
@@ -453,6 +549,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
+  reviewGlyph: {
+    width: 54,
+    height: 54,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  reviewStat: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
   cardFace: {
     padding: 22,
     justifyContent: 'center',
@@ -483,9 +605,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  ratingMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   resultPieRow: {
     flexDirection: 'row',
     gap: 16,
     alignItems: 'center',
+  },
+  reviewNextPanel: {
+    borderWidth: 1,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginTop: 16,
   },
 });

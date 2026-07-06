@@ -1,6 +1,6 @@
 import React from 'react';
-import { AdminHomeScreen } from '../../src/screens/admin/AdminHomeScreen';
+import { KidsAdminTeacherScreen } from '../../src/screens/kids/KidsScreens';
 
 export default function AdminRoute() {
-  return <AdminHomeScreen />;
+  return <KidsAdminTeacherScreen />;
 }

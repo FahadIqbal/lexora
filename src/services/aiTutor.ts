@@ -1,4 +1,4 @@
-import { env, hasAnthropic } from './env';
+import { env, hasAiTutorProxy, hasAnthropic } from './env';
 
 export type TutorMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -7,6 +7,13 @@ type AnthropicMessage = { role: 'user' | 'assistant'; content: string };
 type AnthropicResponse = {
   content?: Array<{ type: 'text'; text: string } | { type: string }>;
   error?: { type?: string; message?: string };
+};
+
+type TutorProxyResponse = {
+  text?: string;
+  message?: string;
+  content?: string | Array<{ type?: string; text?: string }>;
+  error?: { message?: string } | string;
 };
 
 function extractText(res: AnthropicResponse): string {
@@ -18,13 +25,77 @@ function extractText(res: AnthropicResponse): string {
   return text;
 }
 
-export async function sendTutorMessage(messages: TutorMessage[]): Promise<string> {
-  if (!hasAnthropic()) {
-    return 'AI Tutor is not configured yet. Add EXPO_PUBLIC_ANTHROPIC_API_KEY to enable Claude responses.';
+function offlineTutorResponse(messages: TutorMessage[]): string {
+  const last = [...messages].reverse().find((m) => m.role === 'user')?.content.trim() || 'a new word';
+  const wordMatch = last.match(/(?:about|word|for|use|quiz me on|synonyms for|explain)\s+[_*"]?([a-zA-Z-]{4,})[_*"]?/i);
+  const word = wordMatch?.[1]?.replace(/[-_]/g, ' ') || last.split(/\s+/).find((x) => /^[a-zA-Z-]{4,}$/.test(x)) || 'this word';
+  const asksQuiz = /quiz|test|practice/i.test(last);
+  const asksSynonyms = /synonym|similar|alternative/i.test(last);
+  const asksSimpler = /simple|simpler|explain|meaning/i.test(last);
+
+  if (asksQuiz) {
+    return [
+      `### Quick quiz: ${word}`,
+      '',
+      `Pick the strongest use of **${word}**:`,
+      '',
+      `A. A precise word used when the situation needs nuance.`,
+      `B. A filler word with no clear meaning.`,
+      `C. A word only used in casual slang.`,
+      '',
+      'Reply with **A**, **B**, or **C**, and I will coach the next step.',
+    ].join('\n');
   }
 
-  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
-    return 'AI Tutor is disabled in production builds. Proxy requests through a backend or Supabase Edge Function.';
+  if (asksSynonyms) {
+    return [
+      `### Synonym coach: ${word}`,
+      '',
+      '- **Close match:** precise',
+      '- **Softer option:** thoughtful',
+      '- **Stronger option:** exacting',
+      '',
+      `Use the strongest synonym only when the sentence needs confidence or expertise.`,
+      '',
+      `Try: "Her feedback was **precise**, which made the revision easier."`,
+    ].join('\n');
+  }
+
+  if (asksSimpler) {
+    return [
+      `### Simple meaning: ${word}`,
+      '',
+      `Think of **${word}** as a word you use when you want to sound clear, specific, and intentional.`,
+      '',
+      '- **Plain version:** clear and exact',
+      '- **Common mistake:** using it when a simpler everyday word would be warmer',
+      '',
+      `Micro-practice: write one sentence using **${word}** in a work message.`,
+    ].join('\n');
+  }
+
+  return [
+    `### Coach note: ${word}`,
+    '',
+    `Here is a practical way to use **${word}** without sounding forced:`,
+    '',
+    `> "The team needed a more **${word}** explanation before making a decision."`,
+    '',
+    '- Keep the sentence concrete.',
+    '- Pair the word with a real situation.',
+    '- Avoid using it twice in the same paragraph.',
+    '',
+    'Ask me to make it simpler, find synonyms, or quiz you next.',
+  ].join('\n');
+}
+
+export async function sendTutorMessage(messages: TutorMessage[]): Promise<string> {
+  if (hasAiTutorProxy()) {
+    return sendViaTutorProxy(messages);
+  }
+
+  if (!hasAnthropic()) {
+    return offlineTutorResponse(messages);
   }
 
   const system =
@@ -58,4 +129,31 @@ export async function sendTutorMessage(messages: TutorMessage[]): Promise<string
 
   const text = extractText(raw);
   return text || 'AI Tutor returned an empty response.';
+}
+
+async function sendViaTutorProxy(messages: TutorMessage[]): Promise<string> {
+  const r = await fetch(env.aiTutorProxyUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  const raw = (await r.json().catch(() => ({}))) as TutorProxyResponse;
+  if (!r.ok) {
+    const proxyError = typeof raw.error === 'string' ? raw.error : raw.error?.message;
+    return `AI Tutor error: ${proxyError || raw.message || `Proxy request failed (${r.status})`}`;
+  }
+
+  const text =
+    raw.text ??
+    raw.message ??
+    (typeof raw.content === 'string'
+      ? raw.content
+      : Array.isArray(raw.content)
+        ? raw.content.map((block) => block.text ?? '').join('')
+        : '');
+
+  return text.trim() || 'AI Tutor returned an empty response.';
 }

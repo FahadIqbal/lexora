@@ -93,20 +93,50 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: 'fade',
+            animation: 'default',
+            fullScreenGestureEnabled: true,
           }}
         >
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="dictionary" />
-          <Stack.Screen name="chat" />
-          <Stack.Screen name="paywall" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="admin" />
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+          <Stack.Screen name="auth" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.86, 1], sheetGrabberVisible: true }} />
+          <Stack.Screen name="child-profiles" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="lessons/[id]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="practice/[mode]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="rewards" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="kids-dictionary" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="kids-roleplay" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="kids-quest-reward" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="kids-content-studio" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="parent" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.82, 1], sheetGrabberVisible: true }} />
+          <Stack.Screen name="dictionary" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="dictionary/[id]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="games/[slug]" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="progress" options={{ animation: 'ios_from_right' }} />
+          <Stack.Screen name="chat" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen
+            name="paywall"
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.58, 0.92],
+              sheetGrabberVisible: true,
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.72, 1],
+              sheetGrabberVisible: true,
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen name="admin" options={{ animation: 'ios_from_right' }} />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>
