@@ -1,15 +1,15 @@
 # Lexora (Expo + React Native)
 
-Lexora is a vocabulary-learning app scaffold built with **Expo (SDK 56)**, **React Native**, and **Expo Router**. It includes a dark-only UI, placeholder feature screens, and scaffolding for SRS review, Supabase sync, and an AI tutor.
+Lexora is a mobile-first vocabulary learning app built with **Expo (SDK 56)**, **React Native**, and **Expo Router**. It includes guided onboarding, daily learning missions, spaced review, games, dictionary discovery, progress coaching, leagues, premium preview, and an AI tutor experience.
 
 ## What’s included
 
 - Expo + TypeScript + Expo Router (file-based routing)
-- Dark-only theme + typography (Syne + DM Sans)
-- App shell and routes for: onboarding, home, learn, review, games, social, dictionary, AI tutor chat, settings
+- Dark-only theme + DM Sans typography system
+- App routes for: onboarding, home, learn, review, games, social, dictionary, AI tutor chat, premium, progress, settings, and admin tools
 - SRS utility (SM-2 style) in `src/utils/srs.ts`
-- Data layer scaffolding (local + Supabase repositories) in `src/data/repositories/*`
-- Service stubs for Supabase and AI tutor in `src/services/*` using `.env` variables
+- Local data fallback plus Supabase repositories in `src/data/repositories/*`
+- Supabase and AI tutor services in `src/services/*` using `.env` variables
 
 ## Requirements
 
@@ -41,13 +41,27 @@ npm run web
 
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-- `EXPO_PUBLIC_ANTHROPIC_API_KEY` (optional for now — the app shows a friendly “not configured” message)
-- `EXPO_PUBLIC_REVENUECAT_API_KEY` (optional; paywall is scaffold-only)
+- `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` (production-safe live tutor proxy; backend or Supabase Edge Function)
+- `EXPO_PUBLIC_ANTHROPIC_API_KEY` (development-only live tutor; offline tutor coaching works without it)
+- `EXPO_PUBLIC_REVENUECAT_API_KEY` (optional future billing integration; the current premium preview stores access locally)
 
 Notes:
 
 - Expo only exposes env vars prefixed with `EXPO_PUBLIC_` to the JavaScript runtime.
-- Don’t call Anthropic directly from the client in production. Proxy through a backend (or Supabase Edge Function) to keep keys private and enable streaming safely.
+- Don’t call Anthropic directly from the client in production. Use `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` to point at a backend or Supabase Edge Function that owns the private AI key.
+
+## Verify production readiness
+
+```bash
+npm run typecheck
+npm run export:ios
+```
+
+Or run both:
+
+```bash
+npm run verify:ios
+```
 
 ## Supabase setup (optional)
 
@@ -64,8 +78,8 @@ Minimal setup:
 
 ## AI Tutor (optional)
 
-- Client stub: [aiTutor.ts](src/services/aiTutor.ts)
-- Current behavior: returns a helpful message if not configured; otherwise returns a placeholder response.
+- Client integration: [aiTutor.ts](src/services/aiTutor.ts)
+- Current behavior: uses offline coaching when live AI is not configured, calls `EXPO_PUBLIC_AI_TUTOR_PROXY_URL` when provided, and only calls Anthropic directly in development when `EXPO_PUBLIC_ANTHROPIC_API_KEY` is set.
 
 ## Project structure
 
@@ -83,13 +97,12 @@ Minimal setup:
 - Roadmap: [ROADMAP.md](docs/ROADMAP.md)
 
 
-## Where to build next (recommended order)
+## Current product loops
 
-1. **Onboarding flow (5 screens)** + placement test animations
-2. **Home dashboard** (streak card, word-of-the-day, goal progress, quick actions)
-3. **Learn mode** (card stack + flip + quiz checkpoints)
-4. **Review mode** (SRS + rating buttons + history)
-5. **Dictionary** (debounced search + filters)
-6. **Games** (6 screens)
-7. **AI Tutor** (streaming + word cards)
-8. **Social + leagues**
+1. **Onboarding**: account entry, placement, goals, topic selection, and starter-plan preview.
+2. **Home**: smart daily mission, streak, word of the day, daily challenge, and quick actions.
+3. **Learn + Review**: card-based learning, quiz checkpoints, SM-2 review, completion coaching, and next-step routing.
+4. **Games**: personalized arcade run, recommended game, and reward-focused completion states.
+5. **Dictionary**: guided discovery, personalized filters, skeleton loading, empty states, and word detail practice actions.
+6. **AI Tutor**: coach paths, offline coaching, live development mode, streaming-style responses, and word follow-ups.
+7. **Progress + Social**: momentum insight, achievement progress, leagues, and friend challenges.

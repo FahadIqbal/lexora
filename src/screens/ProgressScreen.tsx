@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { AppHeader } from '../components/AppHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { addDays } from 'date-fns';
 import { isoDate } from '../utils/date';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
+import { hapticSelection } from '../utils/haptics';
 
 export function ProgressScreen() {
   const t = useTheme();
@@ -19,10 +23,12 @@ export function ProgressScreen() {
   const streakLongest = useAppStore((s) => s.streakLongest);
   const xpToday = useAppStore((s) => s.xpToday);
   const xpTotal = useAppStore((s) => s.xpTotal);
+  const dailyGoalWords = useAppStore((s) => s.user.dailyGoalWords);
   const wordProgress = useAppStore((s) => s.wordProgress);
   const dailyStats = useAppStore((s) => s.dailyStats);
   const heatmap = useAppStore(useShallow((s) => s.getHeatmap30()));
   const weeklyWords = useAppStore(useShallow((s) => s.getWeeklyWordsLearned()));
+  const dueIds = useAppStore(useShallow((s) => s.getDueWordIds()));
 
   const level = Math.max(1, Math.floor(xpTotal / 600) + 1);
   const xpToNext = level * 600 - xpTotal;
@@ -51,12 +57,7 @@ export function ProgressScreen() {
     return { seen, mastered, inReview, accuracy };
   }, [wordProgress, dailyStats]);
 
-  const achievements = [
-    { slug: 'streak-7', name: '🔥 7-Day Streak', unlocked: true },
-    { slug: 'words-100', name: '📚 100 Words', unlocked: true },
-    { slug: 'perfect-week', name: '🎯 Perfect Week', unlocked: false },
-    { slug: 'speed-demon', name: '⚡ Speed Demon', unlocked: false },
-  ];
+  const dueCount = dueIds.length;
 
   const skillMastery = useMemo(
     () => [
@@ -84,13 +85,121 @@ export function ProgressScreen() {
     [streak, t.colors.accentAmber, t.colors.accentPink, t.colors.accentPurple, t.colors.accentTeal, totals]
   );
 
+  const weeklyTotal = weeklyWords.reduce((sum, value) => sum + value, 0);
+  const activeDays = heatmap.filter((value) => value > 0).length;
+  const momentumScore = Math.min(
+    100,
+    Math.round(Math.min(1, streak / 7) * 38 + Math.min(1, weeklyTotal / Math.max(1, dailyGoalWords * 4)) * 34 + Math.min(1, totals.accuracy / 85) * 28)
+  );
+  const focus = useMemo(() => {
+    if (dueCount > 0) {
+      return {
+        title: `Review ${dueCount} due ${dueCount === 1 ? 'card' : 'cards'}`,
+        body: 'Your memory curve has work waiting. Clear reviews before adding new words.',
+        action: 'Start review',
+        route: '/(tabs)/review' as const,
+        accent: t.colors.accentPink,
+      };
+    }
+
+    if (!totals.seen) {
+      return {
+        title: 'Start your first learning loop',
+        body: 'Learn a small set, then let spaced review take over.',
+        action: 'Learn words',
+        route: '/(tabs)/learn' as const,
+        accent: t.colors.accentTeal,
+      };
+    }
+
+    if (totals.accuracy < 70) {
+      return {
+        title: 'Strengthen recall',
+        body: 'Your accuracy has room to climb. A short review session will pay off quickly.',
+        action: 'Review now',
+        route: '/(tabs)/review' as const,
+        accent: t.colors.accentAmber,
+      };
+    }
+
+    return {
+      title: 'Convert knowledge into speed',
+      body: 'Your accuracy is healthy. A game will build faster recall without adding friction.',
+      action: 'Play a game',
+      route: '/(tabs)/games' as const,
+      accent: t.colors.accentPurple,
+    };
+  }, [dueCount, t.colors.accentAmber, t.colors.accentPink, t.colors.accentPurple, t.colors.accentTeal, totals.accuracy, totals.seen]);
+
+  const achievements = useMemo(
+    () => [
+      { slug: 'streak-7', name: '7-Day Streak', icon: '🔥', unlocked: streak >= 7, progress: Math.min(1, streak / 7) },
+      { slug: 'words-100', name: '100 Words', icon: '📚', unlocked: totals.seen >= 100, progress: Math.min(1, totals.seen / 100) },
+      { slug: 'perfect-week', name: 'Perfect Week', icon: '🎯', unlocked: weeklyAccuracy.every((a) => a >= 0.9), progress: weeklyAccuracy.filter((a) => a >= 0.9).length / 7 },
+      { slug: 'master-25', name: '25 Mastered', icon: '💎', unlocked: totals.mastered >= 25, progress: Math.min(1, totals.mastered / 25) },
+    ],
+    [streak, totals.mastered, totals.seen, weeklyAccuracy]
+  );
+
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <LexText variant="h2">Progress</LexText>
-        <LexText variant="muted" style={{ marginTop: 6 }}>
-          Your level, streaks, mastery, and weekly performance.
-        </LexText>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
+        <AppHeader
+          eyebrow="Growth"
+          title="Progress"
+          subtitle="Your momentum, mastery, and next best move."
+          icon="chart.bar.fill"
+          fallback="P"
+          accent={t.colors.accentTeal}
+          metric={`L${level}`}
+        />
+
+        <Animated.View entering={FadeInDown.duration(420)} style={styles.insightCard}>
+          <LinearGradient
+            colors={['rgba(123,111,255,0.24)', 'rgba(0,229,184,0.10)', 'rgba(255,179,71,0.08)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.insightHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: focus.accent }}>
+                Momentum insight
+              </LexText>
+              <LexText variant="h3" style={{ marginTop: 6 }}>
+                {focus.title}
+              </LexText>
+              <LexText variant="muted" style={{ marginTop: 6, fontSize: 13 }}>
+                {focus.body}
+              </LexText>
+            </View>
+            <MomentumRing score={momentumScore} color={focus.accent} />
+          </View>
+          <View style={styles.insightStats}>
+            <InsightMetric value={String(activeDays)} label="active days" color={t.colors.accentTeal} />
+            <InsightMetric value={String(weeklyTotal)} label="week words" color={t.colors.accentPurple} />
+            <InsightMetric value={String(dueCount)} label="due now" color={dueCount ? t.colors.accentPink : t.colors.muted} />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${focus.action}. ${focus.title}`}
+            onPress={() => {
+              hapticSelection();
+              router.push(focus.route);
+            }}
+            style={({ pressed }) => [
+              styles.insightAction,
+              { borderColor: `${focus.accent}55`, backgroundColor: `${focus.accent}16`, opacity: pressed ? 0.84 : 1 },
+            ]}
+          >
+            <LexText variant="title" style={{ color: focus.accent, fontSize: 14 }}>
+              {focus.action}
+            </LexText>
+            <LexText variant="title" style={{ color: focus.accent, fontSize: 18 }}>
+              →
+            </LexText>
+          </Pressable>
+        </Animated.View>
 
         <Card style={{ marginTop: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -157,6 +266,10 @@ export function ProgressScreen() {
             {achievements.map((a) => (
               <Pressable
                 key={a.slug}
+                accessibilityRole="button"
+                accessibilityState={{ selected: a.unlocked }}
+                accessibilityLabel={`${a.name}. ${a.unlocked ? 'Unlocked' : `${Math.round(a.progress * 100)} percent complete`}.`}
+                onPress={hapticSelection}
                 style={[
                   styles.ach,
                   {
@@ -166,9 +279,13 @@ export function ProgressScreen() {
                   },
                 ]}
               >
-                <LexText variant="body" style={{ fontSize: 12 }}>
+                <LexText style={{ fontSize: 20 }}>{a.icon}</LexText>
+                <LexText variant="title" style={{ fontSize: 12, marginTop: 6 }}>
                   {a.name}
                 </LexText>
+                <View style={styles.achTrack}>
+                  <AnimatedFill progress={a.progress} color={a.unlocked ? t.colors.accentAmber : 'rgba(255,255,255,0.22)'} />
+                </View>
               </Pressable>
             ))}
           </View>
@@ -179,6 +296,52 @@ export function ProgressScreen() {
         </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+function MomentumRing({ score, color }: { score: number; color: string }) {
+  const size = 70;
+  const r = 25;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, score));
+  const dashOffset = c * (1 - clamped / 100);
+
+  return (
+    <View style={styles.momentumRing}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.10)" strokeWidth={7} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={7}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${c} ${c}`}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.momentumText}>
+        <LexText variant="title" style={{ color, fontSize: 14 }}>
+          {clamped}
+        </LexText>
+      </View>
+    </View>
+  );
+}
+
+function InsightMetric({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.insightMetric}>
+      <LexText variant="h3" style={{ color, fontSize: 18, textAlign: 'center' }}>
+        {value}
+      </LexText>
+      <LexText variant="label" style={{ fontSize: 9, marginTop: 2, textAlign: 'center' }}>
+        {label}
+      </LexText>
+    </View>
   );
 }
 
@@ -223,6 +386,15 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 function SkillBar({ label, value, color }: { label: string; value: number; color: string }) {
   const t = useTheme();
   const clamped = Math.max(0, Math.min(100, value));
+  const fill = useSharedValue(0);
+
+  useEffect(() => {
+    fill.value = withTiming(clamped / 100, { duration: 720, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
 
   return (
     <View style={{ gap: 5 }}>
@@ -235,10 +407,25 @@ function SkillBar({ label, value, color }: { label: string; value: number; color
         </LexText>
       </View>
       <View style={[styles.skillTrack, { backgroundColor: 'rgba(255,255,255,0.07)' }]}>
-        <View style={[styles.skillFill, { width: `${clamped}%`, backgroundColor: color }]} />
+        <Animated.View style={[styles.skillFill, { backgroundColor: color }, fillStyle]} />
       </View>
     </View>
   );
+}
+
+function AnimatedFill({ progress, color }: { progress: number; color: string }) {
+  const fill = useSharedValue(0);
+  const clamped = Math.max(0, Math.min(1, progress));
+
+  useEffect(() => {
+    fill.value = withTiming(clamped, { duration: 680, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
+
+  return <Animated.View style={[styles.achFill, { backgroundColor: color }, fillStyle]} />;
 }
 
 function Heatmap30Days({ intensities }: { intensities: number[] }) {
@@ -312,9 +499,60 @@ function WeeklyComboChart({ words, accuracy }: { words: number[]; accuracy: numb
 
 const styles = StyleSheet.create({
   wrap: { padding: 18, paddingBottom: TAB_BAR_BOTTOM },
+  insightCard: {
+    minHeight: 244,
+    marginTop: 16,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+    padding: 18,
+  },
+  insightHeader: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  insightStats: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  insightMetric: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  insightAction: {
+    minHeight: 46,
+    marginTop: 14,
+    borderWidth: 1,
+    borderRadius: 15,
+    borderCurve: 'continuous',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  momentumRing: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
+  momentumText: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metric: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 14 },
   skillTrack: { height: 5, borderRadius: 999, overflow: 'hidden' },
   skillFill: { height: '100%', borderRadius: 999 },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  ach: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 12 },
+  ach: { width: '48%', minHeight: 106, borderWidth: 1, borderRadius: 16, padding: 12 },
+  achTrack: {
+    height: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginTop: 10,
+  },
+  achFill: { height: '100%', borderRadius: 999 },
 });

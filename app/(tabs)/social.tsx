@@ -1,7 +1,6 @@
 import React from 'react';
-import { SocialScreen } from '../../src/screens/SocialScreen';
+import { KidsSocialScreen } from '../../src/screens/kids/KidsScreens';
 
 export default function SocialRoute() {
-  return <SocialScreen />;
+  return <KidsSocialScreen />;
 }
-

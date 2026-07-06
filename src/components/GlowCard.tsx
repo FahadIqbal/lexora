@@ -22,8 +22,8 @@ export function GlowCard({
 }: GlowCardProps) {
   const t = useTheme();
   const borderColors: [string, string] = colors ?? [
-    'rgba(123,111,255,0.65)',
-    'rgba(0,229,184,0.45)',
+    'rgba(138,124,255,0.60)',
+    'rgba(0,216,167,0.45)',
   ];
 
   return (
@@ -36,7 +36,11 @@ export function GlowCard({
       <View
         style={[
           styles.inner,
-          { backgroundColor: t.colors.surface, borderRadius: radius - 2 },
+          {
+            backgroundColor: t.colors.surfaceGlassStrong,
+            borderRadius: radius - 2,
+            boxShadow: `0 18px 44px ${t.colors.shadow}`,
+          },
           innerStyle,
         ]}
       >
@@ -50,5 +54,6 @@ const styles = StyleSheet.create({
   inner: {
     padding: 16,
     overflow: 'hidden',
+    borderCurve: 'continuous',
   },
 });

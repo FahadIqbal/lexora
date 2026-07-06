@@ -1,7 +1,6 @@
 import React from 'react';
-import { LearnScreen } from '../../src/screens/LearnScreen';
+import { KidsLearnScreen } from '../../src/screens/kids/KidsScreens';
 
 export default function LearnRoute() {
-  return <LearnScreen />;
+  return <KidsLearnScreen />;
 }
-
