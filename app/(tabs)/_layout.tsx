@@ -1,98 +1,63 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import { Tabs } from 'expo-router';
-import { useTheme } from '../../src/theme/ThemeProvider';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useAppStore } from '../../src/store/useAppStore';
-import { useShallow } from 'zustand/react/shallow';
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <View
-      style={{
-        width: 44,
-        height: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: focused ? 'rgba(0,229,184,0.14)' : 'transparent',
-        borderRadius: 10,
-        marginTop: 6,
-      }}
-    >
-      <Text style={{ fontSize: 19 }}>{emoji}</Text>
-    </View>
-  );
-}
+import { hapticSelection } from '../../src/utils/haptics';
+import { kidTheme } from '../../src/theme/kidTheme';
+import { getKidAdaptiveReviewSummary } from '../../src/services/kidAdaptiveLearningService';
 
 export default function TabsLayout() {
-  const t = useTheme();
-  const dueCount = useAppStore(useShallow((s) => s.getDueWordIds())).length;
+  const dueCount = useAppStore((s) => getKidAdaptiveReviewSummary(s.kid).dueCount || s.getDueWordIds().length);
+  const reviewBadge = dueCount > 99 ? '99+' : dueCount ? String(dueCount) : undefined;
+  const c = kidTheme.colors;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: process.env.EXPO_OS === 'ios' ? 26 : 14,
-          left: 14,
-          right: 14,
-          height: 72,
-          borderRadius: 28,
-          backgroundColor: t.colors.surface2,
-          borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.09)',
-          boxShadow: '0 18px 34px rgba(0,0,0,0.48)',
-        },
-        tabBarActiveTintColor: t.colors.accentTeal,
-        tabBarInactiveTintColor: 'rgba(242,240,255,0.36)',
-        tabBarShowLabel: true,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          marginBottom: 8,
-          fontFamily: t.font.body.medium,
-        },
-        tabBarItemStyle: {
-          paddingTop: 0,
-          paddingBottom: 0,
-        },
+    <NativeTabs
+      minimizeBehavior="onScrollDown"
+      blurEffect="systemMaterialLight"
+      tintColor={c.purple}
+      iconColor={{
+        default: c.muted,
+        selected: c.purple,
+      }}
+      labelStyle={{
+        fontFamily: 'DMSans_700Bold',
+        fontSize: 11,
+      }}
+      badgeBackgroundColor={c.coral}
+      badgeTextColor="white"
+      backgroundColor="rgba(255,255,255,0.94)"
+      shadowColor="rgba(71,57,146,0.14)"
+      disableTransparentOnScrollEdge
+      sidebarAdaptable
+      screenListeners={{
+        tabPress: () => hapticSelection(),
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="learn"
-        options={{
-          title: 'Learn',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="review"
-        options={{
-          title: 'Review',
-          tabBarBadge: dueCount > 0 ? dueCount : undefined,
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔁" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="games"
-        options={{
-          title: 'Games',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎮" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="social"
-        options={{
-          title: 'Social',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏆" focused={focused} />,
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="home" role="featured">
+        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="learn">
+        <NativeTabs.Trigger.Icon sf={{ default: 'book', selected: 'book.fill' }} md="menu_book" />
+        <NativeTabs.Trigger.Label>Learn</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="review" role="recents">
+        <NativeTabs.Trigger.Icon sf="arrow.clockwise" md="refresh" />
+        <NativeTabs.Trigger.Label>Review</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Badge hidden={!reviewBadge}>{reviewBadge}</NativeTabs.Trigger.Badge>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="games" role="topRated">
+        <NativeTabs.Trigger.Icon sf={{ default: 'gamecontroller', selected: 'gamecontroller.fill' }} md="stadia_controller" />
+        <NativeTabs.Trigger.Label>Play</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="social">
+        <NativeTabs.Trigger.Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} md="emoji_events" />
+        <NativeTabs.Trigger.Label>Social</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
