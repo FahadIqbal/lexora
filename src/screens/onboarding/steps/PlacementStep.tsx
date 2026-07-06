@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -50,12 +50,10 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
     })
     .onEnd((e) => {
       if (e.translationX > 60) {
-        // right → next option
         setFocused((f) => Math.min(3, f + 1));
         hapticSelection();
         swipeX.value = withTiming(0, { duration: 180 });
       } else if (e.translationX < -60) {
-        // left → prev option
         setFocused((f) => Math.max(0, f - 1));
         hapticSelection();
         swipeX.value = withTiming(0, { duration: 180 });
@@ -93,9 +91,9 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
   if (loading) {
     return (
       <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
-        <View style={styles.content}>
-          <LexText variant="h2">Loading placement test…</LexText>
-        </View>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+          <LexText variant="h2">Loading your level check...</LexText>
+        </ScrollView>
       </View>
     );
   }
@@ -103,10 +101,10 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
   if (error || !questions.length) {
     return (
       <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
-        <View style={styles.content}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
           <LexText variant="h2">Placement not available</LexText>
           <LexText variant="muted" style={{ marginTop: 10 }}>
-            We couldn’t load your placement test. You can skip for now and still use the app.
+            We could not load your level check. You can still start with a balanced plan.
           </LexText>
           <View style={{ marginTop: 16, gap: 10 }}>
             <Button
@@ -118,7 +116,7 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
             />
             <Button title="Back" variant="ghost" onPress={onBack} />
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -127,11 +125,11 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
 
   return (
     <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
-      <View style={styles.content}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(520).springify().damping(16)}>
-          <LexText variant="h2">Let’s find your level</LexText>
+          <LexText variant="h2">Find your starting level</LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>
-            Swipe left/right to change the highlighted choice. Tap “Confirm”.
+            Choose the closest meaning. Five quick taps help Lexora tune your first plan.
           </LexText>
         </Animated.View>
 
@@ -198,6 +196,12 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
               </Animated.View>
             </GestureDetector>
 
+            <View style={[styles.hintPill, { borderColor: t.colors.border }]}>
+              <LexText variant="muted" style={{ fontSize: 12, textAlign: 'center' }}>
+                Tip: tap an answer, or swipe the card to move between choices.
+              </LexText>
+            </View>
+
             <View style={{ marginTop: 14, gap: 10 }}>
               <Button title="Confirm" onPress={confirm} />
               <Button
@@ -212,14 +216,14 @@ export function PlacementStep({ onBack, onNext }: { onBack: () => void; onNext: 
             </View>
           </Card>
         </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { flex: 1, padding: 18, justifyContent: 'center' },
+  content: { flexGrow: 1, padding: 18, paddingBottom: 34, justifyContent: 'center' },
   ringText: {
     position: 'absolute',
     left: 0,
@@ -230,6 +234,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   choicesWrap: { marginTop: 12, gap: 10 },
+  hintPill: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   choice: {
     borderWidth: 1,
     borderRadius: 14,

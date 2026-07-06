@@ -18,6 +18,8 @@ import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { GlowCard } from '../components/GlowCard';
 import { Button } from '../components/Button';
+import { IconSymbol } from '../components/IconSymbol';
+import { LexoraLottie } from '../components/LexoraLottie';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 import { repos } from '../data/repositories';
@@ -25,6 +27,7 @@ import { useAsyncResource } from '../hooks/useAsyncResource';
 import { useShallow } from 'zustand/react/shallow';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { Haptics, hapticImpact, hapticNotify, hapticSelection } from '../utils/haptics';
+import missionPulse from '../animations/mission-pulse.json';
 
 export function HomeScreen() {
   const t = useTheme();
@@ -195,52 +198,153 @@ export function HomeScreen() {
   const quickActions = [
     {
       key: 'learn',
-      emoji: '📚',
+      symbol: 'book.fill',
+      fallback: 'L',
       label: 'Learn',
       onPress: () => router.push('/(tabs)/learn'),
+      accent: t.colors.accentPurple,
       colors: ['rgba(123,111,255,0.3)', 'rgba(123,111,255,0.1)'] as [string, string],
     },
     {
       key: 'review',
-      emoji: '🔁',
+      symbol: 'arrow.clockwise',
+      fallback: 'R',
       label: 'Review',
       onPress: () => router.push('/(tabs)/review'),
       badge: dueCount,
+      accent: t.colors.accentTeal,
       colors: ['rgba(0,229,184,0.3)', 'rgba(0,229,184,0.1)'] as [string, string],
     },
     {
       key: 'games',
-      emoji: '🎮',
+      symbol: 'gamecontroller.fill',
+      fallback: 'G',
       label: 'Games',
       onPress: () => router.push('/(tabs)/games'),
+      accent: t.colors.accentAmber,
       colors: ['rgba(255,140,66,0.3)', 'rgba(255,179,71,0.1)'] as [string, string],
     },
     {
       key: 'dict',
-      emoji: '📖',
+      symbol: 'text.book.closed.fill',
+      fallback: 'D',
       label: 'Dictionary',
       onPress: () => router.push('/dictionary'),
+      accent: t.colors.accentBlue,
       colors: ['rgba(91,168,255,0.3)', 'rgba(91,168,255,0.1)'] as [string, string],
     },
     {
       key: 'progress',
-      emoji: '📊',
+      symbol: 'chart.bar.fill',
+      fallback: 'P',
       label: 'Progress',
       onPress: () => router.push('/progress'),
+      accent: '#4CE77D',
       colors: ['rgba(76,231,125,0.3)', 'rgba(76,231,125,0.1)'] as [string, string],
     },
     {
       key: 'ai',
-      emoji: '🤖',
+      symbol: 'sparkles',
+      fallback: 'AI',
       label: 'AI Tutor',
       onPress: () => router.push('/chat'),
+      accent: t.colors.accentPink,
       colors: ['rgba(255,107,157,0.3)', 'rgba(255,107,157,0.1)'] as [string, string],
     },
   ];
 
+  const sessionPath = useMemo(
+    () => [
+      {
+        key: 'review',
+        label: dueCount > 0 ? 'Clear memory debt' : 'Memory protected',
+        detail: dueCount > 0 ? `${dueCount} due now` : 'No reviews due',
+        state: dueCount > 0 ? 'Start' : 'Done',
+        symbol: 'arrow.clockwise',
+        fallback: 'R',
+        accent: dueCount > 0 ? t.colors.accentPink : t.colors.accentTeal,
+        done: dueCount === 0,
+        onPress: () => router.push('/(tabs)/review'),
+      },
+      {
+        key: 'learn',
+        label: goalP >= 1 ? 'Daily goal complete' : 'Build today’s set',
+        detail: `${learnedToday}/${dailyGoal} words`,
+        state: goalP >= 1 ? 'Done' : 'Learn',
+        symbol: 'book.fill',
+        fallback: 'L',
+        accent: t.colors.accentTeal,
+        done: goalP >= 1,
+        onPress: () => router.push('/(tabs)/learn'),
+      },
+      {
+        key: 'play',
+        label: 'Lock it in with play',
+        detail: dailyChallenge.title,
+        state: 'Play',
+        symbol: 'gamecontroller.fill',
+        fallback: 'G',
+        accent: t.colors.accentAmber,
+        done: false,
+        onPress: () => router.push(`/games/${dailyChallenge.slug}`),
+      },
+    ],
+    [dailyChallenge.slug, dailyChallenge.title, dailyGoal, dueCount, goalP, learnedToday, t.colors.accentAmber, t.colors.accentPink, t.colors.accentTeal]
+  );
+  const dailyQuests = useMemo(
+    () => [
+      {
+        key: 'learn',
+        title: 'Learn words',
+        detail: `${learnedToday}/${dailyGoal} today`,
+        progress: dailyGoal ? learnedToday / dailyGoal : 0,
+        reward: '+40 XP',
+        accent: t.colors.accentTeal,
+        symbol: 'book.fill',
+        fallback: 'L',
+        route: '/(tabs)/learn' as const,
+      },
+      {
+        key: 'review',
+        title: dueCount > 0 ? 'Clear due reviews' : 'Keep memory warm',
+        detail: dueCount > 0 ? `${dueCount} due cards` : 'Queue protected',
+        progress: dueCount > 0 ? 0 : 1,
+        reward: dueCount > 0 ? '+30 XP' : 'Done',
+        accent: dueCount > 0 ? t.colors.accentPink : t.colors.accentTeal,
+        symbol: 'arrow.clockwise',
+        fallback: 'R',
+        route: '/(tabs)/review' as const,
+      },
+      {
+        key: 'challenge',
+        title: 'Play challenge',
+        detail: dailyChallenge.title,
+        progress: xpToday >= 80 ? 1 : Math.min(1, xpToday / 80),
+        reward: '2x XP',
+        accent: t.colors.accentAmber,
+        symbol: 'gamecontroller.fill',
+        fallback: 'G',
+        route: `/games/${dailyChallenge.slug}` as const,
+      },
+    ],
+    [
+      dailyChallenge.slug,
+      dailyChallenge.title,
+      dailyGoal,
+      dueCount,
+      learnedToday,
+      t.colors.accentAmber,
+      t.colors.accentPink,
+      t.colors.accentTeal,
+      xpToday,
+    ]
+  );
+  const completedQuestCount = dailyQuests.filter((quest) => quest.progress >= 1).length;
+
   return (
     <Screen>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_BOTTOM }]}
         showsVerticalScrollIndicator={false}
       >
@@ -248,13 +352,16 @@ export function HomeScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <LexText variant="label" style={{ color: t.colors.muted }}>
-              {greeting} ✨
+              Today
             </LexText>
             <LexText variant="h2" style={{ marginTop: 2 }}>
-              {user.displayName || 'Welcome back'}
+              Your word plan
+            </LexText>
+            <LexText variant="muted" style={{ marginTop: 4 }}>
+              {greeting}{user.displayName ? `, ${user.displayName}` : ''}
             </LexText>
           </View>
-          <View style={[styles.levelBadge, { backgroundColor: t.colors.surface2, borderColor: t.colors.border }]}>
+          <View style={[styles.levelBadge, { backgroundColor: t.colors.surfaceGlassStrong, borderColor: t.colors.borderBright }]}>
             <LexText variant="label" style={{ color: t.colors.accentPurple, fontSize: 11 }}>
               LVL {level}
             </LexText>
@@ -276,6 +383,58 @@ export function HomeScreen() {
           {xpInLevel} / 600 XP to Level {level + 1}
         </LexText>
 
+        <Animated.View entering={FadeInDown.delay(40).duration(420)} style={[styles.pathCard, { borderColor: t.colors.borderBright }]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.075)', 'rgba(123,111,255,0.08)', 'rgba(0,229,184,0.045)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.pathHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                Today's path
+              </LexText>
+              <LexText variant="h3" style={{ marginTop: 4 }}>
+                Three wins for today
+              </LexText>
+            </View>
+            <View style={[styles.pathBadge, { borderColor: t.colors.borderBright }]}>
+              <LexText variant="label" style={{ color: t.colors.mutedStrong, fontSize: 10 }}>
+                {Math.round(goalP * 100)}%
+              </LexText>
+            </View>
+          </View>
+          <View style={styles.pathSteps}>
+            {sessionPath.map(({ key, ...item }, index) => (
+              <SessionPathItem key={key} index={index + 1} {...item} />
+            ))}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(65).duration(420)} style={[styles.questBoard, { borderColor: t.colors.border }]}>
+          <View style={styles.questBoardHeader}>
+            <View style={{ flex: 1 }}>
+              <LexText variant="label" style={{ color: t.colors.accentAmber }}>
+                Daily quests
+              </LexText>
+              <LexText variant="title" style={{ marginTop: 4 }}>
+                {completedQuestCount}/3 complete
+              </LexText>
+            </View>
+            <View style={[styles.questReward, { borderColor: t.colors.borderBright }]}>
+              <LexText variant="label" style={{ color: t.colors.accentAmber, fontSize: 10 }}>
+                Chest
+              </LexText>
+            </View>
+          </View>
+          <View style={styles.questList}>
+            {dailyQuests.map(({ key, ...quest }) => (
+              <DailyQuestItem key={key} {...quest} />
+            ))}
+          </View>
+        </Animated.View>
+
         {/* ── Streak Card ────────────────────────────────────── */}
         <GlowCard
           colors={['rgba(255,179,71,0.55)', 'rgba(255,107,157,0.3)']}
@@ -284,7 +443,7 @@ export function HomeScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Animated.View style={flameStyle}>
-                <LexText variant="h1" style={{ fontSize: 40 }}>🔥</LexText>
+                <IconSymbol name="flame.fill" fallback="F" color={t.colors.accentAmber} size={38} />
               </Animated.View>
               <View>
                 <LexText variant="h2" style={{ color: t.colors.accentAmber, fontSize: 36 }}>
@@ -385,6 +544,7 @@ export function HomeScreen() {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
+            <LexoraLottie source={missionPulse} size={132} speed={0.86} style={styles.missionLottie} />
             <View style={styles.missionHeader}>
               <View style={{ flex: 1 }}>
                 <LexText variant="label" style={{ color: dailyMission.accent, fontSize: 10 }}>
@@ -461,12 +621,13 @@ export function HomeScreen() {
         >
           <GlowCard colors={['rgba(123,111,255,0.55)', 'rgba(0,229,184,0.35)']}>
             <LexText style={styles.wodQuoteMark}>"</LexText>
+            <LexoraLottie source={missionPulse} size={96} speed={0.72} style={styles.wodLottie} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <LexText variant="label" style={{ color: '#A89CFF', fontSize: 11 }}>
-                📖 WORD OF THE DAY
+                Word of the day
               </LexText>
               <Animated.View style={chevronStyle}>
-                <LexText variant="body" style={{ color: t.colors.muted }}>▾</LexText>
+                <IconSymbol name="chevron.down" fallback="V" color={t.colors.muted} size={14} />
               </Animated.View>
             </View>
 
@@ -493,7 +654,8 @@ export function HomeScreen() {
                 }}
                 style={[styles.wodBtn, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.07)' }]}
               >
-                <LexText variant="title" style={{ fontSize: 14 }}>🔊 Listen</LexText>
+                <IconSymbol name="speaker.wave.2.fill" fallback="S" color={t.colors.text} size={14} />
+                <LexText variant="title" style={{ fontSize: 14 }}>Listen</LexText>
               </Pressable>
               <Pressable
                 onPress={(e) => {
@@ -504,8 +666,9 @@ export function HomeScreen() {
                 }}
                 style={[styles.wodBtn, { borderColor: 'rgba(0,229,184,0.35)', backgroundColor: 'rgba(0,229,184,0.1)', flex: 1 }]}
               >
+                <IconSymbol name="plus.circle.fill" fallback="+" color={t.colors.accentTeal} size={14} />
                 <LexText variant="title" style={{ fontSize: 14, color: t.colors.accentTeal }}>
-                  + Add to list
+                  Add to list
                 </LexText>
               </Pressable>
             </View>
@@ -560,40 +723,41 @@ export function HomeScreen() {
           QUICK ACTIONS
         </LexText>
         <View style={[styles.actionsGrid, { marginTop: 10 }]}>
-          {quickActions.map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={() => {
-                hapticSelection();
-                a.onPress();
-              }}
-              style={({ pressed }) => [
-                styles.actionTile,
-                {
-                  backgroundColor: t.colors.surface,
-                  borderColor: t.colors.border,
-                  opacity: pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={a.colors}
-                style={styles.actionIconBg}
+          {quickActions.map((a, index) => (
+            <Animated.View key={a.key} entering={FadeInDown.delay(120 + index * 35).duration(360).springify().damping(17)} style={styles.actionTileWrap}>
+              <Pressable
+                onPress={() => {
+                  hapticSelection();
+                  a.onPress();
+                }}
+                style={({ pressed }) => [
+                  styles.actionTile,
+                  {
+                    backgroundColor: t.colors.surface,
+                    borderColor: t.colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                ]}
               >
-                <LexText style={{ fontSize: 22 }}>{a.emoji}</LexText>
-              </LinearGradient>
-              <LexText variant="title" style={{ fontSize: 13, marginTop: 8 }}>
-                {a.label}
-              </LexText>
-              {a.badge ? (
-                <View style={[styles.actionBadge, { backgroundColor: 'rgba(255,107,157,0.15)', borderColor: 'rgba(255,107,157,0.35)' }]}>
-                  <LexText variant="label" style={{ fontSize: 10, color: t.colors.accentPink }}>
-                    {a.badge}
-                  </LexText>
-                </View>
-              ) : null}
-            </Pressable>
+                <LinearGradient
+                  colors={a.colors}
+                  style={styles.actionIconBg}
+                >
+                  <IconSymbol name={a.symbol} fallback={a.fallback} color={a.accent} size={22} />
+                </LinearGradient>
+                <LexText variant="title" style={{ fontSize: 13, marginTop: 8 }}>
+                  {a.label}
+                </LexText>
+                {a.badge ? (
+                  <View style={[styles.actionBadge, { backgroundColor: 'rgba(255,107,157,0.15)', borderColor: 'rgba(255,107,157,0.35)' }]}>
+                    <LexText variant="label" style={{ fontSize: 10, color: t.colors.accentPink }}>
+                      {a.badge}
+                    </LexText>
+                  </View>
+                ) : null}
+              </Pressable>
+            </Animated.View>
           ))}
         </View>
 
@@ -622,6 +786,155 @@ function StatBento({ value, label, color }: { value: string; label: string; colo
         {label}
       </LexText>
     </View>
+  );
+}
+
+function SessionPathItem({
+  index,
+  label,
+  detail,
+  state,
+  symbol,
+  fallback,
+  accent,
+  done,
+  onPress,
+}: {
+  index: number;
+  label: string;
+  detail: string;
+  state: string;
+  symbol: string;
+  fallback: string;
+  accent: string;
+  done: boolean;
+  onPress: () => void;
+}) {
+  const t = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${index}. ${label}. ${detail}. ${state}.`}
+      onPress={() => {
+        hapticSelection();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.pathStep,
+        {
+          borderColor: done ? `${accent}55` : t.colors.border,
+          backgroundColor: done ? `${accent}14` : 'rgba(255,255,255,0.045)',
+          opacity: pressed ? 0.84 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.pathIcon, { backgroundColor: `${accent}1A`, borderColor: `${accent}44` }]}>
+        <IconSymbol name={symbol} fallback={fallback} color={accent} size={17} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <LexText variant="title" style={{ fontSize: 14 }} numberOfLines={1}>
+          {label}
+        </LexText>
+        <LexText variant="muted" style={{ marginTop: 2, fontSize: 12, lineHeight: 16 }} numberOfLines={1}>
+          {detail}
+        </LexText>
+      </View>
+      <View style={[styles.pathState, { borderColor: `${accent}44`, backgroundColor: `${accent}14` }]}>
+        <LexText variant="label" style={{ color: accent, fontSize: 9 }}>
+          {state}
+        </LexText>
+      </View>
+    </Pressable>
+  );
+}
+
+function DailyQuestItem({
+  title,
+  detail,
+  progress,
+  reward,
+  accent,
+  symbol,
+  fallback,
+  route,
+}: {
+  title: string;
+  detail: string;
+  progress: number;
+  reward: string;
+  accent: string;
+  symbol: string;
+  fallback: string;
+  route: '/(tabs)/learn' | '/(tabs)/review' | `/games/${string}`;
+}) {
+  const t = useTheme();
+  const clamped = Math.max(0, Math.min(1, progress));
+  const done = clamped >= 1;
+  const fill = useSharedValue(0);
+  const iconScale = useSharedValue(1);
+
+  useEffect(() => {
+    fill.value = withTiming(clamped, { duration: 680, easing: Easing.out(Easing.cubic) });
+  }, [clamped, fill]);
+
+  useEffect(() => {
+    iconScale.value = done
+      ? withRepeat(
+          withSequence(
+            withTiming(1.08, { duration: 620, easing: Easing.out(Easing.quad) }),
+            withTiming(1, { duration: 620, easing: Easing.in(Easing.quad) })
+          ),
+          -1
+        )
+      : withTiming(1, { duration: 220 });
+  }, [done, iconScale]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(fill.value * 100)}%`,
+  }));
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${detail}. ${Math.round(clamped * 100)} percent complete. Reward ${reward}.`}
+      onPress={() => {
+        hapticSelection();
+        router.push(route);
+      }}
+      style={({ pressed }) => [
+        styles.questItem,
+        {
+          borderColor: done ? `${accent}55` : t.colors.border,
+          backgroundColor: done ? `${accent}12` : 'rgba(255,255,255,0.04)',
+          opacity: pressed ? 0.86 : 1,
+        },
+      ]}
+    >
+      <Animated.View style={[styles.questIcon, { borderColor: `${accent}44`, backgroundColor: `${accent}16` }, iconStyle]}>
+        <IconSymbol name={done ? 'checkmark.circle.fill' : symbol} fallback={done ? '✓' : fallback} color={accent} size={17} />
+      </Animated.View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.questTextRow}>
+          <LexText variant="title" style={{ fontSize: 13 }} numberOfLines={1}>
+            {title}
+          </LexText>
+          <LexText variant="label" style={{ color: accent, fontSize: 9 }}>
+            {reward}
+          </LexText>
+        </View>
+        <LexText variant="muted" style={{ marginTop: 2, fontSize: 12 }} numberOfLines={1}>
+          {detail}
+        </LexText>
+        <View style={[styles.questTrack, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+          <Animated.View style={[styles.questFill, { backgroundColor: accent }, fillStyle]} />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -737,8 +1050,127 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderRadius: 16,
+    borderCurve: 'continuous',
     padding: 14,
     alignItems: 'center',
+  },
+  pathCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    padding: 16,
+    marginTop: 12,
+    boxShadow: '0 18px 34px rgba(0,0,0,0.34)',
+  },
+  pathHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  pathBadge: {
+    minWidth: 52,
+    height: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.055)',
+  },
+  pathSteps: {
+    gap: 8,
+    marginTop: 14,
+  },
+  pathStep: {
+    minHeight: 62,
+    borderWidth: 1,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pathIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pathState: {
+    minWidth: 46,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  questBoard: {
+    borderWidth: 1,
+    borderRadius: 22,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    padding: 14,
+    marginTop: 12,
+  },
+  questBoardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  questReward: {
+    height: 30,
+    minWidth: 58,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,179,71,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  questList: {
+    gap: 8,
+    marginTop: 12,
+  },
+  questItem: {
+    minHeight: 66,
+    borderWidth: 1,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  questIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  questTrack: {
+    height: 5,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  questFill: {
+    height: '100%',
+    borderRadius: 999,
   },
   missionCard: {
     minHeight: 170,
@@ -747,6 +1179,12 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     overflow: 'hidden',
     padding: 18,
+  },
+  missionLottie: {
+    position: 'absolute',
+    right: -18,
+    top: -24,
+    opacity: 0.42,
   },
   missionHeader: {
     flexDirection: 'row',
@@ -808,6 +1246,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
     paddingHorizontal: 14,
   },
   wodBody: {
@@ -821,6 +1261,12 @@ const styles = StyleSheet.create({
     lineHeight: 92,
     color: 'rgba(123,111,255,0.18)',
     fontFamily: 'Georgia',
+  },
+  wodLottie: {
+    position: 'absolute',
+    right: -22,
+    bottom: -28,
+    opacity: 0.32,
   },
   goalCard: {
     borderWidth: 1,
@@ -842,16 +1288,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionTile: {
-    width: '31%',
+    width: '100%',
     borderWidth: 1,
     borderRadius: 18,
+    borderCurve: 'continuous',
     padding: 14,
     alignItems: 'center',
+  },
+  actionTileWrap: {
+    width: '31%',
   },
   actionIconBg: {
     width: 48,
     height: 48,
     borderRadius: 14,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },

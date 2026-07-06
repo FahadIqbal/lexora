@@ -33,7 +33,7 @@ export function GameShell({
               </LexText>
             ) : null}
           </View>
-          <Button title="Close" variant="ghost" onPress={() => router.back()} style={{ width: 90, height: 40 }} />
+          <Button title="Done" variant="ghost" onPress={() => router.back()} style={{ width: 86, height: 40 }} />
         </View>
 
         <View style={{ flex: 1 }}>{children}</View>
@@ -49,4 +49,3 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   footer: { paddingTop: 12 },
 });
-

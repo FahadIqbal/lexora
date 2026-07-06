@@ -1,7 +1,6 @@
 import React from 'react';
-import { GamesScreen } from '../../src/screens/GamesScreen';
+import { KidsGamesScreen } from '../../src/screens/kids/KidsScreens';
 
 export default function GamesRoute() {
-  return <GamesScreen />;
+  return <KidsGamesScreen />;
 }
-

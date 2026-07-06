@@ -11,10 +11,12 @@ import { useAppStore } from '../../store/useAppStore';
 import { repos } from '../../data/repositories';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { Haptics, hapticNotify } from '../../utils/haptics';
+import { getDifficultyMaxForProficiency } from '../../utils/proficiency';
 
 export function SpeedMatchGame() {
   const t = useTheme();
   const addXp = useAppStore((s) => s.addXp);
+  const recordReview = useAppStore((s) => s.recordReview);
   const selectedCategories = useAppStore((s) => s.selectedCategories);
   const proficiency = useAppStore((s) => s.user.proficiencyLevel);
 
@@ -29,14 +31,7 @@ export function SpeedMatchGame() {
   const [score, setScore] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
 
-  const difficultyMax = useMemo(() => {
-    if (!proficiency) return null;
-    const p = proficiency.toUpperCase();
-    if (p === 'A1' || p === 'A2') return 2;
-    if (p === 'B1') return 3;
-    if (p === 'B2') return 4;
-    return 5;
-  }, [proficiency]);
+  const difficultyMax = useMemo(() => getDifficultyMaxForProficiency(proficiency), [proficiency]);
 
   const categoriesKey = useMemo(() => selectedCategories.slice().sort().join('|'), [selectedCategories]);
   const day = Math.floor(Date.now() / 86_400_000);
@@ -70,6 +65,7 @@ export function SpeedMatchGame() {
     if (!selectedLeft || !selectedRightWord) return;
 
     const correct = selectedRightWord === selectedLeft;
+    const selectedWord = (set ?? []).find((w) => w.word === selectedLeft);
     if (correct) {
       setMatched((m) => ({ ...m, [selectedLeft]: true }));
       setScore((s) => s + 10);
@@ -81,9 +77,10 @@ export function SpeedMatchGame() {
       setFlash('bad');
       hapticNotify(Haptics.NotificationFeedbackType.Error);
     }
+    if (selectedWord) recordReview(selectedWord.id, correct ? 5 : 2);
     setSelectedLeft(null);
     setSelectedRightWord(null);
-  }, [selectedLeft, selectedRightWord]);
+  }, [recordReview, selectedLeft, selectedRightWord, set]);
 
   useEffect(() => {
     if (flash === 'none') return;
