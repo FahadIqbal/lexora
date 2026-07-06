@@ -176,10 +176,10 @@ export function AdminCategoriesScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <FlashList
-                data={(rows ?? []) as any}
-                keyExtractor={(x: any) => x.id}
+                data={rows ?? []}
+                keyExtractor={(item) => item.id}
                 ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />}
-                renderItem={({ item }: any) => {
+                renderItem={({ item }) => {
                   const active = selected?.id === item.id;
                   return (
                     <Pressable

@@ -16,15 +16,24 @@ export const localPlacementRepo: PlacementRepository = {
 
 export const localWordsRepo: WordsRepository = {
   async getWordOfTheDay() {
-    // deterministic rotation (today index) without hardcoding a specific word
+    // deterministic rotation by day so the recommendation changes offline
     const day = Math.floor(Date.now() / 86_400_000);
     return seed.words[day % seed.words.length];
   },
 
-  async getDailySessionWords(count: number) {
+  async getDailySessionWords(count: number, opts) {
+    const categories = opts?.categories?.filter(Boolean) ?? [];
+    const difficultyMax = opts?.difficultyMax ?? null;
+    const sessionSeed = opts?.seed ?? Math.floor(Date.now() / 86_400_000);
+    const filtered = seed.words.filter((word) => {
+      const matchesCategory = !categories.length || word.categories.some((category) => categories.includes(category));
+      const matchesDifficulty = !difficultyMax || word.difficulty_level <= difficultyMax;
+      return matchesCategory && matchesDifficulty;
+    });
+    const pool = filtered.length ? filtered : seed.words;
     const out: Word[] = [];
-    const day = Math.floor(Date.now() / 86_400_000);
-    for (let i = 0; i < count; i++) out.push(seed.words[(day + i) % seed.words.length]);
+    const start = Math.abs(sessionSeed) % pool.length;
+    for (let i = 0; i < count; i++) out.push(pool[(start + i) % pool.length]);
     return out;
   },
 
