@@ -1,7 +1,6 @@
 import React from 'react';
-import { ProgressScreen } from '../src/screens/ProgressScreen';
+import { KidsProgressScreen } from '../src/screens/kids/KidsScreens';
 
 export default function ProgressRoute() {
-  return <ProgressScreen />;
+  return <KidsProgressScreen />;
 }
-
