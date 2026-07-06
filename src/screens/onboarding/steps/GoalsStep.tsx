@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { LexText } from '../../../components/LexText';
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -30,11 +31,11 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
 
   return (
     <View style={[styles.root, { backgroundColor: t.colors.bg }]}>
-      <View style={styles.content}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(520).springify().damping(16)}>
           <LexText variant="h2">Set your daily goal</LexText>
           <LexText variant="muted" style={{ marginTop: 6 }}>
-            Pick a pace you can keep. Consistency beats intensity.
+            Pick a pace that feels light enough to repeat. Lexora turns consistency into momentum.
           </LexText>
         </Animated.View>
 
@@ -108,20 +109,70 @@ export function GoalsStep({ onBack, onNext }: { onBack: () => void; onNext: () =
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(240).duration(520)} style={{ marginTop: 18, gap: 10 }}>
+        <Animated.View entering={FadeInDown.delay(230).duration(520)} style={{ marginTop: 14 }}>
+          <View style={[styles.rhythmCard, { borderColor: t.colors.border }]}>
+            <LinearGradient
+              colors={['rgba(0,229,184,0.14)', 'rgba(123,111,255,0.16)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+              Your rhythm
+            </LexText>
+            <View style={styles.rhythmRow}>
+              <RhythmUnit value={`${dailyGoalWords}`} label="words" />
+              <RhythmUnit value="4 min" label="session" />
+              <RhythmUnit value="1 win" label="daily" />
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(280).duration(520)} style={{ marginTop: 18, gap: 10 }}>
           <Button title="Continue" onPress={onNext} />
           <Button title="Back" variant="ghost" onPress={onBack} />
         </Animated.View>
-      </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function RhythmUnit({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={styles.rhythmUnit}>
+      <LexText variant="title" style={{ textAlign: 'center' }}>
+        {value}
+      </LexText>
+      <LexText variant="label" style={{ fontSize: 9, marginTop: 2, textAlign: 'center' }}>
+        {label}
+      </LexText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { flex: 1, padding: 18, justifyContent: 'center' },
+  content: { flexGrow: 1, padding: 18, paddingBottom: 34, justifyContent: 'center' },
   goalRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   goalChip: { flex: 1, borderWidth: 1, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 10 },
   whyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   whyCard: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 14 },
+  rhythmCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    padding: 16,
+  },
+  rhythmRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  rhythmUnit: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
 });

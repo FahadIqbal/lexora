@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '../components/Screen';
 import { LexText } from '../components/LexText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { IconSymbol } from '../components/IconSymbol';
 import { useTheme } from '../theme/ThemeProvider';
 import { TAB_BAR_BOTTOM } from '../theme';
 import { useAppStore } from '../store/useAppStore';
@@ -14,11 +16,36 @@ import { Haptics, hapticNotify, hapticSelection } from '../utils/haptics';
 type PlanKey = 'monthly' | 'yearly';
 
 const perks = [
-  'Unlimited AI tutor coaching',
-  'Premium topic packs and advanced words',
-  'Deep progress insights',
-  'Offline learning queue',
-  'All game modes and challenge streaks',
+  {
+    title: 'Unlimited AI tutor coaching',
+    detail: 'Ask, retry, and get sentence-level guidance whenever you need it.',
+    icon: 'sparkles',
+    fallback: 'A',
+  },
+  {
+    title: 'Premium topic packs',
+    detail: 'Advanced words grouped by travel, work, exams, and conversation.',
+    icon: 'square.grid.2x2.fill',
+    fallback: 'P',
+  },
+  {
+    title: 'Deep progress insights',
+    detail: 'See weak spots, recall strength, streak rhythm, and next-best practice.',
+    icon: 'chart.line.uptrend.xyaxis',
+    fallback: 'I',
+  },
+  {
+    title: 'Offline learning queue',
+    detail: 'Keep studying when your connection is unreliable.',
+    icon: 'arrow.down.circle.fill',
+    fallback: 'O',
+  },
+  {
+    title: 'All challenge modes',
+    detail: 'Unlock the most engaging ways to play through review and recall.',
+    icon: 'gamecontroller.fill',
+    fallback: 'G',
+  },
 ];
 
 export function PaywallScreen() {
@@ -35,6 +62,7 @@ export function PaywallScreen() {
       price: 'RM14.90',
       caption: 'Flexible access',
       detail: 'Best when you want to test a focused study sprint.',
+      badge: 'Starter',
     },
     {
       key: 'yearly' as const,
@@ -42,6 +70,7 @@ export function PaywallScreen() {
       price: 'RM89.90',
       caption: 'Save 50%',
       detail: 'Best for consistent vocabulary growth and long streaks.',
+      badge: 'Best value',
     },
   ];
 
@@ -59,7 +88,7 @@ export function PaywallScreen() {
   return (
     <Screen>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <Animated.View entering={FadeInDown.duration(460).springify().damping(17)} style={styles.hero}>
           <LinearGradient
             colors={['rgba(123,111,255,0.26)', 'rgba(0,229,184,0.12)', 'rgba(255,107,157,0.10)']}
             start={{ x: 0, y: 0 }}
@@ -67,10 +96,15 @@ export function PaywallScreen() {
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.heroTop}>
-            <LexText variant="label" style={{ color: t.colors.accentTeal }}>
-              Lexora Premium
-            </LexText>
-            <View style={[styles.liveBadge, { borderColor: isPremium ? t.colors.accentTeal : t.colors.border }]}>
+            <View style={styles.brandRow}>
+              <View style={[styles.brandGlyph, { backgroundColor: 'rgba(0,229,184,0.14)' }]}>
+                <IconSymbol name="crown.fill" fallback="P" color={t.colors.accentTeal} size={17} />
+              </View>
+              <LexText variant="label" style={{ color: t.colors.accentTeal }}>
+                Lexora Premium
+              </LexText>
+            </View>
+            <View style={[styles.liveBadge, { borderColor: isPremium ? t.colors.accentTeal : 'rgba(255,255,255,0.14)' }]}>
               <LexText variant="label" style={{ color: isPremium ? t.colors.accentTeal : t.colors.muted, fontSize: 10 }}>
                 {isPremium ? 'Active' : 'Preview'}
               </LexText>
@@ -83,36 +117,51 @@ export function PaywallScreen() {
             Turn Lexora into a deeper coaching loop with richer practice, smarter review, and more ways to stay engaged.
           </LexText>
           <View style={styles.metricRow}>
-            <Metric label="Tutor" value="Unlimited" />
-            <Metric label="Games" value="6 modes" />
-            <Metric label="Insight" value="Deep stats" />
+            <Metric icon="message.fill" fallback="T" label="Tutor" value="Unlimited" />
+            <Metric icon="bolt.fill" fallback="G" label="Games" value="6 modes" />
+            <Metric icon="chart.bar.fill" fallback="I" label="Insight" value="Deep stats" />
           </View>
-        </View>
+        </Animated.View>
 
-        <Card style={{ marginTop: 14 }}>
-          <LexText variant="title">Included</LexText>
-          <View style={styles.perkList}>
-            {perks.map((perk) => (
-              <View key={perk} style={styles.perkRow}>
-                <View style={[styles.checkDot, { backgroundColor: 'rgba(0,229,184,0.16)' }]}>
-                  <LexText variant="label" style={{ color: t.colors.accentTeal, fontSize: 10 }}>
-                    OK
-                  </LexText>
-                </View>
-                <LexText variant="body" style={{ flex: 1 }}>
-                  {perk}
-                </LexText>
+        <Animated.View entering={FadeInDown.delay(80).duration(420)}>
+          <Card style={{ marginTop: 14 }}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardTitleGlyph, { backgroundColor: 'rgba(123,111,255,0.14)' }]}>
+                <IconSymbol name="checkmark.seal.fill" fallback="C" color={t.colors.accentPurple} size={16} />
               </View>
-            ))}
-          </View>
-        </Card>
+              <LexText variant="title">Included</LexText>
+            </View>
+            <View style={styles.perkList}>
+              {perks.map((perk, index) => (
+                <Animated.View
+                  key={perk.title}
+                  entering={FadeInDown.delay(120 + index * 35).duration(360)}
+                  style={[styles.perkRow, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.035)' }]}
+                >
+                  <View style={[styles.checkDot, { backgroundColor: 'rgba(0,229,184,0.14)' }]}>
+                    <IconSymbol name={perk.icon} fallback={perk.fallback} color={t.colors.accentTeal} size={15} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <LexText variant="title" style={{ fontSize: 15 }}>
+                      {perk.title}
+                    </LexText>
+                    <LexText variant="muted" style={{ marginTop: 3, fontSize: 12, lineHeight: 17 }}>
+                      {perk.detail}
+                    </LexText>
+                  </View>
+                </Animated.View>
+              ))}
+            </View>
+          </Card>
+        </Animated.View>
 
         <View style={styles.planGrid}>
-          {plans.map((plan) => {
+          {plans.map((plan, index) => {
             const selected = selectedPlan === plan.key;
             return (
-              <Pressable
+              <AnimatedPressable
                 key={plan.key}
+                entering={FadeInDown.delay(130 + index * 55).duration(420).springify().damping(17)}
                 onPress={() => {
                   setSelectedPlan(plan.key);
                   hapticSelection();
@@ -125,12 +174,29 @@ export function PaywallScreen() {
                     opacity: pressed ? 0.86 : 1,
                   },
                 ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
               >
                 <View style={styles.planTop}>
                   <LexText variant="title">{plan.title}</LexText>
-                  <View style={[styles.radio, { borderColor: selected ? t.colors.accentTeal : t.colors.border }]}>
-                    {selected ? <View style={[styles.radioDot, { backgroundColor: t.colors.accentTeal }]} /> : null}
-                  </View>
+                  {selected ? (
+                    <IconSymbol name="checkmark.circle.fill" fallback="Y" color={t.colors.accentTeal} size={21} />
+                  ) : (
+                    <View style={[styles.radio, { borderColor: t.colors.border }]} />
+                  )}
+                </View>
+                <View
+                  style={[
+                    styles.planBadge,
+                    {
+                      borderColor: selected ? t.colors.accentTeal : t.colors.border,
+                      backgroundColor: selected ? 'rgba(0,229,184,0.12)' : 'rgba(255,255,255,0.04)',
+                    },
+                  ]}
+                >
+                  <LexText variant="label" style={{ color: selected ? t.colors.accentTeal : t.colors.muted, fontSize: 9 }}>
+                    {plan.badge}
+                  </LexText>
                 </View>
                 <LexText variant="h2" style={{ fontSize: 25, lineHeight: 30, marginTop: 8 }}>
                   {plan.price}
@@ -141,54 +207,64 @@ export function PaywallScreen() {
                 <LexText variant="muted" style={{ marginTop: 8, fontSize: 13, lineHeight: 18 }}>
                   {plan.detail}
                 </LexText>
-              </Pressable>
+              </AnimatedPressable>
             );
           })}
         </View>
 
-        <Card style={{ marginTop: 12, backgroundColor: isPremium ? 'rgba(0,229,184,0.08)' : t.colors.surface2 }}>
-          <View style={styles.summaryRow}>
-            <View style={{ flex: 1 }}>
-              <LexText variant="label" style={{ color: t.colors.muted }}>
-                Selected plan
-              </LexText>
-              <LexText variant="title" style={{ marginTop: 4 }}>
-                {selectedPlan === 'yearly' ? 'Yearly preview trial' : 'Monthly preview'}
+        <Animated.View entering={FadeInDown.delay(210).duration(420)}>
+          <Card style={{ marginTop: 12, backgroundColor: isPremium ? 'rgba(0,229,184,0.08)' : t.colors.surface2 }}>
+            <View style={styles.summaryRow}>
+              <View style={[styles.summaryGlyph, { backgroundColor: isPremium ? 'rgba(0,229,184,0.14)' : 'rgba(255,179,71,0.14)' }]}>
+                <IconSymbol name={isPremium ? 'checkmark.seal.fill' : 'gift.fill'} fallback={isPremium ? 'Y' : 'G'} color={isPremium ? t.colors.accentTeal : t.colors.accentAmber} size={17} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <LexText variant="label" style={{ color: t.colors.muted }}>
+                  Selected plan
+                </LexText>
+                <LexText variant="title" style={{ marginTop: 4 }}>
+                  {selectedPlan === 'yearly' ? 'Yearly preview trial' : 'Monthly preview'}
+                </LexText>
+              </View>
+              <LexText variant="title" style={{ color: t.colors.accentTeal }}>
+                {selectedPlan === 'yearly' ? '7 days' : 'Now'}
               </LexText>
             </View>
-            <LexText variant="title" style={{ color: t.colors.accentTeal }}>
-              {selectedPlan === 'yearly' ? '7 days' : 'Now'}
-            </LexText>
-          </View>
-          {status ? (
-            <LexText variant="muted" style={{ marginTop: 10, color: isPremium ? t.colors.accentTeal : t.colors.muted }}>
-              {status}
-            </LexText>
-          ) : null}
-        </Card>
+            {status ? (
+              <LexText variant="muted" style={{ marginTop: 10, color: isPremium ? t.colors.accentTeal : t.colors.muted }}>
+                {status}
+              </LexText>
+            ) : null}
+          </Card>
+        </Animated.View>
 
-        <View style={styles.actions}>
+        <Animated.View entering={FadeInDown.delay(260).duration(420)} style={styles.actions}>
           <Button
             title={isPremium ? 'Premium active' : selectedPlan === 'yearly' ? 'Start preview trial' : 'Activate preview'}
             onPress={activatePreview}
             disabled={isPremium}
           />
           <Button title="Restore access" variant="ghost" onPress={restorePreview} />
-          <Button title="Close" variant="ghost" onPress={() => router.back()} />
+          <Button title="Not now" variant="ghost" onPress={() => router.back()} />
           <LexText variant="muted" style={{ textAlign: 'center', fontSize: 12 }}>
             Premium status is saved locally and synced from your profile when available.
           </LexText>
-        </View>
+        </Animated.View>
       </ScrollView>
     </Screen>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function Metric({ icon, fallback, label, value }: { icon: string; fallback: string; label: string; value: string }) {
   const t = useTheme();
   return (
     <View style={[styles.metric, { borderColor: t.colors.border, backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-      <LexText variant="label" style={{ color: t.colors.muted, fontSize: 10 }}>
+      <View style={[styles.metricIcon, { backgroundColor: 'rgba(0,229,184,0.11)' }]}>
+        <IconSymbol name={icon} fallback={fallback} color={t.colors.accentTeal} size={13} />
+      </View>
+      <LexText variant="label" style={{ color: t.colors.muted, fontSize: 9, marginTop: 7 }}>
         {label}
       </LexText>
       <LexText variant="title" style={{ marginTop: 3, fontSize: 14 }}>
@@ -209,15 +285,21 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  brandGlyph: { width: 30, height: 30, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   liveBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   metricRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
   metric: { flex: 1, borderWidth: 1, borderRadius: 14, borderCurve: 'continuous', padding: 10 },
+  metricIcon: { width: 26, height: 26, borderRadius: 10, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardTitleGlyph: { width: 32, height: 32, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   perkList: { marginTop: 12, gap: 10 },
-  perkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  perkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 12 },
   checkDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,8 +313,9 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   planTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  planBadge: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, marginTop: 10 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
   summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  summaryGlyph: { width: 36, height: 36, borderRadius: 14, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   actions: { marginTop: 14, gap: 10 },
 });
