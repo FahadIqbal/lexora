@@ -24,23 +24,23 @@ export function LexText({
       case 'h1':
         return {
           fontFamily: t.font.heading.extrabold,
-          fontSize: 42,
-          lineHeight: 46,
+          fontSize: 38,
+          lineHeight: 42,
           letterSpacing: 0,
           color: t.colors.text,
         };
       case 'h2':
         return {
           fontFamily: t.font.heading.bold,
-          fontSize: 30,
-          lineHeight: 34,
+          fontSize: 28,
+          lineHeight: 33,
           letterSpacing: 0,
           color: t.colors.text,
         };
       case 'h3':
         return {
           fontFamily: t.font.heading.semibold,
-          fontSize: 22,
+          fontSize: 21,
           lineHeight: 26,
           letterSpacing: 0,
           color: t.colors.text,
@@ -55,14 +55,14 @@ export function LexText({
         };
       case 'label':
         return {
-          fontFamily: t.font.body.medium,
-          fontSize: 12,
+          fontFamily: t.font.body.bold,
+          fontSize: 11,
           letterSpacing: 0,
           textTransform: 'uppercase' as const,
           color: t.colors.muted,
         };
       case 'muted':
-        return { fontFamily: t.font.body.regular, fontSize: 15, lineHeight: 22, color: t.colors.muted };
+        return { fontFamily: t.font.body.regular, fontSize: 14, lineHeight: 21, color: t.colors.muted };
       case 'mono':
         return { fontFamily: undefined, fontSize: 12, lineHeight: 16, color: t.colors.text };
       case 'body':

@@ -29,7 +29,8 @@ export function Button({
       }}
       style={({ pressed }) => [
         styles.base,
-        variant === 'ghost' && { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: t.colors.border },
+        variant === 'primary' && { boxShadow: `0 16px 34px ${t.colors.glowTeal}` },
+        variant === 'ghost' && { backgroundColor: t.colors.surfaceGlassStrong, borderColor: t.colors.borderBright },
         pressed && !disabled ? { transform: [{ scale: 0.96 }] } : null,
         disabled ? { opacity: 0.5 } : null,
         style,
@@ -37,7 +38,7 @@ export function Button({
     >
       {variant === 'primary' ? (
         <LinearGradient
-          colors={[t.colors.accentPurple, t.colors.accentTeal]}
+          colors={[t.colors.accentTeal, t.colors.accentBlue, t.colors.accentPurple]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -59,8 +60,9 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
-    borderRadius: 14,
+    height: 52,
+    borderRadius: 17,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

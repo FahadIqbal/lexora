@@ -1,7 +1,6 @@
 import React from 'react';
-import { ReviewScreen } from '../../src/screens/ReviewScreen';
+import { KidsReviewScreen } from '../../src/screens/kids/KidsScreens';
 
 export default function ReviewRoute() {
-  return <ReviewScreen />;
+  return <KidsReviewScreen />;
 }
-
